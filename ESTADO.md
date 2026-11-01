@@ -38,6 +38,8 @@ Pruebas de agotamiento y recuperacion de todas las paginas superadas en las cuat
 configuraciones x86; tambien solapamientos, doble liberacion y direcciones invalidas.
 Cada pagina fisica ahora se limpia al reservarla; las pruebas comprueban que los
 datos escritos antes de liberarla no aparezcan en su siguiente uso.
+El gestor tambien puede excluir rangos de dispositivos o firmware, con pruebas
+para rangos parciales, repetidos y que cruzan paginas prestadas.
 Sigue pendiente memoria virtual y uso del gestor por tareas. El heap antiguo sigue
 siendo incremental; no tiene liberacion. El nuevo gestor es un puente C pendiente
 de migrar a NEXTRY. Proximo hito: diagnostico detallado de excepciones.
