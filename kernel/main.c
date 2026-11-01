@@ -9,6 +9,7 @@
 #include "paginas.h"
 #include "archivos.h"
 #include "paginacion.h"
+#include "usuario.h"
 #if defined(__i386__)
 #define NXK_ARCH_TEXT "x86 de 32 bits"
 #define NXK_MODE_MARKER "NXK: PROTECTED MODE 32 OK\n"
@@ -107,6 +108,13 @@ static void number(size_t n) {
     char b[24]; unsigned i = 0;
     do { b[i++] = '0' + n % 10; n /= 10; } while (n);
     while (i) put(b[--i]);
+}
+/* Imprimir una copia: la consola no puede modificar el historial interno. */
+static void usuario_resultado(const struct nxk_usuario_resultado *r) {
+    print("Ejecucion "); number(r->secuencia);
+    if (!r->fallo) { print(": normal, salida "); number(r->salida); put('\n'); return; }
+    print(": fallo, vector "); number(r->vector); print(" error "); number(r->error);
+    print(" EIP "); hexadecimal(r->eip); print(" direccion "); hexadecimal(r->direccion); put('\n');
 }
 /* Puente pequeno entre NXK Espanol y las operaciones del nucleo. */
 void nxk_es_mostrar(const char *texto) { print(texto); put('\n'); }
@@ -321,7 +329,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | halt\nejecutar hola.nxe | ejecutar hola.exe\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -354,6 +362,16 @@ void kernel_main(void) {
             }
             else if (nxk_equal(line, "archivos")) {
                 for (unsigned i=0;i<8;++i) { const char *s=nxk_archivo_nombre(i); if (s) { print(s); put('\n'); } }
+            }
+            else if (nxk_equal(line, "usuario nulo")) {
+                print(nxk_usuario_caso_nulo() ? "Fallo de prueba.\n" : "Acceso nulo contenido; consulta usuario estado.\n");
+            }
+            else if (nxk_equal(line, "usuario estado") || nxk_equal(line, "usuario historial")) {
+                unsigned n=nxk_usuario_historial_cantidad();
+                if (!n) print("Sin ejecuciones de usuario.\n");
+                if (nxk_equal(line,"usuario estado") && n) n=1;
+                for (unsigned i=0;i<n;++i) { struct nxk_usuario_resultado r;
+                    if (!nxk_usuario_historial(i,&r)) usuario_resultado(&r); }
             }
             else if (nxk_equal(line, "usuario fallos")) {
                 print(nxk_usuario_comprobar_fallos() ? "Recuperacion no disponible o fallo.\n" : "Cuatro fallos de usuario contenidos; kernel operativo.\n");

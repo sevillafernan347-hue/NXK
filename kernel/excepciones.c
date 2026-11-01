@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include "nxk_es.h"
 #include "nxk.h"
+#include "usuario.h"
 #if defined(__i386__)
 struct __attribute__((packed)) puerta {
     uint16_t bajo, selector;
@@ -130,13 +131,22 @@ uint32_t nxk_usuario_pila_guardada, nxk_usuario_cs_guardado;
 extern uint32_t nxk_usuario_entrar(uint32_t codigo,uint32_t pila);
 extern void nxk_usuario_salir(void);
 static int usuario_activo;
-static uint32_t fallo_vector, fallo_error, fallo_direccion;
+static uint32_t fallo_vector, fallo_error, fallo_direccion, fallo_eip, fallo_ocurrido;
+static struct nxk_usuario_resultado historial[8];
+static unsigned siguiente_resultado, cantidad_resultados;
+static uint32_t secuencia_resultado;
+unsigned nxk_usuario_historial_cantidad(void) { return cantidad_resultados; }
+int nxk_usuario_historial(unsigned reciente,struct nxk_usuario_resultado *salida) {
+    if (!salida || reciente>=cantidad_resultados) return -1;
+    *salida=historial[(siguiente_resultado+7-reciente)%8]; return 0;
+}
 extern _Noreturn void nxk_usuario_abortar(uint32_t resultado);
 void nxk_usuario_atender_fallo(const uint32_t *contexto) {
     unsigned v=contexto[8];
     /* Nunca interceptar fallos de ring0, NMI ni doble fallo. */
     if (!usuario_activo || (contexto[11]&3)!=3 ||
         (v!=0 && v!=6 && v!=13 && v!=14)) return;
+    fallo_ocurrido=1; fallo_eip=contexto[10];
     fallo_vector=v; fallo_error=contexto[9]; fallo_direccion=0;
     if (v==14) __asm__ volatile("mov %%cr2,%0":"=r"(fallo_direccion));
     nxk_usuario_cs_guardado=contexto[11];
@@ -176,7 +186,7 @@ static int usuario_ejecutar(unsigned modo) {
     d[codigo>>22]|=4;
     __asm__ volatile("mov %0,%%cr3" :: "r"(0x200000u) : "memory");
     nxk_usuario_cs_guardado=0;
-    usuario_activo=1; fallo_vector=fallo_error=fallo_direccion=0;
+    usuario_activo=1; fallo_vector=fallo_error=fallo_direccion=fallo_eip=fallo_ocurrido=0;
     uint32_t resultado=nxk_usuario_entrar((uint32_t)codigo,(uint32_t)(codigo+8192));
     usuario_activo=0;
     /* Retirar permisos de usuario y la puerta temporal antes de continuar. */
@@ -184,20 +194,39 @@ static int usuario_ejecutar(unsigned modo) {
     d[codigo>>22]=antes_directorio; tabla[128]=antes_puerta;
     tss_normal[1]=esp0; tss_normal[2]=ss0;
     __asm__ volatile("mov %0,%%cr3" :: "r"(0x200000u) : "memory");
+    historial[siguiente_resultado]=(struct nxk_usuario_resultado){
+        ++secuencia_resultado,resultado,fallo_ocurrido,fallo_vector,fallo_error,fallo_eip,fallo_direccion};
+    siguiente_resultado=(siguiente_resultado+1)%8;
+    if (cantidad_resultados<8) ++cantidad_resultados;
     if ((nxk_usuario_cs_guardado&3)!=3) return -2;
     if (modo) return resultado==(0x80000000u|fallo_vector) ? (int)fallo_vector : -3;
     return resultado==42 ? 0 : -2;
 }
 int nxk_usuario_demo(void) { return usuario_ejecutar(0); }
+int nxk_usuario_caso_nulo(void) {
+    return usuario_ejecutar(4)==14 && fallo_error==4 && !fallo_direccion ? 0 : -1;
+}
 int nxk_usuario_comprobar_fallos(void) {
     if (nxk_usuario_demo()) return 1;
     size_t antes=nxk_heap_used();
     const unsigned vectores[]={13,14,6,14}, errores[]={0,7,0,4};
     for (unsigned modo=1;modo<=4;++modo) {
         if (usuario_ejecutar(modo)!=(int)vectores[modo-1] || fallo_error!=errores[modo-1]) return 2;
+        struct nxk_usuario_resultado registro;
+        if (nxk_usuario_historial(0,&registro) || !registro.fallo ||
+            registro.vector!=vectores[modo-1] || !registro.eip) return 6;
         if (modo==2 && fallo_direccion!=0x10000) return 3;
         if (modo==4 && fallo_direccion!=0) return 4;
         if (nxk_usuario_demo() || nxk_heap_used()!=antes) return 5;
+        if (nxk_usuario_historial(0,&registro) || registro.fallo || registro.vector ||
+            registro.error || registro.eip || registro.direccion || registro.salida!=42) return 7;
+    }
+    struct nxk_usuario_resultado registro;
+    if (cantidad_resultados!=8 || nxk_usuario_historial(8,&registro)!=-1 ||
+        nxk_usuario_historial(0,0)!=-1) return 8;
+    for (unsigned i=0;i<8;++i) {
+        if (nxk_usuario_historial(i,&registro) ||
+            registro.secuencia!=(uint32_t)(secuencia_resultado-i)) return 9;
     }
     return 0;
 }
@@ -226,6 +255,9 @@ void nxk_excepciones_iniciar(void) {
     __asm__ volatile("lidt %0" :: "m"(d) : "memory");
 }
 #else
+unsigned nxk_usuario_historial_cantidad(void) { return 0; }
+int nxk_usuario_historial(unsigned i,struct nxk_usuario_resultado *s) { (void)i;(void)s;return -64; }
+int nxk_usuario_caso_nulo(void) { return -64; }
 void nxk_usuario_atender_fallo(const uint32_t *p) { (void)p; }
 int nxk_usuario_comprobar_fallos(void) { return -64; }
 int nxk_usuario_demo(void) { return -64; }

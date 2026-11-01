@@ -17,14 +17,26 @@ with log.open('wb',buffering=0) as salida:
             if proceso.poll() is not None: raise RuntimeError('QEMU termino antes de responder')
             time.sleep(.05)
         raise RuntimeError(log.read_bytes().decode(errors='replace'))
+    def enviar(datos):
+        # Ritmo de terminal: evita desbordar la FIFO UART con comandos largos.
+        for byte in datos:
+            proceso.stdin.write(bytes([byte])); proceso.stdin.flush(); time.sleep(.003)
     try:
         esperar(b'nxk> ')
+        enviar(b'usuario estado\n')
+        esperar(b'Sin ejecuciones de usuario.')
+        enviar(b'usuario nulo\nusuario estado\n')
+        esperar(b'fallo, vector 14 error 4')
+        enviar(b'usuario\nusuario estado\n')
+        esperar(b'normal, salida 42')
         for i in range(2):
-            proceso.stdin.write(b'usuario fallos\n'); proceso.stdin.flush()
+            enviar(b'usuario fallos\n')
             esperar(b'Cuatro fallos de usuario contenidos;',i+1)
-            proceso.stdin.write(b'usuario\n'); proceso.stdin.flush()
-            esperar(b'control devuelto al kernel.',i+1)
-        proceso.stdin.write(b'help\n'); proceso.stdin.flush()
+            enviar(b'usuario\n')
+            esperar(b'control devuelto al kernel.',i+2)
+        enviar(b'usuario historial\n')
+        esperar(b'Ejecucion ',10)
+        enviar(b'help\n')
         esperar(b'help | version')
         print('CONSOLA OK: fallos recuperados, programa repetido y help operativo.')
     finally:
