@@ -1,0 +1,12 @@
+tools/
+build/
+Biblioteca/
+.zig-cache/
+zig-out/
+__pycache__/
+*.pyc
+*.vsix
+.env
+.env.*
+*.pem
+*.key

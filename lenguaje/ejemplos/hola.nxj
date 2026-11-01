@@ -1,0 +1,19 @@
+# GUIA DE LECTURA NXK - lenguaje/ejemplos/hola.nxj
+# Ejemplo de la sintaxis experimental de clases y metodos estaticos NXJ.
+# Contexto y orden de estudio: ver LEER-CODIGO.md en la carpeta principal.
+# NXJ: estilo de clases inspirado en Java, con palabras en espanol.
+clase MiAplicacion
+    publico estatico funcion saludo
+        mostrar "Hola desde NXJ"
+    fin
+
+    publico estatico funcion inicio
+        llamar saludo
+        variable contador = 0
+        repetir 3 veces
+            contador = contador + 1
+        fin
+        afirmar contador == 3
+        numero contador
+    fin
+fin

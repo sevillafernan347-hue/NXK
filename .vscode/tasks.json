@@ -1,0 +1,61 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "NXK: Crear aplicacion NXE",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/compilar-app.ps1"],
+      "problemMatcher": "$gcc"
+    },
+    {
+      "label": "NXK: Probar lenguaje en espanol",
+      "type": "process",
+      "command": "${workspaceFolder}/tools/python/python.exe",
+      "args": ["${workspaceFolder}/lenguaje/pruebas.py"],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "NXK: Probar version de 32 bits",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/test.ps1", "-Architecture", "x86", "-MemoryMatrix"],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "NXK: Probar RAM de 32 MiB a 1 GiB",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/test.ps1", "-MemoryMatrix"],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "NXK: Compilar",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/build.ps1"],
+      "group": {"kind": "build", "isDefault": true},
+      "problemMatcher": "$gcc"
+    },
+    {
+      "label": "NXK: Ejecutar en QEMU",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/run.ps1"],
+      "dependsOn": "NXK: Compilar",
+      "problemMatcher": [],
+      "presentation": {"reveal": "always", "focus": true, "panel": "dedicated"}
+    },
+    {
+      "label": "NXK: Probar arranque",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/test.ps1"],
+      "group": "test",
+      "problemMatcher": []
+    }
+  ]
+}

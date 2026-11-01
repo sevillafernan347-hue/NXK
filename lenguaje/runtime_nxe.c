@@ -1,0 +1,28 @@
+/* GUIA DE LECTURA NXK - lenguaje/runtime_nxe.c
+ * Adaptador de la app NXE: recibe la tabla de servicios del kernel y llama al inicio de NEXTRY.
+ * Contexto y orden de estudio: ver LEER-CODIGO.md en la carpeta principal.
+ */
+#include "nxe.h"
+static const NXE_API *sistema;
+void nxk_es_mostrar(const char *t) { sistema->mostrar(t); }
+void nxk_es_numero(uint32_t n) { sistema->numero(n); }
+uint32_t nxk_es_memoria_usada(void) { return sistema->memoria_usada(); }
+uint32_t nxk_es_dividir(uint32_t a, uint32_t b) { return sistema->dividir(a, b); }
+uint32_t nxk_es_resto(uint32_t a, uint32_t b) { return sistema->resto(a, b); }
+uint32_t nxk_es_leer_puerto(uint32_t p) { return sistema->leer_puerto(p); }
+void nxk_es_escribir_puerto(uint32_t p, uint32_t v) { sistema->escribir_puerto(p, v); }
+_Noreturn void nxk_es_fallo(uint32_t n) {
+    sistema->fallo(n);
+    for (;;) __asm__ volatile("cli; hlt");
+}
+_Noreturn void nxk_es_detener(void) {
+    sistema->detener();
+    for (;;) __asm__ volatile("cli; hlt");
+}
+__attribute__((section(".text.entry")))
+uint32_t nxe_entrada(const NXE_API *api) {
+    if (!api || api->version != 1 || api->longitud != sizeof(NXE_API)) return 1;
+    sistema = api;
+    nxk_es_inicio();
+    return 0;
+}

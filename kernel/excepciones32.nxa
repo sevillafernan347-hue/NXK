@@ -1,0 +1,16 @@
+# GUIA DE LECTURA NXK - kernel/excepciones32.nxa
+# Entrada comun ante una excepcion x86: guarda registros y llama al manejador fatal; no regresa.
+# Contexto y orden de estudio: ver LEER-CODIGO.md en la carpeta principal.
+# Entrada fatal generada por NEXTRY ASM, modo protegido de 32 bits.
+# El puente instala la direccion del manejador C en el inmediato de cargar32.
+origen 0
+modo 32
+desactivar_interrupciones
+direccion_adelante
+guardar_registros32
+alinear_pila16
+cargar32 eax, 0
+llamar_registro eax
+espera:
+detener
+saltar espera

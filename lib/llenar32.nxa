@@ -1,0 +1,15 @@
+# GUIA DE LECTURA NXK - lib/llenar32.nxa
+# Implementa memset en NEXTRY ASM: llena una region con un byte y devuelve su direccion.
+# Contexto y orden de estudio: ver LEER-CODIGO.md en la carpeta principal.
+# memset cdecl: destino, valor, cantidad. Devuelve destino en EAX.
+modo 32
+guardar32 edi
+cargar_pila32 edi, 8
+copiar32 edx, edi
+cargar_pila32 eax, 12
+cargar_pila32 ecx, 16
+direccion_adelante
+llenar_bytes
+copiar32 eax, edx
+recuperar32 edi
+devolver

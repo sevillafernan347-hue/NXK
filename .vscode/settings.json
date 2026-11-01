@@ -1,0 +1,10 @@
+{
+  "files.exclude": {"tools": true, "build": true},
+  "search.exclude": {"tools/**": true, "build/**": true, "Biblioteca/**": true},
+  "files.associations": {"*.S": "asm", "*.ld": "plaintext", "*.nxf": "nxk-espanol"},
+  "editor.tabSize": 4,
+  "C_Cpp.default.includePath": ["${workspaceFolder}/lib", "${workspaceFolder}/tools/zig/lib/include"],
+  "C_Cpp.default.compilerPath": "",
+  "C_Cpp.default.intelliSenseMode": "clang-x64",
+  "C_Cpp.default.defines": ["__STDC_HOSTED__=0"]
+}

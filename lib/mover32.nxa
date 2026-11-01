@@ -1,0 +1,35 @@
+# GUIA DE LECTURA NXK - lib/mover32.nxa
+# Implementa memmove en NEXTRY ASM: permite copiar incluso cuando las regiones se superponen.
+# Contexto y orden de estudio: ver LEER-CODIGO.md en la carpeta principal.
+# memmove: admite regiones solapadas; conserva ESI/EDI y deja DF limpio.
+modo 32
+guardar32 edi
+guardar32 esi
+# Al guardar dos registros, los argumentos quedan a 12, 16 y 20 bytes de ESP.
+cargar_pila32 edi, 12
+cargar_pila32 esi, 16
+cargar_pila32 ecx, 20
+copiar32 eax, edi
+# EAX conserva el destino que debemos devolver. Cero bytes no accede a memoria.
+cargar32 edx, 0
+comparar32 ecx, edx
+si_igual terminar
+comparar32 edi, esi
+si_menor_igual_sin_signo adelante
+# Si el destino esta mas arriba, empezamos por el final para no pisar el origen.
+sumar32 edi, ecx
+sumar32 esi, ecx
+decrementar32 edi
+decrementar32 esi
+direccion_atras
+copiar_bytes
+saltar terminar
+adelante:
+direccion_adelante
+copiar_bytes
+terminar:
+# Siempre restauramos la direccion normal y los registros del llamador.
+direccion_adelante
+recuperar32 esi
+recuperar32 edi
+devolver

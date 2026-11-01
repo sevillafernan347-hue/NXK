@@ -1,0 +1,23 @@
+# GUIA DE LECTURA NXK - kernel/entrada32.nxa
+# Entrada actual de 32 bits: pone a cero variables BSS y llama a kernel_main.
+# Contexto y orden de estudio: ver LEER-CODIGO.md en la carpeta principal.
+# Entrada propia: limpia BSS y llama al nucleo.
+origen 0
+modo 32
+externo __bss_start
+externo __bss_end
+externo kernel_main
+direccion_adelante
+# BSS contiene variables sin valor inicial; deben empezar en cero.
+cargar32 edi, __bss_start
+cargar32 ecx, __bss_end
+restar32 ecx, edi
+cero eax
+llenar_bytes
+cargar32 eax, kernel_main
+# El enlazador determina esta direccion; simbolos_elf.py la comunica al ensamblador.
+llamar_registro eax
+desactivar_interrupciones
+espera:
+detener
+saltar espera

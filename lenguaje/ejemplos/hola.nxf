@@ -1,0 +1,13 @@
+# GUIA DE LECTURA NXK - lenguaje/ejemplos/hola.nxf
+# Ejemplo de aplicacion NEXTRY compilada y empaquetada como hola.nxe.
+# Contexto y orden de estudio: ver LEER-CODIGO.md en la carpeta principal.
+función inicio
+    mostrar "Hola: soy una aplicacion NXE de NXK"
+    variable vueltas = 0
+    repetir 3 veces
+        vueltas = vueltas + 1
+    fin
+    afirmar vueltas == 3
+    mostrar "Vueltas completadas:"
+    número vueltas
+fin

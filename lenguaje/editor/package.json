@@ -1,0 +1,14 @@
+{
+  "name": "nxk-espanol",
+  "displayName": "NXK Español",
+  "description": "Lenguaje en español de NXK: fuentes NXF y ejecutables NXE.",
+  "version": "0.1.0",
+  "publisher": "nxk-local",
+  "engines": {"vscode": "^1.80.0"},
+  "categories": ["Programming Languages"],
+  "contributes": {
+    "languages": [{"id": "nxk-espanol", "aliases": ["NXK Español"], "extensions": [".nxf"], "configuration": "./configuracion.json"}],
+    "grammars": [{"language": "nxk-espanol", "scopeName": "source.nxk-espanol", "path": "./gramatica.json"}],
+    "snippets": [{"language": "nxk-espanol", "path": "./fragmentos.json"}]
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "Programa inicial": {"prefix": "inicio", "body": ["función inicio", "    mostrar \"${1:Hola desde NXK}\"", "    $0", "fin"], "description": "Crear un programa NXK Español"},
+  "Repeticion": {"prefix": "repetir", "body": ["repetir ${1:3} veces", "    $0", "fin"], "description": "Repetir un bloque"},
+  "Condicion": {"prefix": "si", "body": ["si ${1:verdadero}", "    $2", "sino", "    $0", "fin"], "description": "Elegir entre dos bloques"},
+  "Funcion": {"prefix": "funcion", "body": ["función ${1:nombre}", "    $0", "fin"], "description": "Declarar una función"}
+}

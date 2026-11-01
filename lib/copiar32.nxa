@@ -1,0 +1,16 @@
+# GUIA DE LECTURA NXK - lib/copiar32.nxa
+# Implementa memcpy en NEXTRY ASM: copia bytes entre regiones que no se solapan.
+# Contexto y orden de estudio: ver LEER-CODIGO.md en la carpeta principal.
+# memcpy(destino, origen, cantidad), ABI cdecl. Regiones sin solapamiento.
+modo 32
+guardar32 edi
+guardar32 esi
+cargar_pila32 edi, 12
+cargar_pila32 esi, 16
+cargar_pila32 ecx, 20
+copiar32 eax, edi
+direccion_adelante
+copiar_bytes
+recuperar32 esi
+recuperar32 edi
+devolver

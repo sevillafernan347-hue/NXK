@@ -1,0 +1,40 @@
+# GUIA DE LECTURA NXK - kernel/inicio.nxf
+# Modulo del kernel en NEXTRY: bienvenida y ejemplos comprobados de variables, ciclos y condiciones.
+# Contexto y orden de estudio: ver LEER-CODIGO.md en la carpeta principal.
+# Fuente NXK Espanol (.nxf): este modulo forma parte del kernel.
+# La sangria ayuda a leer, pero no cambia el significado del programa.
+
+funcion bienvenida
+    mostrar "Hola desde el lenguaje de nuestro kernel"
+fin
+
+funcion inicio
+    llamar bienvenida
+    constante objetivo = 3
+    variable contador = 0
+
+    repetir objetivo veces
+        contador = contador + 1
+    fin
+
+    si contador == objetivo
+        mostrar "NXK Espanol: modulo listo"
+    sino
+        mostrar "El contador no tiene el valor esperado"
+    fin
+
+    afirmar contador == 3
+    afirmar (contador y_bits 1) == 1
+    afirmar verdadero y no falso
+
+    variable pasos = 2
+    mientras pasos > 0
+        pasos = pasos - 1
+    fin
+    afirmar pasos == 0
+    afirmar 7 / 2 == 3
+    afirmar 7 % 2 == 1
+
+    mostrar "Memoria del asignador usada, en bytes:"
+    numero memoria_usada()
+fin

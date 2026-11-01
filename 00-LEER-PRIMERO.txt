@@ -1,0 +1,168 @@
+NXK — GUIA PRINCIPAL DEL PROYECTO
+Actualizado: 31 de octubre de 2026
+================================
+
+TODO EL PROYECTO ESTA EN ESTA CARPETA: NXK
+No necesitas buscar en otras carpetas de Codex. Visual Studio Code es la
+aplicacion instalada que usamos para editar; las herramientas portatiles,
+los libros, el codigo y los resultados estan aqui dentro.
+
+Para elegir que abrir, ejecuta: 00-ABRIR-NXK.cmd
+
+1. QUE ESTAMOS CONSTRUYENDO Y PARA QUE
+-------------------------------------
+Un sistema operativo propio llamado NXK, empezando por su kernel. No estamos
+copiando el kernel de Linux. Queremos que llegue a funcionar en una ASUS de
+32 bits, de alrededor de 2010 y con 1 GB de RAM.
+
+Queremos programar en espanol, usar ejecutables propios NXE y ampliar NXJ
+hasta ofrecer las capacidades de Java. La compatibilidad con programas de
+Windows sera un puente para poder migrar gradualmente a aplicaciones NXK.
+
+NUEVO REQUISITO: todo el sistema y sus herramientas deben migrar al lenguaje
+propio. Hoy aun hay C, ensamblador y Python: la migracion no esta hecha.
+El plan y sus dependencias estan en lenguaje/AUTOALOJAMIENTO.md.
+
+NOMBRE DEFINITIVO DEL LENGUAJE: NEXTRY.
+NEXTRY ASM es nuestro ensamblador inicial. Su fuente de arranque es
+boot/arranque32.nxa y sus reglas estan en lenguaje/NEXTRY-ASM.md.
+La entrada del kernel tambien usa kernel/entrada32.nxa. Lee
+AVANCE-ENTRADA-NEXTRY.md para ver el estado actualizado de la migracion.
+Todo el OS NXK y su kernel deben basarse en NEXTRY. La definicion principal
+esta en lenguaje/NEXTRY.md. NXK Espanol y NXJ son prototipos anteriores;
+el kernel actual todavia no cumple el requisito de estar escrito en NEXTRY.
+
+Hoy tenemos un prototipo educativo que arranca en una maquina virtual.
+Todavia no es un sistema operativo completo para sustituir Windows.
+
+2. QUE YA HEMOS HECHO
+----------------------
+KERNEL NXK:
+- Cargadores de arranque y nucleo propios, en C y ensamblador.
+- Version principal de 32 bits y una variante de 64 bits.
+- Pantalla de texto, salida serie y teclado basico.
+- Consola con help, version, mem y halt.
+- Asignador de memoria inicial, pequeno y fijo.
+- Pruebas de arranque de 32 bits con 32, 64, 128 y 1024 MB de RAM virtual.
+- Prueba de la variante de 64 bits con 64 MB.
+
+LENGUAJES Y APLICACIONES:
+- NXK Espanol: lenguaje inicial con variables, constantes, funciones,
+  condiciones, bucles, operaciones de bits y acceso basico a puertos.
+- NXJ: variante inicial con una clase y metodos publicos estaticos.
+- Formato binario NXE propio, con version, arquitectura e integridad.
+- Aplicacion hola.nxe compilada, cargada y ejecutada en NXK x86 y x64.
+- Un EXE Win32 propio de prueba funciona en Windows y NXK de 32 bits.
+  El puente solo implementa GetStdHandle, WriteFile y ExitProcess.
+
+ENTORNO Y ESTUDIO:
+- Visual Studio Code instalado para editar el proyecto.
+- QEMU incluido para probarlo como una computadora dentro de una ventana.
+- Compilador Zig/Clang y Python de construccion dentro de tools.
+- Biblioteca de 200 titulos locales, entre libros y manuales, en 10 temas
+  con 20 titulos cada uno. La mayoria estan en ingles.
+- Reglas, ejemplos y pruebas automatizadas del lenguaje.
+- Comprobaciones de rechazo de algunos ejecutables incorrectos.
+
+3. DONDE ESTA CADA COSA
+------------------------
+Biblioteca/       Libros, manuales y CATALOGO.md para encontrarlos.
+Biblioteca/Espanol/  Nueva seleccion en espanol: 10 titulos locales por ahora.
+                  La meta de 200 en espanol todavia no esta completada.
+boot/             Codigo que inicia el procesador y carga el kernel.
+kernel/           Nucleo, consola y cargador de aplicaciones NXE.
+lib/              Funciones basicas y tablas de comunicacion con apps.
+lenguaje/         Compiladores, reglas y ejemplos de NXK Espanol y NXJ.
+compatibilidad/   Puente experimental para ejecutables Windows.
+tools/            Herramientas portatiles; normalmente no debes editarlas.
+build/            Archivos generados y registros de pruebas.
+.vscode/          Configuracion de Visual Studio Code.
+
+Archivos para leer:
+lenguaje/REGLAS.md                 Reglas de NXK Espanol.
+lenguaje/NXJ.md                    Lo que NXJ admite actualmente.
+lenguaje/OBJETIVO-NXJ.md           Capacidades de Java que faltan.
+lenguaje/FORMATO-NXE.md            Como es nuestro ejecutable.
+compatibilidad/windows/LEEME.md    Alcance real del puente Windows.
+COMPATIBILIDAD.md                  Requisitos y pruebas de RAM/ASUS.
+EMPEZAR-AQUI.md                    Primera practica paso a paso.
+ESTADO.md                         Resumen tecnico y verificaciones.
+
+4. COMO ABRIR Y USAR EL PROYECTO
+--------------------------------
+00-ABRIR-NXK.cmd      Menu principal para no buscar archivos.
+ABRIR-PROYECTO.cmd   Abrir todo NXK en Visual Studio Code.
+INICIAR-NXK-32.cmd   Encender la maquina virtual de 32 bits.
+PROGRAMAR-NXJ.cmd    Abrir el ejemplo hola.nxj para programar en NXJ.
+EDITAR-APP.cmd       Abrir hola.nxf para programar en NXK Espanol.
+CREAR-APP-NXE.cmd    Compilar el ejemplo NXF a ejecutable NXE.
+CREAR-APP-NXJ.cmd    Compilar el ejemplo NXJ a hola-java.nxe.
+COMPILAR-NXK.cmd     Reconstruir la imagen del kernel y sus ejemplos.
+PROBAR-NXK-32.cmd    Ejecutar las pruebas en varias cantidades de RAM.
+PROBAR-LENGUAJE.cmd  Ejecutar las pruebas del compilador del lenguaje.
+
+En la consola de NXK puedes escribir:
+  help
+  version
+  mem
+  ejecutar hola.nxe
+  ejecutar hola.exe
+  halt
+
+Los dos ejecutables del menu estan incorporados durante la construccion.
+El shell aun no abre rutas arbitrarias desde disco o USB. Crear
+hola-java.nxe no lo incorpora automaticamente al menu de ejecucion.
+Si cambias el codigo, recompila, cierra QEMU y abre una nueva ventana.
+
+5. QUE SIGNIFICA CADA EXTENSION
+--------------------------------
+.nxf   Codigo fuente de NXK Espanol: aqui escribimos programas.
+.nxj   Codigo fuente de NXJ: aqui escribimos clases y metodos.
+.nxe   Ejecutable nativo propio de NXK: resultado de compilar.
+.exe   Ejecutable Windows: necesita el puente y APIs compatibles.
+.img   Disco virtual para arrancar NXK en QEMU.
+.c/.S  Base del nucleo, arranque y acceso al procesador.
+.md    Documentacion que puedes leer en Visual Studio Code.
+.cmd   Accesos para abrir, compilar o probar con doble clic.
+
+6. QUE FALTA Y POR QUE VAMOS EN ESTE ORDEN
+------------------------------------------
+PRIMERO: excepciones e IDT.
+Necesitamos que un error del procesador produzca un diagnostico controlado.
+Hoy ciertos errores aun pueden detener la maquina virtual sin explicacion.
+
+DESPUES: mapa real de memoria, asignador de paginas y memoria virtual.
+Permitiran utilizar la RAM disponible y separar las aplicaciones.
+
+DESPUES: temporizador, planificador y cambios de contexto.
+Son la base para tareas, hilos y sincronizacion reales.
+
+DESPUES: procesos aislados, archivos y carga desde almacenamiento.
+Necesitamos abrir programas y datos reales sin recompilar el kernel.
+
+EN EL LENGUAJE: parametros, retornos tipados y objetos.
+Luego herencia, interfaces, excepciones, memoria de objetos, recoleccion de
+basura, hilos, colecciones, bibliotecas y herramientas. NXJ aun no equivale
+a Java. Tambien falta elegir una version Java de referencia y definir
+que compatibilidad de fuentes, bibliotecas o bytecode se implementara.
+
+EN WINDOWS: ampliar el entorno y las APIs segun aplicaciones elegidas.
+El EXE de demostracion no significa que Office, instaladores, navegadores
+o juegos ya funcionen. Primero hacen falta las bases del sistema y luego
+las dependencias concretas de cada programa.
+
+EN LA ASUS: identificar el modelo y probar arranque y dispositivos.
+Las pruebas de RAM en QEMU no prueban teclado, disco, pantalla, firmware
+o red de esa laptop real. Aun no hemos instalado NXK en ella.
+
+7. LIMITES IMPORTANTES DEL ESTADO ACTUAL
+-----------------------------------------
+No hay escritorio grafico, sistema de archivos general, red, USB completo,
+procesos aislados, hilos reales, recoleccion de basura ni soporte UEFI.
+Las aplicaciones de prueba comparten privilegios del kernel. El contador
+de memoria de la consola no mide toda la RAM ni el consumo de un SO completo.
+
+PROXIMO PASO CONCRETO: IDT Y MANEJO DE EXCEPCIONES.
+Ese paso permite diagnosticar fallos antes de ampliar memoria, tareas y apps.
+
+PARA ENTENDER LOS PROGRAMAS: abre LEER-CODIGO.md. Incluye el mapa de los 53 archivos propios, ahora comentados en espanol. El movimiento con solapamiento esta en lib/mover32.nxa.

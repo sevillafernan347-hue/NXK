@@ -1,0 +1,102 @@
+# GUIA DE LECTURA NXK - boot/arranque32.nxa
+# Arranque BIOS usado en 32 bits: lee el kernel del disco, prepara segmentos y activa el modo protegido.
+# Contexto y orden de estudio: ver LEER-CODIGO.md en la carpeta principal.
+# Arranque propio generado directamente por NEXTRY ASM.
+origen 0x7c00
+modo 16
+saltar_lejos 0, inicio
+inicio:
+desactivar_interrupciones
+cero ax
+segmento ds, ax
+segmento es, ax
+segmento ss, ax
+cargar16 sp, 0x7c00
+direccion_adelante
+activar_interrupciones
+cargar16 si, paquete
+# El BIOS lee 64 sectores del disco a partir del sector 1, segun el paquete.
+cargar8 ah, 0x42
+interrupcion 0x13
+si_error error_disco
+# Mapa BIOS E820: cabecera en 0x5000, hasta 32 registros de 20 bytes en 0x5010.
+# Se recoge antes de pasar a modo protegido, mientras existe el servicio BIOS.
+cargar16 bp, 0
+escribir_memoria16 0x5000, bp
+escribir_memoria16 0x5002, bp
+cargar32 ebx, 0
+cargar16 di, 0x5010
+consultar_ram:
+cargar32 eax, 0xe820
+cargar32 edx, 0x534d4150
+cargar32 ecx, 20
+guardar16 bp
+guardar16 di
+interrupcion 0x15
+recuperar16 di
+recuperar16 bp
+si_error fin_ram
+comparar_inmediato32 eax, 0x534d4150
+si_distinto ram_invalida
+comparar_inmediato32 ecx, 20
+si_distinto ram_invalida
+sumar_inmediato16 bp, 1
+sumar_inmediato16 di, 20
+comparar_inmediato32 ebx, 0
+si_igual fin_ram
+comparar_inmediato16 bp, 32
+si_igual ram_invalida
+saltar consultar_ram
+fin_ram:
+# Solo publicamos mapas completos; un fallo en la primera llamada deja cero entradas.
+escribir_memoria16 0x5000, bp
+comparar_inmediato16 bp, 0
+si_igual ram_invalida
+cargar16 ax, 1
+escribir_memoria16 0x5002, ax
+ram_invalida:
+desactivar_interrupciones
+entrada8 0x92
+# Activa A20 para acceder a direcciones superiores a 1 MiB.
+unir8 2
+salida8 0x92
+cargar_gdt descriptor_gdt
+# La GDT define los segmentos. El bit PE de CR0 activa el modo protegido.
+leer_control eax, cr0
+unir32 1
+escribir_control cr0, eax
+saltar_lejos 8, protegido
+error_disco:
+cargar16 ax, 0x0e45
+interrupcion 0x10
+desactivar_interrupciones
+espera:
+detener
+saltar espera
+alinear 8
+paquete:
+# Paquete de lectura BIOS: tamano, sectores, destino 1000:0000 y sector inicial.
+bytes 16, 0
+palabra 64, 0, 0x1000
+cuadruple 1
+gdt:
+cuadruple 0, 0x00cf9a000000ffff, 0x00cf92000000ffff
+fin_gdt:
+descriptor_gdt:
+palabra fin_gdt-gdt-1
+doble gdt
+modo 32
+protegido:
+# Ya en 32 bits: carga los segmentos de datos y prepara una pila a 0x90000.
+cargar16 ax, 0x10
+segmento ds, ax
+segmento es, ax
+segmento ss, ax
+segmento fs, ax
+segmento gs, ax
+cargar32 esp, 0x90000
+cargar32 eax, 0x10000
+saltar_registro eax
+rellenar_hasta 510
+# Firma que el BIOS exige en los dos ultimos bytes del sector de arranque.
+palabra 0xaa55
