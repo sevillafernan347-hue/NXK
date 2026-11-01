@@ -7,6 +7,7 @@
 #include "nxe.h"
 #include "pe.h"
 #include "paginas.h"
+#include "archivos.h"
 #if defined(__i386__)
 #define NXK_ARCH_TEXT "x86 de 32 bits"
 #define NXK_MODE_MARKER "NXK: PROTECTED MODE 32 OK\n"
@@ -66,6 +67,11 @@ void nxk_excepcion_fatal(const uint32_t *pila) {
     out8(0xf4, 0x12);
 #endif
     for (;;) __asm__ volatile("cli; hlt");
+}
+/* Prefijo acotado por el terminador de la cadena de comando. */
+static int prefijo(const char *s,const char *p) {
+    while (*p) if (*s++!=*p++) return 0;
+    return 1;
 }
 static char read_char(void) {
     /* Sondeo: consultamos si llego una tecla, sin interrupciones de teclado.
@@ -171,6 +177,8 @@ void kernel_main(void) {
     print("NXK: PILAS Y REUTILIZACION OK\n");
 #endif
 #ifdef NXK_TEST
+    if (nxk_archivos_probar()) { print("NXK: ARCHIVOS FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
+    print("NXK: ARCHIVOS RAM OK\n");
     unsigned char prueba_memoria[19];
     memset(prueba_memoria, 0xcc, sizeof(prueba_memoria));
     void *retorno_memoria=memset(prueba_memoria+1, 0x1a5, 17);
@@ -256,7 +264,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | halt\nejecutar hola.nxe | ejecutar hola.exe\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | archivos | halt\nejecutar hola.nxe | ejecutar hola.exe\nescribir nombre texto | leer nombre | borrar nombre\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -264,6 +272,26 @@ void kernel_main(void) {
                 if (nxk_pe_demo() != 0) print("EXE no compatible. El puente inicial requiere NXK de 32 bits.\n");
             }
             else if (nxk_equal(line, "version")) print("NXK 0.1, nucleo propio " NXK_ARCH_TEXT "\n");
+            else if (prefijo(line,"escribir ")) {
+                char *nombre=line+9, *texto=nombre;
+                while (*texto && *texto!=' ') ++texto;
+                if (!*texto) print("Uso: escribir nombre texto\n");
+                else {
+                    *texto++=0; size_t n=0; while (texto[n]) ++n;
+                    print(nxk_archivo_escribir(nombre,texto,n) ? "No se pudo escribir.\n" : "Archivo guardado en RAM.\n");
+                }
+            }
+            else if (prefijo(line,"leer ")) {
+                char datos[256]; int n=nxk_archivo_leer(line+5,datos,sizeof(datos));
+                if (n<0) print("No se pudo leer.\n");
+                else { for (int i=0;i<n;++i) put(datos[i]); put('\n'); }
+            }
+            else if (prefijo(line,"borrar ")) {
+                print(nxk_archivo_borrar(line+7) ? "No se pudo borrar.\n" : "Archivo borrado.\n");
+            }
+            else if (nxk_equal(line, "archivos")) {
+                for (unsigned i=0;i<8;++i) { const char *s=nxk_archivo_nombre(i); if (s) { print(s); put('\n'); } }
+            }
             else if (nxk_equal(line, "tareas")) {
                 print(nxk_tareas_demo() ? "Tareas no disponibles o fallo.\n" : "Dos tareas: cuatro turnos por tarea, pilas propias verificadas.\n");
             }

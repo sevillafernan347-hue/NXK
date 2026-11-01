@@ -70,3 +70,6 @@ Integracion en main: diagnostico de excepciones, PIT, tareas cooperativas y
 validacion PE. El gestor fisico ahora rechaza operaciones antes de inicializar
 sus metadatos, evitando accesos a una zona RAM aun no validada. Prueba previa
 al inicio y matriz x86 32/64/128/1024 MiB superadas.
+
+Archivos RAM propios disponibles: crear/reemplazar, leer, listar y borrar.
+Ocho entradas de 256 bytes, sin persistencia. Ver ENTREGA-ARCHIVOS-RAM.md.

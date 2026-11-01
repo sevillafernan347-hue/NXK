@@ -74,12 +74,13 @@ if ($Architecture -eq 'x86') {
     $entrySource = "$buildDir/entrada_objeto.S"
 }
 Invoke-Zig cc -target $target -c $entrySource -o "$buildDir/entry.o"
-$flags = @('-target',$target,'-ffreestanding','-fno-stack-protector','-fno-pic','-mno-sse','-mno-sse2','-mno-mmx','-fno-vectorize','-fno-slp-vectorize','-O2','-Wall','-Wextra','-Werror','-Ilib')
+$flags = @('-target',$target,'-ffreestanding','-fno-stack-protector','-fno-pic','-mno-sse','-mno-sse2','-mno-mmx','-fno-vectorize','-fno-slp-vectorize','-Os','-Wall','-Wextra','-Werror','-Ilib')
 if ($Architecture -eq 'x64') { $flags += '-mno-red-zone' }
 if ($Test) { $flags += '-DNXK_TEST' }
 if ($ExceptionTest) { $flags += '-DNXK_EXCEPTION_TEST' }
 if ($ExceptionTest) { $flags += "-DNXK_EXCEPTION_VECTOR=$ExceptionVector" }
 Invoke-Zig cc @flags -c kernel/tareas.c -o "$buildDir/tareas.o"
+Invoke-Zig cc @flags -c kernel/archivos.c -o "$buildDir/archivos.o"
 Invoke-Zig cc @flags -c kernel/main.c -o "$buildDir/main.o"
 Invoke-Zig cc @flags -c lib/memory.c -o "$buildDir/memory.o"
 Invoke-Zig cc @flags -c "$buildDir/inicio_nxe.c" -o "$buildDir/inicio_nxe.o"
@@ -92,6 +93,7 @@ Invoke-Zig cc -target $target -c "$buildDir/app_embebida.S" -o "$buildDir/app_em
 $objects=@("$buildDir/entry.o","$buildDir/main.o","$buildDir/memory.o","$buildDir/inicio_nxe.o","$buildDir/nxe.o","$buildDir/pe.o","$buildDir/app_embebida.o")
 $objects += "$buildDir/excepciones.o"
 $objects += "$buildDir/tareas.o"
+$objects += "$buildDir/archivos.o"
 $objects += "$buildDir/ram.o"
 $objects += "$buildDir/paginas.o"
 if ($Architecture -eq 'x86') {
@@ -129,3 +131,4 @@ $disk = New-Object byte[] (1024*1024)
 $name = if ($Test) { 'nxk-test.img' } else { 'nxk.img' }
 [IO.File]::WriteAllBytes((Join-Path $PWD "$buildDir/$name"),$disk)
 Write-Host "NXK $Architecture compilado: $buildDir/$name ($($kernel.Length) bytes de kernel)"
+
