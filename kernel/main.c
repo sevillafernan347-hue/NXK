@@ -237,6 +237,8 @@ void kernel_main(void) {
     print("NXK: USUARIO RECUPERACION OK\n");
     if (nxk_usuario_probar_servicios()) { print("NXK: SERVICIOS USUARIO FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
     print("NXK: SERVICIOS USUARIO OK\n");
+    if (nxk_usuario_nextry()) { print("NXK: NEXTRY USUARIO FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
+    print("NXK: NEXTRY USUARIO OK\n");
     if (nxk_tareas_demo()) { print("NXK: TAREAS FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
     print("NXK: TAREAS COOPERATIVAS OK\n");
     extern int nxk_tareas_probar_limites(void);
@@ -331,7 +333,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -364,6 +366,9 @@ void kernel_main(void) {
             }
             else if (nxk_equal(line, "archivos")) {
                 for (unsigned i=0;i<8;++i) { const char *s=nxk_archivo_nombre(i); if (s) { print(s); put('\n'); } }
+            }
+            else if (nxk_equal(line, "usuario nextry")) {
+                print(nxk_usuario_nextry() ? "Aplicacion NEXTRY fallo.\n" : "Aplicacion NEXTRY protegida termino.\n");
             }
             else if (nxk_equal(line, "usuario texto")) {
                 print(nxk_usuario_probar_servicios() ? "Fallo de servicios.\n" : "Servicio y rechazos de punteros verificados.\n");

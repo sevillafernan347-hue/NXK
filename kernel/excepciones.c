@@ -183,26 +183,30 @@ void nxk_usuario_atender_fallo(const uint32_t *contexto) {
     nxk_usuario_abortar(0x80000000u|v);
 }
 static int usuario_ejecutar(unsigned modo) {
-    if (usuario_activo || modo>16) return -1;
+    if (usuario_activo || modo>17) return -1;
     uint32_t cr3_original; __asm__ volatile("mov %%cr3,%0":"=r"(cr3_original));
     if (cr3_original!=0x200000u) return -4;
-    static uintptr_t codigo, pila_kernel, directorio_usuario, tabla_usuario;
+    static uintptr_t codigo, pila_kernel, directorio_usuario, tabla_usuario, tabla_usuario_alta;
     if (!codigo) {
-        unsigned char *r=nxk_alloc(7*4096);
+        unsigned char *r=nxk_alloc(8*4096);
         if (!r) return -1;
         codigo=((uintptr_t)r+4095)&~(uintptr_t)4095;
         pila_kernel=(uintptr_t)r+4*4096;
         directorio_usuario=codigo+4*4096;
         tabla_usuario=codigo+5*4096;
+        tabla_usuario_alta=codigo+6*4096;
     }
     volatile uint32_t *p=(void *)0x201000,*d=(void *)0x200000;
     uint32_t *privado=(void *)directorio_usuario, *entradas_usuario=(void *)tabla_usuario;
+    uint32_t *entradas_altas=(void *)tabla_usuario_alta;
     /* Solo clonamos la tabla inferior: el resto se comparte como supervisor. */
     memcpy(privado,(const void *)0x200000,4096);
     memcpy(entradas_usuario,(const void *)0x201000,4096);
+    memcpy(entradas_altas,(const void *)0x202000,4096);
     /* Politica por defecto: ninguna pagina heredada obtiene acceso usuario. */
-    for (unsigned i=0;i<1024;++i) { privado[i]&=~4u; entradas_usuario[i]&=~4u; }
+    for (unsigned i=0;i<1024;++i) { privado[i]&=~4u; entradas_usuario[i]&=~4u; entradas_altas[i]&=~4u; }
     privado[0]=(uint32_t)tabla_usuario|7;
+    privado[1]=(uint32_t)tabla_usuario_alta|3;
     /* El codigo se prepara bajo el mapa kernel, que siempre es supervisor. */
     const unsigned char programa[]={0x68,42,0,0,0,0x58,0xcd,0x80,0x0f,0x0b};
     memcpy((void *)codigo,programa,sizeof(programa));
@@ -255,6 +259,17 @@ static int usuario_ejecutar(unsigned modo) {
             bytes[18+i]=(unsigned char)(esperado>>(i*8));
         }
     }
+    uintptr_t virtual_codigo=codigo;
+    uint32_t *entradas_activas=entradas_usuario;
+    if (modo==17) {
+        extern const unsigned char usuario_nxf_inicio[], usuario_nxf_fin[];
+        size_t n=(uintptr_t)usuario_nxf_fin-(uintptr_t)usuario_nxf_inicio;
+        if (!n || n>4096) return -9;
+        memset(bytes,0,4096); memcpy(bytes,usuario_nxf_inicio,n);
+        virtual_codigo=0x400000; entradas_activas=entradas_altas;
+        privado[1]|=4;
+    }
+    unsigned indice=(virtual_codigo/4096)%1024;
     memset((void *)(codigo+4096),0,4096);
     uint32_t antes_codigo=p[codigo/4096], antes_pila=p[codigo/4096+1];
     uint32_t antes_directorio=d[codigo>>22], esp0=tss_normal[1], ss0=tss_normal[2];
@@ -267,19 +282,19 @@ static int usuario_ejecutar(unsigned modo) {
     uintptr_t salida=(uintptr_t)nxk_usuario_salir;
     tabla[128]=(struct puerta){(uint16_t)salida,8,0,0xee,(uint16_t)(salida>>16)};
     tss_normal[1]=(uint32_t)pila_kernel; tss_normal[2]=16;
-    entradas_usuario[codigo/4096]=(uint32_t)codigo|5;
-    entradas_usuario[codigo/4096+1]=(uint32_t)(codigo+4096)|7;
+    entradas_activas[indice]=(uint32_t)codigo|5;
+    entradas_activas[indice+1]=(uint32_t)(codigo+4096)|7;
     __asm__ volatile("mov %0,%%cr3" :: "r"((uint32_t)directorio_usuario) : "memory");
     nxk_usuario_cs_guardado=0;
-    usuario_base=codigo; usuario_inicio=ticks;
+    usuario_base=virtual_codigo; usuario_inicio=ticks;
     usuario_activo=1; fallo_vector=fallo_error=fallo_direccion=fallo_eip=fallo_ocurrido=fallo_pila=0;
-    uint32_t resultado=nxk_usuario_entrar((uint32_t)codigo,(uint32_t)(codigo+8192));
+    uint32_t resultado=nxk_usuario_entrar((uint32_t)virtual_codigo,(uint32_t)(virtual_codigo+8192));
     uint32_t cr3_regreso; __asm__ volatile("mov %%cr3,%0":"=r"(cr3_regreso));
     __asm__ volatile("mov %0,%%cr3" :: "r"(cr3_original) : "memory");
     usuario_activo=0;
     /* Retirar la puerta temporal y revocar permisos en la copia inactiva. */
-    entradas_usuario[codigo/4096]&=~4u; entradas_usuario[codigo/4096+1]&=~4u;
-    privado[0]&=~4u;
+    entradas_activas[indice]&=~4u; entradas_activas[indice+1]&=~4u;
+    privado[0]&=~4u; privado[1]&=~4u;
     tabla[128]=antes_puerta; tabla[129]=antes_servicio;
     tss_normal[1]=esp0; tss_normal[2]=ss0;
     __asm__ volatile("mov %0,%%cr3" :: "r"(0x200000u) : "memory");
@@ -298,6 +313,7 @@ static int usuario_ejecutar(unsigned modo) {
     if (modo && modo<10) return resultado==(0x80000000u|fallo_vector) ? (int)fallo_vector : -3;
     return resultado==42 ? 0 : -2;
 }
+int nxk_usuario_nextry(void) { return usuario_ejecutar(17); }
 int nxk_usuario_demo(void) { return usuario_ejecutar(0); }
 int nxk_usuario_probar_servicios(void) {
     if (usuario_ejecutar(10)) return 1;
@@ -368,6 +384,7 @@ int nxk_usuario_caso_bucle(void) { return -64; }
 int nxk_usuario_caso_nulo(void) { return -64; }
 void nxk_usuario_atender_fallo(const uint32_t *p) { (void)p; }
 int nxk_usuario_comprobar_fallos(void) { return -64; }
+int nxk_usuario_nextry(void) { return -64; }
 int nxk_usuario_demo(void) { return -64; }
 void nxk_excepciones_iniciar(void) {}
 uint32_t nxk_reloj_ticks(void) { return 0; }

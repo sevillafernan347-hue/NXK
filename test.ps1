@@ -2,6 +2,7 @@
 # Construye una imagen de pruebas, arranca QEMU, verifica resultados y reconstruye la imagen normal.
 # Contexto y orden de estudio: ver LEER-CODIGO.md en la carpeta principal.
 param(
+    [string]$FuenteUsuario = 'lenguaje/ejemplos/usuario.nxf',
     [string]$FuenteApp = 'lenguaje/ejemplos/hola.nxf',
     [ValidateRange(16, 4096)][int]$MemoryMiB = 64,
     [switch]$MemoryMatrix,
@@ -9,7 +10,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
-& "$root\build.ps1" -Test -FuenteApp $FuenteApp -Architecture $Architecture
+& "$root\build.ps1" -Test -FuenteUsuario $FuenteUsuario -FuenteApp $FuenteApp -Architecture $Architecture
 $buildDir = if ($Architecture -eq 'x86') { "$root\build\x86" } else { "$root\build" }
 $qemuName = if ($Architecture -eq 'x86') { 'qemu-system-i386.exe' } else { 'qemu-system-x86_64.exe' }
 $cpu = if ($Architecture -eq 'x86') { 'qemu32' } else { 'qemu64' }
@@ -45,6 +46,7 @@ if (!$log.Contains('NXK: LLENADO OK') -or !$log.Contains('NXK: COPIA OK')) { thr
 if (!$log.Contains('NXK: MOVER OK')) { throw "Fallo en copia con solapamiento: $log" }
 if (!$log.Contains('NXK: HEAP LIMITES OK')) { throw "Fallo en limites del heap: $log" }
 if ($Architecture -eq 'x86') {
+    if (!$log.Contains('NXK: NEXTRY USUARIO OK')) { throw 'Fallo de NEXTRY en modo usuario.' }
     if (!$log.Contains('NXK: SERVICIOS USUARIO OK')) { throw 'Fallo de servicios de usuario.' }
     if (!$log.Contains('NXK: USUARIO RECUPERACION OK')) { throw 'Fallo de recuperacion de usuario.' }
     if (!$log.Contains('NXK: PAGINACION Y WP OK')) { throw 'Falta inicio de paginacion.' }
@@ -60,4 +62,4 @@ $process.Dispose()
 }
 $results | ConvertTo-Json | Set-Content -Encoding UTF8 "$buildDir\memory-test-results.json"
 Write-Host "Verificado: arranque $Architecture, ejecucion C y heap basico. No es una prueba de toda la RAM ni de hardware fisico."
-& "$root\build.ps1" -FuenteApp $FuenteApp -Architecture $Architecture
+& "$root\build.ps1" -FuenteUsuario $FuenteUsuario -FuenteApp $FuenteApp -Architecture $Architecture

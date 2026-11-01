@@ -137,3 +137,8 @@ Primer servicio retornable usuario INT 0x81: salida de hasta 256 bytes con
 validacion del rango y copia kernel. Comando usuario texto. Pruebas positivas,
 punteros/longitudes invalidos y llamada desconocida. Cargador x86 ampliado a
 48 KiB de imagen; x64 sigue 32 KiB. Ver ENTREGA-SERVICIO-CONSOLA.md.
+
+NEXTRY CPL3: usuario nextry ejecuta fuente .nxf integrada con runtime de usuario,
+texto y numeros mediante servicios validados. FuenteUsuario permite elegir
+archivo al construir. Codigo de una pagina y pila propia; no cambia NXE ni
+carga archivos externos. Ver ENTREGA-NEXTRY-USUARIO.md.

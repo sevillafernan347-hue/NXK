@@ -11,4 +11,5 @@ int nxk_usuario_historial(unsigned reciente,struct nxk_usuario_resultado *salida
 int nxk_usuario_caso_nulo(void);
 int nxk_usuario_caso_bucle(void);
 int nxk_usuario_probar_servicios(void);
+int nxk_usuario_nextry(void);
 #endif

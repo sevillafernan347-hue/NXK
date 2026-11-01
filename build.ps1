@@ -3,6 +3,7 @@
 # Contexto y orden de estudio: ver LEER-CODIGO.md en la carpeta principal.
 param(
     [string]$FuenteApp = 'lenguaje/ejemplos/hola.nxf',
+    [string]$FuenteUsuario = 'lenguaje/ejemplos/usuario.nxf',
     [switch]$Test,
     [switch]$ExceptionTest,
     [ValidateSet(3,6,13,14,114,214,314,414,514,614)][int]$ExceptionVector = 3,
@@ -23,10 +24,15 @@ New-Item -ItemType Directory -Force $buildDir | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'NXK Espanol encontro errores. Corrige kernel\inicio.nxf.' }
 & "$PSScriptRoot/compilar-app.ps1" -Fuente $FuenteApp -Architecture $Architecture -Salida "$buildDir/hola.nxe"
 if ($Architecture -eq 'x86') {
+    & "$PSScriptRoot/compilar-usuario.ps1" -Fuente $FuenteUsuario
     & $zig cc -target x86-windows-gnu -ffreestanding -fno-stack-protector -fno-builtin -mno-sse -mno-sse2 -Os -nostdlib compatibilidad/windows/hola.c '-Wl,--entry,inicio' '-Wl,--subsystem,console' '-Wl,--image-base,0x400000' -lkernel32 -o "$buildDir/hola.exe"
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear el EXE Win32 de prueba.' }
 }
 $asm = ".section .rodata`n.global nxe_demo_inicio, nxe_demo_fin`nnxe_demo_inicio:`n.incbin `"$buildDir/hola.nxe`"`nnxe_demo_fin:`n.section .note.GNU-stack,`"`",@progbits`n"
+if ($Architecture -eq 'x86') {
+    $asm += ".section .rodata`n.global usuario_nxf_inicio, usuario_nxf_fin`nusuario_nxf_inicio:`n.incbin `"build/x86/usuario-nxf/programa.bin`"`nusuario_nxf_fin:`n"
+    $asm += '# USUARIO NXF ' + (Get-FileHash 'build/x86/usuario-nxf/programa.bin' -Algorithm SHA256).Hash + "`n"
+}
 if ($Architecture -eq 'x86') { $asm += ".section .rodata`n.global pe_demo_inicio, pe_demo_fin`npe_demo_inicio:`n.incbin `"$buildDir/hola.exe`"`npe_demo_fin:`n" }
 if ($Architecture -eq 'x86') {
     & $python lenguaje/ensamblador.py kernel/tareas32.nxa -o "$buildDir/tareas.bin"

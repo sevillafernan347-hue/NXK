@@ -167,3 +167,11 @@ Ese nombre es el alias fijo de la aplicacion embebida: ahora contiene tu fuente.
 La imagen ya abierta no cambia. No se cargan rutas arbitrarias en ejecucion.
 Para comprobarla automaticamente: `./test.ps1 -FuenteApp lenguaje/ejemplos/tipos.nxf`.
 Sin FuenteApp se conserva el ejemplo original. No hace falta editar el kernel.
+
+## Aplicaciones de prueba sin privilegios
+
+`./build.ps1 -FuenteUsuario lenguaje/ejemplos/usuario.nxf` integra una app CPL3.
+En una imagen nueva: `usuario nextry`. Diferente de FuenteApp/hola.nxe ring0.
+Runtime inicial con mostrar/numero/operaciones/afirmar y limite de una pagina
+de codigo. Puertos y memoria_usada no disponibles; detener termina solo la app.
+Consultar ENTREGA-NEXTRY-USUARIO.md para limites y comprobaciones.

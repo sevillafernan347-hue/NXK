@@ -16,6 +16,15 @@ PowerShell y Batch. Consulta el [inventario de fuentes](LENGUAJES.md).
 GitHub no admite inventar categorias nuevas mediante .gitattributes: NEXTRY
 se documenta aqui; NEXTRY ASM se agrupa como Assembly.
 
+## Aplicacion NEXTRY en modo usuario
+
+`lenguaje/ejemplos/usuario.nxf` ya ejecuta texto, numeros y afirmaciones en CPL3.
+En una nueva imagen, usa `usuario nextry`. Para integrar tu propia fuente:
+`./build.ps1 -FuenteUsuario mi_programa.nxf`. En VS Code tambien existe la tarea
+«NXK: Integrar aplicacion NEXTRY protegida actual» para el archivo abierto.
+La app sigue integrada en la imagen, con codigo limitado a 4 KiB y runtime
+inicial; consulta [la entrega](ENTREGA-NEXTRY-USUARIO.md).
+
 ## Construir en Windows
 
 Las dependencias externas no se incluyen en Git. Consulta [HERRAMIENTAS.md](HERRAMIENTAS.md)

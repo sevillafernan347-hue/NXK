@@ -1,0 +1,10 @@
+# Aplicacion NEXTRY ejecutada en CPL3; no modifica el kernel.
+funcion inicio
+    mostrar "NEXTRY protegido: aplicacion en modo usuario"
+    entero suma = 0
+    repetir 5 veces
+        suma = suma + 2
+    fin
+    afirmar suma == 10
+    numero suma
+fin

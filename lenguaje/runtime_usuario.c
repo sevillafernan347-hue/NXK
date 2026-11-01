@@ -1,0 +1,34 @@
+/* Runtime propio CPL3. Salida por INT 0x81; finalizacion por INT 0x80.
+ * Sin puertos ni informacion del heap kernel. No usa punteros de API ring0. */
+#include "nxk_es.h"
+static uint32_t escribir(const void *p,uint32_t n) {
+    uint32_t r=1;
+    __asm__ volatile("int $0x81":"+a"(r):"b"(p),"c"(n):"memory","cc");
+    return r;
+}
+static _Noreturn void terminar(uint32_t n) {
+    __asm__ volatile("int $0x80" :: "a"(n) : "memory");
+    for (;;) __asm__ volatile("ud2");
+}
+_Noreturn void nxk_es_fallo(uint32_t linea) {
+    (void)linea; const char *t="Error de aplicacion NEXTRY\n";
+    escribir(t,sizeof("Error de aplicacion NEXTRY\n")-1); terminar(1);
+}
+void nxk_es_mostrar(const char *t) {
+    uint32_t n=0; while (n<256 && t[n]) ++n;
+    if (n==256 || escribir(t,n)!=n || escribir("\n",1)!=1) nxk_es_fallo(0);
+}
+void nxk_es_numero(uint32_t n) {
+    char b[10]; uint32_t i=10;
+    do { b[--i]=(char)('0'+n%10); n/=10; } while (n);
+    if (escribir(b+i,10-i)!=10-i || escribir("\n",1)!=1) nxk_es_fallo(0);
+}
+uint32_t nxk_es_dividir(uint32_t a,uint32_t b) { if (!b) nxk_es_fallo(0); return a/b; }
+uint32_t nxk_es_resto(uint32_t a,uint32_t b) { if (!b) nxk_es_fallo(0); return a%b; }
+uint32_t nxk_es_memoria_usada(void) { nxk_es_fallo(0); }
+uint32_t nxk_es_leer_puerto(uint32_t p) { (void)p; nxk_es_fallo(0); }
+void nxk_es_escribir_puerto(uint32_t p,uint32_t v) { (void)p;(void)v; nxk_es_fallo(0); }
+_Noreturn void nxk_es_detener(void) { terminar(42); }
+__attribute__((naked,section(".text.entry"))) void usuario_entrada(void) {
+    __asm__ volatile("call nxk_es_inicio; mov $42,%eax; int $0x80; ud2");
+}
