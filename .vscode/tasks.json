@@ -122,6 +122,23 @@
         "${file}"
       ],
       "problemMatcher": "$gcc"
+    },
+    {
+      "label": "NXK: Compilar aplicacion NXE2 actual",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/compilar-usuario.ps1",
+        "-Fuente",
+        "${file}",
+        "-Salida",
+        "${workspaceFolder}/build/x86/${fileBasenameNoExtension}.nxe"
+      ],
+      "problemMatcher": "$gcc"
     }
   ]
 }

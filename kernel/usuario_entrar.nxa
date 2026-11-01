@@ -18,4 +18,13 @@ guardar32 edx
 apilar_inmediato32 0x202
 apilar_inmediato32 43
 guardar32 ecx
+# La aplicacion no recibe residuos de registros del kernel. El marco IRET
+# ya contiene codigo/pila/segmentos y EFLAGS; no borrar ESP.
+cero32 eax
+cero32 ebx
+cero32 ecx
+cero32 edx
+cero32 esi
+cero32 edi
+cero32 ebp
 retornar_interrupcion32

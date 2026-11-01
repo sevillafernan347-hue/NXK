@@ -12,4 +12,6 @@ int nxk_usuario_caso_nulo(void);
 int nxk_usuario_caso_bucle(void);
 int nxk_usuario_probar_servicios(void);
 int nxk_usuario_nextry(void);
+int nxk_usuario_cargar_nxe(const unsigned char *datos,size_t longitud);
+int nxk_usuario_ejecutar_archivo(const char *nombre);
 #endif

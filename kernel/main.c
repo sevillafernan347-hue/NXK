@@ -357,7 +357,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | discos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nvolumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | discos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -387,6 +387,9 @@ void kernel_main(void) {
             }
             else if (prefijo(line,"borrar ")) {
                 print(nxk_archivo_borrar(line+7) ? "No se pudo borrar.\n" : "Archivo borrado.\n");
+            }
+            else if (prefijo(line,"ejecutar usuario ")) {
+                print(nxk_usuario_ejecutar_archivo(line+17) ? "No se pudo cargar o ejecutar NXE2.\n" : "Aplicacion NXE2 termino; consola recuperada.\n");
             }
             else if (nxk_equal(line, "volumen montar")) {
                 print(nxk_volumen_montar() ? "Volumen no disponible o invalido.\n" : "Volumen NXFS montado en solo lectura.\n");

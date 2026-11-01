@@ -1,0 +1,8 @@
+# Ejecutable NXE2 cargado desde NXFS, sin integrarlo en el kernel.
+funcion inicio
+    mostrar "Aplicacion NEXTRY cargada desde disco"
+    entero total = 6 * 7
+    afirmar total == 42
+    mostrar_archivo "leeme.txt"
+    numero total
+fin

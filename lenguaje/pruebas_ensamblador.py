@@ -35,6 +35,11 @@ recuperar16 di
         for fuente in ('modo 16\nguardar_segmento32 ds','modo 32\nguardar_segmento32 cs','modo 32\nrecuperar_segmento32 ss'):
             with self.assertRaises(ValueError): ensamblar(fuente)
 
+    def test_cero_registros32(self):
+        self.assertEqual(ensamblar('modo 32\ncero32 eax\ncero32 ebx\ncero32 ecx\ncero32 edx\ncero32 esi\ncero32 edi\ncero32 ebp'),bytes.fromhex('31 c0 31 db 31 c9 31 d2 31 f6 31 ff 31 ed'))
+        for fuente in ('modo 16\ncero32 eax','modo 32\ncero32 ax','modo 32\ncero32 eax, ebx'):
+            with self.assertRaises(ValueError):ensamblar(fuente)
+
     def test_operaciones32(self):
         fuente = '''modo 32
 comparar32 edi, esi

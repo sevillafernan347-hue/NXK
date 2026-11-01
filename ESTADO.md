@@ -165,3 +165,14 @@ Lectura parcial: servicio 5 con desplazamiento, validacion de EOF y destino.
 mostrar_archivo en NEXTRY protegido muestra hasta 4096 bytes de NXFS usando
 bloques de 256. Nueve escenarios, incluyendo patron completo de 4 KiB, mas
 pruebas de limites en RAM/servicio. Ver ENTREGA-LECTURA-PARCIAL.md.
+
+Carga NXE2 desde NXFS: ejecutar usuario nombre.nxe valida cabecera/arquitectura/
+ABI/tamanos/huella antes de entrar a CPL3. Compilar-usuario genera .nxe separado
+con -Salida. Fuente NEXTRY correcta termina con 0, errores con 1; demos puente
+conservan 42. Ver lenguaje/FORMATO-NXE-USUARIO.md.
+
+Cierre NXE2: dieciseis escenarios de disco superados, incluyendo registros
+iniciales en cero, recargas sin crecimiento de heap y app leyendo datos del
+mismo NXFS. Dos pruebas de empaquetador, 20 de lenguaje, siete de ensamblador,
+diez escenarios previos de excepciones, matriz x86 y regresion x64 superados.
+Imagen demo: build/x86/nxe-disco-pruebas/correcto.img.

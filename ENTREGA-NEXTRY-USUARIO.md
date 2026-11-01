@@ -9,7 +9,7 @@ Es imagen binaria integrada de prueba, no un nuevo formato ejecutable publico.
 compilar-usuario.ps1 compila fuente y runtime con enlace a 0x400000. Una pagina
 para codigo/constantes, sin datos globales, mas una pagina de pila. El linker
 rechaza imagen mayor a 4096 bytes o datos globales. Entry llama inicio y sale
-con 42; error de programa sale con 1. detener termina la app, no la CPU.
+con 0; error de programa sale con 1. detener termina la app, no la CPU.
 memoria_usada y puertos no estan disponibles en este runtime y terminan con
 error; no inventan valores ni operan hardware. Textos de hasta 255 bytes por
 mostrar, salida numerica uint32. No hay entrada de teclado ni archivos usuario.

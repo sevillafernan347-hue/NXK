@@ -125,6 +125,9 @@ def ensamblar(fuente, simbolos=None, permitir_externos=False):
                     if modo!=16:raise ValueError('Se requiere modo 16')
                     datos.extend((0x89,0x06+8*REGISTROS.index(args[1])))
                     emitir(valor(args[0]),2)
+                elif orden=='cero32':
+                    if modo!=32 or not argumento.startswith('e'): raise ValueError('Se requiere registro y modo de 32 bits')
+                    indice=REGISTROS.index(argumento[1:]); datos.extend((0x31,0xc0+9*indice))
                 elif orden in ('guardar_segmento32','recuperar_segmento32'):
                     if modo!=32: raise ValueError('Esta instruccion requiere modo 32')
                     guardar={'ds':b'\x1e','es':b'\x06','fs':b'\x0f\xa0','gs':b'\x0f\xa8'}

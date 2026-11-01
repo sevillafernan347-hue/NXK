@@ -54,3 +54,6 @@ son privilegiados y no convierten NEXTRY ASM en una plataforma segura por si sol
 
 IRQ0 usa guardar_segmento32/recuperar_segmento32 con ds, es, fs o gs.
 Solo modo 32; conserva selectores al atender interrupciones desde CPL3.
+
+`cero32 registro` genera XOR del registro consigo mismo, solo modo 32.
+La entrada CPL3 limpia registros generales tras construir el marco IRET.

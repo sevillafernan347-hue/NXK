@@ -25,6 +25,13 @@ En una nueva imagen, usa `usuario nextry`. Para integrar tu propia fuente:
 La app sigue integrada en la imagen, con codigo limitado a 4 KiB y runtime
 inicial; consulta [la entrega](ENTREGA-NEXTRY-USUARIO.md).
 
+## Aplicaciones NXE2 desde disco
+
+Ya se puede compilar una fuente NEXTRY a NXE version 2 e incluirla en NXFS,
+independientemente del kernel. Tras montar el volumen, usa
+`ejecutar usuario disco.nxe`. Consulta [el formato y los pasos](lenguaje/FORMATO-NXE-USUARIO.md).
+NXE version 1 conserva su ruta anterior en ring0; no se cambia silenciosamente.
+
 ## Construir en Windows
 
 Las dependencias externas no se incluyen en Git. Consulta [HERRAMIENTAS.md](HERRAMIENTAS.md)
