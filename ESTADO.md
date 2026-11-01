@@ -53,3 +53,7 @@ Los cargadores NXE y PE32 ahora usan nuestra copia de memoria x86.
 Ya existe una IDT inicial x86 que detiene la CPU ante excepciones. Ahora muestra vector, codigo de error, EIP y registros; pruebas provocadas de INT3, instruccion invalida y proteccion general. El prototipo aun no tiene procesos, planificador, sistema de archivos, red, escritorio grafico o soporte para arrancar directamente en una laptop UEFI.
 
 Ultima comprobacion: copia de memoria NEXTRY ASM con longitudes 0, 1, 3, 16, 17 y 256, direcciones desalineadas, retorno del destino, origen intacto y centinelas. Arranque y pruebas superadas en x86 con 32, 64, 128 y 1024 MiB y en x64 con 64 MiB. Esto no garantiza ausencia de errores.
+
+Temporizador inicial x86: PIT ~100 Hz, PIC con IRQ0, contador consultable con
+`tiempo`. Pruebas de cinco ticks y retorno IRQ superadas en las cuatro
+configuraciones de RAM. Sigue sin planificador. Ver ENTREGA-RELOJ.md.

@@ -22,6 +22,8 @@ static inline uint8_t in8(uint16_t port) {
     __asm__ volatile("inb %1, %0" : "=a"(value) : "Nd"(port));
     return value;
 }
+extern void nxk_reloj_iniciar(void);
+extern uint32_t nxk_reloj_ticks(void);
 static unsigned row, column;
 static void serial_init(void) {
     /* Configura COM1: QEMU guarda lo que imprimimos aqui en el registro serie. */
@@ -149,6 +151,12 @@ void kernel_main(void) {
     print(NXK_MODE_MARKER "NXK: MEMORY OK\n");
     nxk_es_inicio();
     print("NXK: ESPANOL OK\n");
+    nxk_reloj_iniciar();
+#if defined(NXK_TEST) && defined(__i386__)
+    /* HLT solo regresa si llega una interrupcion: verifica retornos y EOI. */
+    while (nxk_reloj_ticks()<5) __asm__ volatile("hlt");
+    print("NXK: RELOJ IRQ OK\n");
+#endif
 #ifdef NXK_TEST
     unsigned char prueba_memoria[19];
     memset(prueba_memoria, 0xcc, sizeof(prueba_memoria));
@@ -235,7 +243,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | halt\nejecutar hola.nxe | ejecutar hola.exe\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | halt\nejecutar hola.nxe | ejecutar hola.exe\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -243,6 +251,9 @@ void kernel_main(void) {
                 if (nxk_pe_demo() != 0) print("EXE no compatible. El puente inicial requiere NXK de 32 bits.\n");
             }
             else if (nxk_equal(line, "version")) print("NXK 0.1, nucleo propio " NXK_ARCH_TEXT "\n");
+            else if (nxk_equal(line, "tiempo")) {
+                print("Ticks PIT (~100 Hz; contador de 32 bits): "); number(nxk_reloj_ticks()); put('\n');
+            }
             else if (nxk_equal(line, "mem")) {
                 print("Heap fijo usado: "); number(nxk_heap_used()); print(" / 524288 bytes\n");
                 print("Heap disponible: "); number(nxk_heap_available()); print(" bytes\n");
