@@ -1,0 +1,25 @@
+# INT 0x81: guarda contexto, llama servicio C y retorna a usuario.
+modo 32
+guardar_registros32
+direccion_adelante
+guardar_segmento32 ds
+guardar_segmento32 es
+guardar_segmento32 fs
+guardar_segmento32 gs
+cargar16 ax, 16
+segmento ds, ax
+segmento es, ax
+copiar32 esi, esp
+alinear_pila16
+bytes 0x83, 0xec, 12
+guardar32 esi
+# Inmediato parcheado por el instalador.
+cargar32 eax, 0
+llamar_registro eax
+copiar32 esp, esi
+recuperar_segmento32 gs
+recuperar_segmento32 fs
+recuperar_segmento32 es
+recuperar_segmento32 ds
+recuperar_registros32
+retornar_interrupcion32

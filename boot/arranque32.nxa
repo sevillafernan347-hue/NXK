@@ -77,7 +77,7 @@ alinear 8
 paquete:
 # Paquete de lectura BIOS: tamano, sectores, destino 1000:0000 y sector inicial.
 bytes 16, 0
-palabra 64, 0, 0x1000
+palabra 96, 0, 0x1000
 cuadruple 1
 gdt:
 cuadruple 0, 0x00cf9a000000ffff, 0x00cf92000000ffff

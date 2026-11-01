@@ -32,6 +32,10 @@ if ($Architecture -eq 'x86') {
     & $python lenguaje/ensamblador.py kernel/tareas32.nxa -o "$buildDir/tareas.bin"
     if ($LASTEXITCODE -ne 0) { throw 'Error ensamblando tareas.' }
     $asm += ".section .text`n.global nxk_cambiar_tarea`nnxk_cambiar_tarea:`n.incbin `"$buildDir/tareas.bin`"`n"
+    & $python lenguaje/ensamblador.py kernel/servicio32.nxa -o "$buildDir/servicio.bin"
+    if ($LASTEXITCODE -ne 0) { throw 'Error ensamblando servicio de usuario.' }
+    $asm += ".section .rodata`n.global servicio_nxa_inicio, servicio_nxa_fin`nservicio_nxa_inicio:`n.incbin `"$buildDir/servicio.bin`"`nservicio_nxa_fin:`n"
+    $asm += '# SERVICIO ' + (Get-FileHash "$buildDir/servicio.bin" -Algorithm SHA256).Hash + "`n"
     & $python lenguaje/ensamblador.py kernel/reloj32.nxa -o "$buildDir/reloj.bin"
     if ($LASTEXITCODE -ne 0) { throw 'Error ensamblando IRQ0 con NEXTRY ASM.' }
     $asm += ".section .rodata`n.global reloj_nxa_inicio, reloj_nxa_fin`nreloj_nxa_inicio:`n.incbin `"$buildDir/reloj.bin`"`nreloj_nxa_fin:`n"
@@ -153,7 +157,8 @@ if ($Architecture -eq 'x86') {
 $boot = [IO.File]::ReadAllBytes((Join-Path $PWD "$buildDir/boot.bin"))
 $kernel = [IO.File]::ReadAllBytes((Join-Path $PWD "$buildDir/kernel.bin"))
 if ($boot.Length -ne 512 -or $boot[510] -ne 0x55 -or $boot[511] -ne 0xaa) { throw 'Sector de arranque invalido' }
-if ($kernel.Length -gt 32768) { throw 'Kernel demasiado grande para el cargador inicial' }
+$limiteKernel = if ($Architecture -eq 'x86') { 49152 } else { 32768 }
+if ($kernel.Length -gt $limiteKernel) { throw 'Kernel demasiado grande para su cargador BIOS' }
 $disk = New-Object byte[] (1024*1024)
 [Array]::Copy($boot,0,$disk,0,$boot.Length)
 [Array]::Copy($kernel,0,$disk,512,$kernel.Length)

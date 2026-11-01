@@ -136,6 +136,23 @@ extern uint32_t nxk_usuario_entrar(uint32_t codigo,uint32_t pila);
 extern void nxk_usuario_salir(void);
 static int usuario_activo;
 static uint32_t usuario_inicio;
+static uintptr_t usuario_base;
+extern const unsigned char servicio_nxa_inicio[], servicio_nxa_fin[];
+static unsigned char servicio_entrada[42];
+extern void nxk_pe_salida(const char *datos,uint32_t n);
+static void usuario_servicio(uint32_t *contexto) {
+    uint32_t numero=contexto[11], direccion=contexto[8], n=contexto[10];
+    contexto[11]=0xffffffffu;
+    if (!usuario_activo || (contexto[13]&3)!=3) return;
+    if (numero!=1) { contexto[11]=0xfffffffeu; return; }
+    if (n>256) return;
+    if (!n) { contexto[11]=0; return; }
+    if (direccion<usuario_base || direccion-usuario_base>=8192 ||
+        n>8192-(direccion-usuario_base)) return;
+    char copia[256];
+    memcpy(copia,(const void *)(uintptr_t)direccion,n);
+    nxk_pe_salida(copia,n); contexto[11]=n;
+}
 static uint32_t fallo_vector, fallo_error, fallo_direccion, fallo_eip, fallo_ocurrido, fallo_pila;
 static struct nxk_usuario_resultado historial[8];
 static unsigned siguiente_resultado, cantidad_resultados;
@@ -166,7 +183,7 @@ void nxk_usuario_atender_fallo(const uint32_t *contexto) {
     nxk_usuario_abortar(0x80000000u|v);
 }
 static int usuario_ejecutar(unsigned modo) {
-    if (usuario_activo || modo>9) return -1;
+    if (usuario_activo || modo>16) return -1;
     uint32_t cr3_original; __asm__ volatile("mov %%cr3,%0":"=r"(cr3_original));
     if (cr3_original!=0x200000u) return -4;
     static uintptr_t codigo, pila_kernel, directorio_usuario, tabla_usuario;
@@ -219,10 +236,34 @@ static int usuario_ejecutar(unsigned modo) {
         memcpy(bytes,leer_heap,sizeof(leer_heap));
     }
     if (modo==9) { bytes[0]=0xeb; bytes[1]=0xfe; } /* Bucle que nunca sale. */
+    if (modo>=10) {
+        const char mensaje[]="Hola desde usuario\n";
+        memcpy(bytes+128,mensaje,sizeof(mensaje));
+        const unsigned char llamada[]={0xb8,1,0,0,0,0xbb,0,0,0,0,0xb9,0,0,0,0,
+            0xcd,0x81,0x3d,0,0,0,0,0x74,2,0x0f,0x0b,0xb8,42,0,0,0,0xcd,0x80};
+        memcpy(bytes,llamada,sizeof(llamada));
+        uint32_t puntero=(uint32_t)codigo+128, n=sizeof(mensaje)-1, esperado=n;
+        if (modo==11) { puntero=0x10000; n=4; esperado=0xffffffffu; }
+        if (modo==12) { n=257; esperado=0xffffffffu; }
+        if (modo==13) { bytes[1]=99; esperado=0xfffffffeu; }
+        if (modo==14) { puntero=0xfffffff0u; n=32; esperado=0xffffffffu; }
+        if (modo==15) { puntero=(uint32_t)codigo+8191; n=2; esperado=0xffffffffu; }
+        if (modo==16) { puntero=0xffffffffu; n=0; esperado=0; }
+        for (unsigned i=0;i<4;++i) {
+            bytes[6+i]=(unsigned char)(puntero>>(i*8));
+            bytes[11+i]=(unsigned char)(n>>(i*8));
+            bytes[18+i]=(unsigned char)(esperado>>(i*8));
+        }
+    }
     memset((void *)(codigo+4096),0,4096);
     uint32_t antes_codigo=p[codigo/4096], antes_pila=p[codigo/4096+1];
     uint32_t antes_directorio=d[codigo>>22], esp0=tss_normal[1], ss0=tss_normal[2];
-    struct puerta antes_puerta=tabla[128];
+    struct puerta antes_puerta=tabla[128], antes_servicio=tabla[129];
+    if ((uintptr_t)servicio_nxa_fin-(uintptr_t)servicio_nxa_inicio!=42 || servicio_nxa_inicio[25]!=0xb8) return -8;
+    memcpy(servicio_entrada,servicio_nxa_inicio,42);
+    uintptr_t manejador=(uintptr_t)usuario_servicio, puerta_servicio=(uintptr_t)servicio_entrada;
+    for (unsigned i=0;i<4;++i) servicio_entrada[26+i]=(unsigned char)(manejador>>(i*8));
+    tabla[129]=(struct puerta){(uint16_t)puerta_servicio,8,0,0xee,(uint16_t)(puerta_servicio>>16)};
     uintptr_t salida=(uintptr_t)nxk_usuario_salir;
     tabla[128]=(struct puerta){(uint16_t)salida,8,0,0xee,(uint16_t)(salida>>16)};
     tss_normal[1]=(uint32_t)pila_kernel; tss_normal[2]=16;
@@ -230,7 +271,7 @@ static int usuario_ejecutar(unsigned modo) {
     entradas_usuario[codigo/4096+1]=(uint32_t)(codigo+4096)|7;
     __asm__ volatile("mov %0,%%cr3" :: "r"((uint32_t)directorio_usuario) : "memory");
     nxk_usuario_cs_guardado=0;
-    usuario_inicio=ticks;
+    usuario_base=codigo; usuario_inicio=ticks;
     usuario_activo=1; fallo_vector=fallo_error=fallo_direccion=fallo_eip=fallo_ocurrido=fallo_pila=0;
     uint32_t resultado=nxk_usuario_entrar((uint32_t)codigo,(uint32_t)(codigo+8192));
     uint32_t cr3_regreso; __asm__ volatile("mov %%cr3,%0":"=r"(cr3_regreso));
@@ -239,7 +280,7 @@ static int usuario_ejecutar(unsigned modo) {
     /* Retirar la puerta temporal y revocar permisos en la copia inactiva. */
     entradas_usuario[codigo/4096]&=~4u; entradas_usuario[codigo/4096+1]&=~4u;
     privado[0]&=~4u;
-    tabla[128]=antes_puerta;
+    tabla[128]=antes_puerta; tabla[129]=antes_servicio;
     tss_normal[1]=esp0; tss_normal[2]=ss0;
     __asm__ volatile("mov %0,%%cr3" :: "r"(0x200000u) : "memory");
     /* A/D pueden cambiar por acceso CPU; permisos y marcos no deben cambiar. */
@@ -254,10 +295,17 @@ static int usuario_ejecutar(unsigned modo) {
     if (modo==7 && (fallo_vector!=14 || fallo_error!=7 || fallo_direccion!=codigo)) return -7;
     if (modo==5 && (fallo_vector!=14 || fallo_error!=7 || fallo_direccion!=directorio_usuario)) return -6;
     if ((nxk_usuario_cs_guardado&3)!=3) return -2;
-    if (modo) return resultado==(0x80000000u|fallo_vector) ? (int)fallo_vector : -3;
+    if (modo && modo<10) return resultado==(0x80000000u|fallo_vector) ? (int)fallo_vector : -3;
     return resultado==42 ? 0 : -2;
 }
 int nxk_usuario_demo(void) { return usuario_ejecutar(0); }
+int nxk_usuario_probar_servicios(void) {
+    if (usuario_ejecutar(10)) return 1;
+    size_t antes=nxk_heap_used();
+    for (unsigned modo=11;modo<=16;++modo)
+        if (usuario_ejecutar(modo) || nxk_heap_used()!=antes) return 2;
+    return 0;
+}
 int nxk_usuario_caso_bucle(void) { return usuario_ejecutar(9)==32 ? 0 : -1; }
 int nxk_usuario_caso_nulo(void) {
     return usuario_ejecutar(4)==14 && fallo_error==4 && !fallo_direccion ? 0 : -1;
@@ -315,6 +363,7 @@ void nxk_excepciones_iniciar(void) {
 #else
 unsigned nxk_usuario_historial_cantidad(void) { return 0; }
 int nxk_usuario_historial(unsigned i,struct nxk_usuario_resultado *s) { (void)i;(void)s;return -64; }
+int nxk_usuario_probar_servicios(void) { return -64; }
 int nxk_usuario_caso_bucle(void) { return -64; }
 int nxk_usuario_caso_nulo(void) { return -64; }
 void nxk_usuario_atender_fallo(const uint32_t *p) { (void)p; }

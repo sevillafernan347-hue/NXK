@@ -132,3 +132,8 @@ consola sin cooperacion del programa. Sustituye la limitacion previa de IF
 apagada durante esta demo. No es planificador preventivo entre procesos.
 Construccion verifica bytes NXA enlazados y huellas de incbin. Ver
 ENTREGA-LIMITE-USUARIO.md.
+
+Primer servicio retornable usuario INT 0x81: salida de hasta 256 bytes con
+validacion del rango y copia kernel. Comando usuario texto. Pruebas positivas,
+punteros/longitudes invalidos y llamada desconocida. Cargador x86 ampliado a
+48 KiB de imagen; x64 sigue 32 KiB. Ver ENTREGA-SERVICIO-CONSOLA.md.

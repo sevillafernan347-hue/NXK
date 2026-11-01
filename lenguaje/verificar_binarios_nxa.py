@@ -16,7 +16,7 @@ for s in secciones:
         nombre,valor=struct.unpack_from('<II',datos,p)
         simbolos[nombres[nombre:].split(b'\0',1)[0].decode()]=valor
 for nombre,archivo in (('kernel_entry','entrada.bin'),('reloj_nxa_inicio','reloj.bin'),
-    ('excepcion_nxa_inicio','excepciones.bin'),('nxk_cambiar_tarea','tareas.bin'),
+    ('servicio_nxa_inicio','servicio.bin'),('excepcion_nxa_inicio','excepciones.bin'),('nxk_cambiar_tarea','tareas.bin'),
     ('nxk_usuario_entrar','usuario_entrar.bin'),('nxk_usuario_salir','usuario_salir.bin'),
     ('nxk_usuario_abortar','usuario_abortar.bin'),('memset','llenar32.bin'),
     ('memcpy','copiar32.bin'),('memmove','mover32.bin')):
