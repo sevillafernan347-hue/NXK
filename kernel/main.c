@@ -8,6 +8,7 @@
 #include "pe.h"
 #include "paginas.h"
 #include "archivos.h"
+#include "paginacion.h"
 #if defined(__i386__)
 #define NXK_ARCH_TEXT "x86 de 32 bits"
 #define NXK_MODE_MARKER "NXK: PROTECTED MODE 32 OK\n"
@@ -142,7 +143,10 @@ void kernel_main(void) {
     print("NXK: PAGINACION Y WP OK\n");
 #endif
 #if defined(NXK_EXCEPTION_TEST) && defined(__i386__)
-#if NXK_EXCEPTION_VECTOR == 14
+#if NXK_EXCEPTION_VECTOR == 214
+    if (nxk_paginacion_guarda((void *)0x101000)) nxk_es_detener();
+    *(volatile unsigned char *)0x101000=1;
+#elif NXK_EXCEPTION_VECTOR == 14
     __asm__ volatile("movl $1,0" ::: "memory");
 #elif NXK_EXCEPTION_VECTOR == 114
     *(volatile unsigned char *)(uintptr_t)kernel_main=0;

@@ -2,6 +2,7 @@
  * Tablas en RAM reservada bajo 8 MiB: no se entregan por el gestor fisico.
  * No hay espacios por proceso ni NX en este modo de paginacion. */
 #include "paginas.h"
+#include "paginacion.h"
 #if defined(__i386__)
 extern unsigned char __sololectura_fin[];
 static int ram_tablas(void) {
@@ -39,6 +40,27 @@ int nxk_paginacion_iniciar(void) {
     __asm__ volatile("mov %0,%%cr0" :: "r"(control) : "memory");
     return 0;
 }
+static int pagina_heap(uintptr_t a) {
+    return !(a&4095) && a>=0x100000 && a<0x180000;
+}
+int nxk_paginacion_guarda(void *pagina) {
+    uintptr_t a=(uintptr_t)pagina;
+    uint32_t cr0; __asm__ volatile("mov %%cr0,%0":"=r"(cr0));
+    if (!pagina_heap(a) || !(cr0&0x80000000u)) return -1;
+    volatile uint32_t *tabla=(void *)0x201000;
+    tabla[a/4096]&=~1u;
+    __asm__ volatile("invlpg (%0)" :: "r"(a) : "memory");
+    return 0;
+}
+int nxk_paginacion_es_guarda(void *pagina) {
+    uintptr_t a=(uintptr_t)pagina;
+    if (!pagina_heap(a)) return 0;
+    volatile uint32_t *tabla=(void *)0x201000;
+    return (tabla[a/4096]&0xfffff001u)==a;
+}
+
 #else
 int nxk_paginacion_iniciar(void) { return -64; }
+int nxk_paginacion_guarda(void *p) { (void)p; return -64; }
+int nxk_paginacion_es_guarda(void *p) { (void)p; return 0; }
 #endif

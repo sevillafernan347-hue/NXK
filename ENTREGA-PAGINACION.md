@@ -23,3 +23,19 @@ que no necesariamente son RAM: no deben usarse sin validar su mapa fisico.
 Las tablas son escribibles en ring0, por lo que no protege contra codigo malicioso
 privilegiado. Un fallo detiene el kernel; no recupera procesos. x64 conserva su
 arranque anterior, no usa esta implementacion. Hardware fisico aun sin probar.
+
+## Guardas de pilas de tareas
+
+Cada tarea reserva 12 KiB del heap una sola vez; dentro de esa reserva se
+alinea una pagina ausente de 4 KiB y se usa la pagina siguiente como pila.
+El margen sobrante permite alinear sin cambiar el heap. Al repetir tareas
+se reutilizan las mismas reservas. PTE modificada con INVLPG para invalidar TLB.
+La API interna solo permite guardas alineadas dentro del heap fijo; no libera
+las paginas fisicas ni permite restaurar su presencia. No llamar concurrentemente.
+
+Pruebas: matriz x86 completa con tareas protegidas, repeticion sin consumo extra
+y prueba directa de escritura en guarda 0x101000 (vector 14/error 2/CR2 correcto).
+La prueba directa usa la pila principal, no simula agotamiento real de pila.
+Sin TSS/pila de emergencia, un desbordamiento que deje ESP sobre la guarda
+puede provocar doble/triple fallo; no se garantiza diagnostico en ese caso.
+Tampoco impide saltar por encima de la guarda mediante grandes ajustes de ESP.

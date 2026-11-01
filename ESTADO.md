@@ -96,3 +96,7 @@ Paginacion inicial x86 activada: mapeo identidad 1 GiB, solo supervisor, pagina
 cero ausente y codigo/rodata del kernel protegidos con CR0.WP. Diagnostico CR2
 para fallos de pagina. No constituye aislamiento de procesos; ver
 ENTREGA-PAGINACION.md para pruebas y limites.
+
+Las pilas de las dos tareas x86 ahora tienen pagina de guarda ausente y
+reservas reutilizables. Sin pila de emergencia aun; detalles y limites en
+ENTREGA-PAGINACION.md.

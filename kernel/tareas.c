@@ -1,6 +1,7 @@
 /* Tareas cooperativas de demostracion: puente C y cambio NEXTRY ASM.
- * Dos pilas privadas del heap; solo ring0 y una CPU. No hay preempcion. */
+ * Dos pilas privadas con pagina de guarda en el heap; solo ring0 y una CPU. No hay preempcion. */
 #include "nxk.h"
+#include "paginacion.h"
 #if defined(__i386__)
 extern void nxk_cambiar_tarea(uint32_t **anterior, uint32_t *siguiente);
 static uint32_t *principal, *pilas[2];
@@ -51,8 +52,16 @@ int nxk_tareas_demo(void) {
     if (!(banderas&0x200)) return -4;
     /* Reservar una sola vez: repetir el comando no consume mas heap. */
     for (unsigned i=0;i<2;++i) {
-        if (!memoria[i]) memoria[i]=nxk_alloc(4096);
-        if (!memoria[i]) return -1;
+        if (!memoria[i]) {
+            /* Alineacion sin modificar el asignador: tres paginas reservadas
+             * contienen una guarda alineada y una pila de 4 KiB tras ella. */
+            unsigned char *reserva=nxk_alloc(3*4096);
+            if (!reserva) return -1;
+            uintptr_t guarda=((uintptr_t)reserva+4095)&~(uintptr_t)4095;
+            if (nxk_paginacion_guarda((void *)guarda)) return -5;
+            memoria[i]=(unsigned char *)(guarda+4096);
+        }
+        if (!nxk_paginacion_es_guarda(memoria[i]-4096)) return -5;
         uint32_t *p=(uint32_t *)(memoria[i]+4096-4);
         *--p=(uint32_t)(uintptr_t)ejecutar;
         for (unsigned r=0;r<4;++r) *--p=0;
