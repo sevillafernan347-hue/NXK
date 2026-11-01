@@ -100,3 +100,7 @@ ENTREGA-PAGINACION.md para pruebas y limites.
 Las pilas de las dos tareas x86 ahora tienen pagina de guarda ausente y
 reservas reutilizables. Sin pila de emergencia aun; detalles y limites en
 ENTREGA-PAGINACION.md.
+
+Guardas: validacion de paginacion activa y heap reservado; contador observable
+con mem y pruebas de idempotencia/reutilizacion. Lenguajes del repositorio
+actualizados en .gitattributes, README y LENGUAJES.md.

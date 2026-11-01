@@ -5,6 +5,8 @@
 #include "paginacion.h"
 #if defined(__i386__)
 extern unsigned char __sololectura_fin[];
+static int activa;
+static uint32_t guardas;
 static int ram_tablas(void) {
     volatile const uint16_t *h=(const void *)0x5000;
     const struct nxk_region_ram *m=(const void *)0x5010;
@@ -38,16 +40,20 @@ int nxk_paginacion_iniciar(void) {
     __asm__ volatile("mov %%cr0,%0":"=r"(control));
     control|=0x80010000u; /* PG y WP: incluso ring0 respeta solo lectura. */
     __asm__ volatile("mov %0,%%cr0" :: "r"(control) : "memory");
+    activa=1;
     return 0;
 }
+uint32_t nxk_paginacion_guardas(void) { return guardas; }
 static int pagina_heap(uintptr_t a) {
-    return !(a&4095) && a>=0x100000 && a<0x180000;
+    return activa && !(a&4095) && a>=0x100000 && a<0x180000 &&
+        a+4096<=0x100000+nxk_heap_used();
 }
 int nxk_paginacion_guarda(void *pagina) {
     uintptr_t a=(uintptr_t)pagina;
     uint32_t cr0; __asm__ volatile("mov %%cr0,%0":"=r"(cr0));
     if (!pagina_heap(a) || !(cr0&0x80000000u)) return -1;
     volatile uint32_t *tabla=(void *)0x201000;
+    if (tabla[a/4096]&1) ++guardas;
     tabla[a/4096]&=~1u;
     __asm__ volatile("invlpg (%0)" :: "r"(a) : "memory");
     return 0;
@@ -60,6 +66,7 @@ int nxk_paginacion_es_guarda(void *pagina) {
 }
 
 #else
+uint32_t nxk_paginacion_guardas(void) { return 0; }
 int nxk_paginacion_iniciar(void) { return -64; }
 int nxk_paginacion_guarda(void *p) { (void)p; return -64; }
 int nxk_paginacion_es_guarda(void *p) { (void)p; return 0; }

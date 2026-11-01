@@ -39,3 +39,9 @@ La prueba directa usa la pila principal, no simula agotamiento real de pila.
 Sin TSS/pila de emergencia, un desbordamiento que deje ESP sobre la guarda
 puede provocar doble/triple fallo; no se garantiza diagnostico en ese caso.
 Tampoco impide saltar por encima de la guarda mediante grandes ajustes de ESP.
+
+Refuerzo posterior: las consultas y cambios de guardas exigen paginacion
+inicializada y una pagina completa dentro del heap ya reservado. Se prueban
+rechazos antes del inicio, fuera del heap y con direcciones desalineadas.
+Contador de guardas visible en mem; marcar una guarda existente es idempotente.
+Las tareas repetidas conservan dos guardas y el mismo consumo de heap.

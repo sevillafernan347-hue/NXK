@@ -5,4 +5,5 @@
 /* Marca una pagina del heap como ausente. No libera su reserva fisica. */
 int nxk_paginacion_guarda(void *pagina);
 int nxk_paginacion_es_guarda(void *pagina);
+uint32_t nxk_paginacion_guardas(void);
 #endif

@@ -99,8 +99,11 @@ int nxk_tareas_demo(void) {
 int nxk_tareas_probar_limites(void) {
     if (!vencido(3,0xfffffffeu) || vencido(0xfffffffdu,3) || !vencido(7,7)) return 5;
     if (nxk_tareas_demo()) return 1;
+    uint32_t guardas=nxk_paginacion_guardas();
+    if (guardas!=2 || nxk_paginacion_guarda(memoria[0]-4096) ||
+        nxk_paginacion_guardas()!=guardas) return 6;
     size_t usado=nxk_heap_used();
-    if (nxk_tareas_demo() || nxk_heap_used()!=usado) return 2;
+    if (nxk_tareas_demo() || nxk_heap_used()!=usado || nxk_paginacion_guardas()!=guardas) return 2;
     uint32_t *guardada=pilas[0];
     pilas[0]=(uint32_t *)(memoria[0]+32);
     int aceptada=pila_valida(0);

@@ -1,1 +1,9 @@
 *.pdf binary
+# NEXTRY aun no esta registrado en GitHub Linguist.
+# Evitar confundir .nxf con Nextflow o .nxj con otros lenguajes.
+*.nxf text linguist-language=Text -linguist-detectable
+*.nxj text linguist-language=Text -linguist-detectable
+*.nxa text linguist-language=Assembly linguist-detectable
+build/** linguist-generated
+tools/** linguist-vendored
+docs/** linguist-documentation

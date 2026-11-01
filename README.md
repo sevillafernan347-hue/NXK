@@ -8,6 +8,14 @@ Empieza por [LEER-CODIGO.md](LEER-CODIGO.md), [ESTADO.md](ESTADO.md) y
 Las propuestas de cambios se reciben mediante issues y pull requests; consulta
 [CONTRIBUIR.md](CONTRIBUIR.md).
 
+## Lenguajes utilizados
+
+NEXTRY (`.nxf`), NXJ experimental (`.nxj`) y NEXTRY ASM (`.nxa`) son propios.
+El kernel conserva puentes C; los compiladores usan Python y la construccion,
+PowerShell y Batch. Consulta el [inventario de fuentes](LENGUAJES.md).
+GitHub no admite inventar categorias nuevas mediante .gitattributes: NEXTRY
+se documenta aqui; NEXTRY ASM se agrupa como Assembly.
+
 ## Construir en Windows
 
 Las dependencias externas no se incluyen en Git. Consulta [HERRAMIENTAS.md](HERRAMIENTAS.md)
@@ -24,7 +32,8 @@ El mapa BIOS E820 se recoge en NEXTRY ASM y se consulta mediante un puente C.
 La consola informa RAM descrita por BIOS y espacio del heap por separado.
 El gestor x86 ya reserva y libera paginas fisicas de 4 KiB hasta 1 GiB.
 Cada pagina se pone en cero antes de entregarla a un nuevo usuario.
-Todavia faltan memoria virtual, procesos, archivos y aislamiento.
+Ya hay paginacion inicial y archivos RAM. Faltan espacios por proceso,
+archivos persistentes y aislamiento.
 El compilador genera C; el kernel aun no esta escrito completamente en NEXTRY.
 El EXE de demostracion usa solo tres funciones Win32: no hay compatibilidad general.
 

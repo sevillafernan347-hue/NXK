@@ -139,11 +139,22 @@ void kernel_main(void) {
     nxk_excepciones_iniciar();
 #if defined(__i386__)
     extern int nxk_paginacion_iniciar(void);
+#ifdef NXK_TEST
+    if (nxk_paginacion_guarda((void *)0x100000)!=-1 ||
+        nxk_paginacion_es_guarda((void *)0x100000)) nxk_es_detener();
+#endif
     if (nxk_paginacion_iniciar()) { print("NXK: PAGINACION FAIL\n"); nxk_es_detener(); }
     print("NXK: PAGINACION Y WP OK\n");
+#ifdef NXK_TEST
+    if (nxk_paginacion_guarda((void *)0x100000)!=-1 ||
+        nxk_paginacion_guarda((void *)0x10000)!=-1 ||
+        nxk_paginacion_guarda((void *)0x100001)!=-1) nxk_es_detener();
+    print("NXK: GUARDAS LIMITES OK\n");
+#endif
 #endif
 #if defined(NXK_EXCEPTION_TEST) && defined(__i386__)
 #if NXK_EXCEPTION_VECTOR == 214
+    if (!nxk_alloc(8192)) nxk_es_detener();
     if (nxk_paginacion_guarda((void *)0x101000)) nxk_es_detener();
     *(volatile unsigned char *)0x101000=1;
 #elif NXK_EXCEPTION_VECTOR == 14
@@ -322,6 +333,7 @@ void kernel_main(void) {
                 print("Ticks PIT (~100 Hz; contador de 32 bits): "); number(nxk_reloj_ticks()); put('\n');
             }
             else if (nxk_equal(line, "mem")) {
+                print("Paginas de guarda activas: "); number(nxk_paginacion_guardas()); put('\n');
                 print("Heap fijo usado: "); number(nxk_heap_used()); print(" / 524288 bytes\n");
                 print("Heap disponible: "); number(nxk_heap_available()); print(" bytes\n");
                 print("RAM utilizable descrita por BIOS: "); number(nxk_ram_kib());
