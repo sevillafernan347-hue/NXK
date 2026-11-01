@@ -124,9 +124,15 @@ void nxk_es_guardar_archivo(const char *nombre,const char *texto) {
     if (n==256 || nxk_archivo_escribir(nombre,texto,n)) nxk_es_fallo(0);
 }
 void nxk_es_mostrar_archivo(const char *nombre) {
-    char datos[256]; int n=nxk_archivo_leer_visible(nombre,datos,256);
-    if (n<0) nxk_es_fallo(0);
-    for (int i=0;i<n;++i) put(datos[i]); put('\n');
+    char datos[256]; uint32_t posicion=0;
+    for (;;) {
+        int n=nxk_archivo_leer_parte(nombre,datos,256,posicion);
+        if (n<0) nxk_es_fallo(0);
+        if (!n) break;
+        for (int i=0;i<n;++i) put(datos[i]);
+        posicion+=(uint32_t)n;
+    }
+    put('\n');
 }
 void nxk_es_borrar_archivo(const char *nombre) {
     if (nxk_archivo_borrar(nombre)) nxk_es_fallo(0);

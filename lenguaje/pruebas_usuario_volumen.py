@@ -6,9 +6,10 @@ raiz=pathlib.Path(__file__).resolve().parents[1]
 entorno={k:v for k,v in os.environ.items() if k.lower()!='psmodulepath'}
 construir=['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',str(raiz/'build.ps1'),'-Architecture','x86']
 carpeta=raiz/'build/x86/usuario-volumen-pruebas';carpeta.mkdir(exist_ok=True)
+patron=bytes(33+(i*37+i//251)%90 for i in range(4096))
 base=crear({'leeme.txt':b'NEXTRY_DISCO_VALIDO\n'})
 corrupto=bytearray(base);corrupto[512]^=1
-casos={'correcto':base,'corrupto':corrupto,'grande':crear({'leeme.txt':b'G'*257}),
+casos={'correcto':base,'corrupto':corrupto,'grande':crear({'leeme.txt':b'G'*257}),'maximo':crear({'leeme.txt':patron}),'vacio':crear({'leeme.txt':b''}),'minimo':crear({'leeme.txt':b'@'}),'exacto':crear({'leeme.txt':b'E'*256}),
        'ausente':crear({'otro.txt':b'otro'}),'sin_montar':base}
 try:
     subprocess.run(construir+['-FuenteUsuario','lenguaje/ejemplos/usuario_volumen.nxf'],cwd=raiz,env=entorno,check=True,capture_output=True)
@@ -43,6 +44,10 @@ try:
                     enviar(b'borrar leeme.txt\nusuario nextry\n')
                     esperar(b'NEXTRY_DISCO_VALIDO',2);esperar(b'Aplicacion NEXTRY protegida termino.',4)
                     enviar(b'leer leeme.txt\n');esperar(b'NEXTRY_DISCO_VALIDO',3)
+                elif nombre in ('grande','maximo','vacio','minimo','exacto'):
+                    esperado={'grande':b'G'*257,'maximo':patron,'vacio':b'','minimo':b'@','exacto':b'E'*256}[nombre]
+                    if esperado: esperar(esperado)
+                    esperar(b'Aplicacion NEXTRY protegida termino.')
                 else:
                     esperar(b'Aplicacion NEXTRY fallo.')
                     if b'NEXTRY_DISCO_VALIDO' in log.read_bytes():raise RuntimeError('Contenido invalido publicado')

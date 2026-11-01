@@ -32,8 +32,17 @@ void nxk_es_guardar_archivo(const char *nombre,const char *texto) {
     if (n==256 || archivo(2,nombre,(void *)texto,n)) nxk_es_fallo(0);
 }
 void nxk_es_mostrar_archivo(const char *nombre) {
-    char datos[256]; uint32_t n=archivo(3,nombre,datos,256);
-    if (n>256 || escribir(datos,n)!=n || escribir("\n",1)!=1) nxk_es_fallo(0);
+    char datos[256]; uint32_t posicion=0;
+    for (;;) {
+        uint32_t n=5;
+        __asm__ volatile("int $0x81":"+a"(n):"b"(nombre),"c"(datos),"d"(256u),"S"(posicion):"memory","cc");
+        if (n>256) nxk_es_fallo(0);
+        if (!n) break;
+        if (escribir(datos,n)!=n) nxk_es_fallo(0);
+        posicion+=n;
+        if (posicion>4096) nxk_es_fallo(0);
+    }
+    if (escribir("\n",1)!=1) nxk_es_fallo(0);
 }
 void nxk_es_borrar_archivo(const char *nombre) {
     if (archivo(4,nombre,0,0)) nxk_es_fallo(0);

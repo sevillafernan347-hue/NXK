@@ -160,3 +160,8 @@ NEXTRY protegido puede leer archivos NXFS montados con mostrar_archivo,
 prioridad RAM y fallback solo por ausencia. Se verifican corrupcion/capacidad
 antes de entregar datos a CPL3. Cinco escenarios dedicados con imagenes intactas
 y ejemplo usuario_volumen.nxf. Ver ENTREGA-NEXTRY-LECTURA-NXFS.md.
+
+Lectura parcial: servicio 5 con desplazamiento, validacion de EOF y destino.
+mostrar_archivo en NEXTRY protegido muestra hasta 4096 bytes de NXFS usando
+bloques de 256. Nueve escenarios, incluyendo patron completo de 4 KiB, mas
+pruebas de limites en RAM/servicio. Ver ENTREGA-LECTURA-PARCIAL.md.

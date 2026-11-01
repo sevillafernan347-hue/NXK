@@ -39,12 +39,15 @@ int nxk_volumen_montar(void) {
     memcpy(archivos,nuevas,n*sizeof(*archivos)); cantidad=n; return 0;
 }
 const char *nxk_volumen_nombre(unsigned i) { return i<cantidad ? archivos[i].nombre : 0; }
-int nxk_volumen_leer(const char *nombre,void *destino,size_t capacidad) {
-    if (!nombre || !destino) return -1;
+static int leer_rango(const char *nombre,void *destino,size_t capacidad,uint32_t desplazamiento,int completo) {
+    if (!nombre || (!destino && capacidad)) return -1;
     unsigned i; for (i=0;i<cantidad;++i) if (nxk_equal(nombre,archivos[i].nombre)) break;
     if (i==cantidad) return -2;
     uint32_t n=archivos[i].longitud;
-    if (capacidad<n) return -3;
+    if (desplazamiento>n || (completo && capacidad<n)) return -3;
+    size_t copiar=n-desplazamiento; if (copiar>capacidad) copiar=capacidad;
+    if (!n && archivos[i].huella!=2166136261u) return -6;
+    if (!copiar) return 0;
     if (!temporal) temporal=nxk_alloc(4096);
     if (!temporal) return -4;
     unsigned char sector[512];
@@ -54,5 +57,8 @@ int nxk_volumen_leer(const char *nombre,void *destino,size_t capacidad) {
         memcpy(temporal+leidos,sector,paso); leidos+=paso;
     }
     if (huella(temporal,n)!=archivos[i].huella) return -6;
-    memcpy(destino,temporal,n); return (int)n;
+    memcpy(destino,temporal+desplazamiento,copiar); return (int)copiar;
 }
+
+int nxk_volumen_leer(const char *n,void *d,size_t c) { return leer_rango(n,d,c,0,1); }
+int nxk_volumen_leer_parte(const char *n,void *d,size_t c,uint32_t p) { return leer_rango(n,d,c,p,0); }

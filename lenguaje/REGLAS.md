@@ -186,8 +186,10 @@ Argumentos de tipo texto. Disponibles en runtime CPL3 y modulo kernel; no en
 ABI NXE 1. Ocho archivos compartidos, nombres hasta 23 caracteres y 256 bytes
 por archivo; el wrapper de texto admite hasta 255 bytes. Se pierden al reiniciar.
 Errores de archivo terminan la app CPL3 con error. No hay permisos por usuario.
+mostrar_archivo ahora recorre NXFS en bloques de 256 hasta 4096 bytes; los
+archivos RAM mantienen 256 bytes de capacidad.
 
 Lectura desde volumen: tras `volumen montar`, `mostrar_archivo` busca RAM y,
 si el nombre falta, consulta NXFS. Una copia RAM (incluso vacia) tiene prioridad.
-Los errores de lectura terminan la app; limite de 256 bytes. Guardar y borrar
+Los errores de lectura terminan la app; lectura por partes hasta 4096 bytes de NXFS. Guardar y borrar
 solo modifican RAM. Ejemplo protegido: lenguaje/ejemplos/usuario_volumen.nxf.
