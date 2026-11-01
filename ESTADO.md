@@ -77,3 +77,13 @@ Ocho entradas de 256 bytes, sin persistencia. Ver ENTREGA-ARCHIVOS-RAM.md.
 Tareas cooperativas: estado DORMIDA y despertar por plazos PIT, reposo HLT
 cuando ninguna esta lista y finalizacion al retornar del trabajo. Demo `tareas`
 verificada en matriz x86; sigue sin preempcion ni API general de procesos.
+
+NEXTRY acepta tipos explicitos entero/logico/texto y constantes tipadas.
+El modulo kernel/inicio.nxf ya usa declaraciones explicitas. 19 pruebas del
+compilador, matriz x86 y regresion x64 superadas. entero sigue siendo uint32
+sin signo; los tipos con signo, decimales y enteros largos no estan implementados.
+Build y test aceptan -FuenteApp para integrar y probar aplicaciones propias
+sin editar fuentes del kernel. Ejemplo tipos.nxf ejecutado en x86 con 64 MiB.
+El alias de consola sigue siendo ejecutar hola.nxe. Imagen local x86 actual
+contiene tipos.nxf como demostracion. El PDF anterior no incluye esta extension;
+la referencia actualizada esta en lenguaje/REGLAS.md.

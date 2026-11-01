@@ -11,8 +11,8 @@ fin
 funcion inicio
     llamar prueba_bucles
     llamar bienvenida
-    constante objetivo = 3
-    variable contador = 0
+    constante entero objetivo = 3
+    entero contador = 0
 
     repetir objetivo veces
         contador = contador + 1
@@ -41,8 +41,8 @@ funcion inicio
 fin
 
 funcion prueba_bucles
-    variable cuenta = 0
-    variable suma = 0
+    entero cuenta = 0
+    entero suma = 0
     repetir 6 veces
         cuenta = cuenta + 1
         si cuenta == 2

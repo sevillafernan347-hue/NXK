@@ -149,3 +149,21 @@ El código generado conserva una pequeña base C y ensamblador para el arranque 
 `romper` sale del bucle mas cercano. `continuar` salta a su siguiente vuelta.
 Solo se admiten dentro de `mientras` o `repetir`, incluso anidados en `si`.
 No atraviesan llamadas a funciones. Ejemplo: lenguaje/ejemplos/bucles.nxf.
+
+## Tipos explicitos en espanol
+
+`entero edad = 20`, `logico activo = verdadero` y `texto nombre = "Ana"`
+declaran variables con tipo explicito. Tambien se admite `variable entero n = 1`
+y `constante entero limite = 3`. El compilador exige que el valor coincida
+con el tipo; conserva las declaraciones anteriores por inferencia.
+`entero` es sin signo de 32 bits, no equivale al int con signo de C++.
+`entero_largo`, `decimal`, `decimal_doble` y `caracter` siguen pendientes.
+
+## Probar tu propia aplicacion en NXK
+
+Desde la carpeta del proyecto: `./build.ps1 -FuenteApp lenguaje/ejemplos/tipos.nxf`.
+Despues inicia una nueva ventana con `./run.ps1` y escribe `ejecutar hola.nxe`.
+Ese nombre es el alias fijo de la aplicacion embebida: ahora contiene tu fuente.
+La imagen ya abierta no cambia. No se cargan rutas arbitrarias en ejecucion.
+Para comprobarla automaticamente: `./test.ps1 -FuenteApp lenguaje/ejemplos/tipos.nxf`.
+Sin FuenteApp se conserva el ejemplo original. No hace falta editar el kernel.

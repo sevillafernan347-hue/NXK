@@ -14,6 +14,15 @@ class Lenguaje(unittest.TestCase):
         with self.assertRaisesRegex(ErrorLenguaje, mensaje):
             compilar(texto)
 
+    def test_tipos_explicitos(self):
+        fuente=(Path(__file__).parent/'ejemplos/tipos.nxf').read_text()
+        self.assertIn('uint32_t',compilar(fuente))
+        self.error('funcion inicio\nentero edad = verdadero\nfin','entero')
+        self.error('funcion inicio\ntexto nombre = 5\nfin','texto')
+        self.error('funcion inicio\nlogico activo = 1\nfin','logico')
+        self.error('funcion inicio\nconstante entero n = 3\nn = 4\nfin','constante')
+        self.assertIn('_Bool',compilar('funcion inicio\nvariable logico listo = falso\nafirmar no listo\nfin'))
+
     def test_control_bucles(self):
         for orden in ('romper', 'continuar'):
             self.error(f'funcion inicio\n{orden}\nfin', 'dentro de un bucle')

@@ -2,6 +2,7 @@
 # Construye el kernel: compila NEXTRY, ensambla NXA, enlaza modulos y crea la imagen de disco.
 # Contexto y orden de estudio: ver LEER-CODIGO.md en la carpeta principal.
 param(
+    [string]$FuenteApp = 'lenguaje/ejemplos/hola.nxf',
     [switch]$Test,
     [switch]$ExceptionTest,
     [ValidateSet(3,6,13)][int]$ExceptionVector = 3,
@@ -20,7 +21,7 @@ $entrySource = if ($Architecture -eq 'x86') { 'kernel/entry32.S' } else { 'kerne
 New-Item -ItemType Directory -Force $buildDir | Out-Null
 & $python lenguaje/compilador.py kernel/inicio.nxf -o "$buildDir/inicio_nxe.c"
 if ($LASTEXITCODE -ne 0) { throw 'NXK Espanol encontro errores. Corrige kernel\inicio.nxf.' }
-& "$PSScriptRoot/compilar-app.ps1" -Architecture $Architecture -Salida "$buildDir/hola.nxe"
+& "$PSScriptRoot/compilar-app.ps1" -Fuente $FuenteApp -Architecture $Architecture -Salida "$buildDir/hola.nxe"
 if ($Architecture -eq 'x86') {
     & $zig cc -target x86-windows-gnu -ffreestanding -fno-stack-protector -fno-builtin -mno-sse -mno-sse2 -Os -nostdlib compatibilidad/windows/hola.c '-Wl,--entry,inicio' '-Wl,--subsystem,console' '-Wl,--image-base,0x400000' -lkernel32 -o "$buildDir/hola.exe"
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear el EXE Win32 de prueba.' }

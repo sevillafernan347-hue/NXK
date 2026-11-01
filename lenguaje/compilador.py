@@ -31,7 +31,7 @@ class Token:
 PALABRAS = set('funcion fin variable constante si sino mientras repetir veces '
                'mostrar numero llamar volver detener afirmar leer_puerto '
                'escribir_puerto verdadero falso y o no y_bits o_bits xor_bits '
-               'memoria_usada romper continuar'.split())
+               'memoria_usada romper continuar entero logico texto'.split())
 ALIAS = {'función': 'funcion', 'número': 'numero'}
 PATRON = re.compile(
     r'(?P<ESPACIO>[^\S\n]+)|(?P<COMENTARIO>\#[^\n]*)|(?P<NL>\n)|'
@@ -143,9 +143,14 @@ class Analizador:
         salida = []
         while self.actual.tipo not in ('fin', 'sino', 'FINAL'):
             t = self.tomar(); k = t.tipo
-            if k in ('variable', 'constante'):
+            if k in ('variable', 'constante', 'entero', 'logico', 'texto'):
+                declarado = k if k in ('entero', 'logico', 'texto') else None
+                clase = 'variable' if declarado else k
+                # Tambien permite constante entero limite = 3.
+                if k in ('variable', 'constante') and self.actual.tipo in ('entero','logico','texto'):
+                    declarado = self.tomar().tipo
                 n = self.tomar('NOMBRE'); self.tomar('=')
-                salida.append((k, t, n, self.expresion())); self.linea()
+                salida.append((clase, t, n, self.expresion(), declarado)); self.linea()
             elif k == 'NOMBRE':
                 self.tomar('=')
                 salida.append(('asignar', t, self.expresion())); self.linea()
@@ -252,6 +257,7 @@ class Generador:
                 if any(n.texto in a for a in self.ambitos):
                     self.error(n, f'«{n.texto}» ya esta declarado; usa otro nombre.')
                 tipo, valor = self.expresion(s[3]); self.serie += 1
+                if len(s)>4 and s[4]: self.tipo(t,tipo,s[4])
                 nombre = simbolo(n.texto) + '_' + str(self.serie)
                 self.ambitos[-1][n.texto] = (tipo, nombre, k == 'constante')
                 c_tipo = {'entero': 'uint32_t', 'logico': '_Bool', 'texto': 'const char *'}[tipo]

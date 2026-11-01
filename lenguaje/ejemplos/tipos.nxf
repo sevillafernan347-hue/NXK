@@ -1,0 +1,12 @@
+# Tipos explicitos en espanol. entero sigue siendo uint32 sin signo.
+funcion inicio
+    entero edad = 20
+    logico activo = verdadero
+    texto saludo = "Hola desde NEXTRY"
+    constante entero limite = 30
+    mostrar saludo
+    si activo y edad < limite
+        numero edad
+    fin
+    afirmar edad == 20
+fin
