@@ -150,3 +150,8 @@ Compilador con 20 pruebas y ejemplo completo; ver ENTREGA-ARCHIVOS-USUARIO.md.
 Controlador ATA PIO de lectura x86: identifica IDE primario y lee sectores
 LBA28 con limites, sondeos acotados y buffer temporal. Comando discos.
 Validacion en QEMU: ENTREGA-ATA-LECTURA.md. Sin escrituras ni persistencia.
+
+Volumen NXFS1 de solo lectura sobre imagen IDE secundaria: montaje, listado y
+lectura hasta 4096 bytes con verificacion de huellas y metadatos. Comandos
+volumen montar/listar/leer. Nueve imagenes de prueba superadas. Aun sin guardar
+desde NXK al disco. Ver ENTREGA-VOLUMEN-NXFS.md.

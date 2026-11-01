@@ -11,6 +11,7 @@
 #include "paginacion.h"
 #include "usuario.h"
 #include "ata.h"
+#include "volumen.h"
 #if defined(__i386__)
 #define NXK_ARCH_TEXT "x86 de 32 bits"
 #define NXK_MODE_MARKER "NXK: PROTECTED MODE 32 OK\n"
@@ -350,7 +351,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | discos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | discos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nvolumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -380,6 +381,19 @@ void kernel_main(void) {
             }
             else if (prefijo(line,"borrar ")) {
                 print(nxk_archivo_borrar(line+7) ? "No se pudo borrar.\n" : "Archivo borrado.\n");
+            }
+            else if (nxk_equal(line, "volumen montar")) {
+                print(nxk_volumen_montar() ? "Volumen no disponible o invalido.\n" : "Volumen NXFS montado en solo lectura.\n");
+            }
+            else if (nxk_equal(line, "volumen listar")) {
+                for (unsigned i=0;i<8;++i) { const char *s=nxk_volumen_nombre(i); if (s) { print(s); put('\n'); } }
+            }
+            else if (prefijo(line,"volumen leer ")) {
+                static unsigned char *contenido;
+                if (!contenido) contenido=nxk_alloc(4096);
+                int n=contenido ? nxk_volumen_leer(line+13,contenido,4096) : -1;
+                if (n<0) print("No se pudo leer o verificar el archivo.\n");
+                else { for (int i=0;i<n;++i) put((char)contenido[i]); put('\n'); }
             }
             else if (nxk_equal(line, "discos")) {
                 for (unsigned u=0;u<2;++u) { struct nxk_ata_info info;
