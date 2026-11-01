@@ -46,8 +46,19 @@ static void put(char ch) {
     }
 }
 static void print(const char *s) { while (*s) put(*s++); }
-void nxk_excepcion_fatal(void) {
+static void hexadecimal(uint32_t valor) {
+    const char *digitos="0123456789ABCDEF";
+    print("0x");
+    for (int i=7;i>=0;--i) put(digitos[(valor>>(i*4))&15]);
+}
+void nxk_excepcion_fatal(const uint32_t *pila) {
     print("\nNXK: EXCEPCION CONTROLADA. CPU detenida.\n");
+    /* PUSHAD: ocho registros; despues vector, error, EIP, CS y EFLAGS. */
+    print("VECTOR: "); hexadecimal(pila[8]);
+    print(" ERROR: "); hexadecimal(pila[9]);
+    print(" EIP: "); hexadecimal(pila[10]); put('\n');
+    print("EAX: "); hexadecimal(pila[7]); print(" EBX: "); hexadecimal(pila[4]);
+    print(" ECX: "); hexadecimal(pila[6]); print(" EDX: "); hexadecimal(pila[5]); put('\n');
 #ifdef NXK_EXCEPTION_TEST
     out8(0xf4, 0x12);
 #endif
@@ -113,7 +124,13 @@ void kernel_main(void) {
     extern void nxk_excepciones_iniciar(void);
     nxk_excepciones_iniciar();
 #if defined(NXK_EXCEPTION_TEST) && defined(__i386__)
+#if NXK_EXCEPTION_VECTOR == 13
+    __asm__ volatile("mov $0xfff8, %%ax; mov %%ax, %%ds" ::: "eax", "memory");
+#elif NXK_EXCEPTION_VECTOR == 6
+    __asm__ volatile("ud2");
+#else
     __asm__ volatile("int3");
+#endif
 #endif
     volatile uint16_t *vga = (volatile uint16_t *)0xb8000;
     for (unsigned i=0; i<2000; ++i) vga[i] = 0x0b20;

@@ -5,10 +5,18 @@
 # El puente instala la direccion del manejador C en el inmediato de cargar32.
 origen 0
 modo 32
+# Error auxiliar para excepciones sin codigo CPU; las otras entran en offset 2.
+bytes 0x6a, 0
+# El instalador sustituye el inmediato siguiente por el numero de vector.
+bytes 0x6a, 0
 desactivar_interrupciones
 direccion_adelante
 guardar_registros32
+copiar32 esi, esp
 alinear_pila16
+# Reserva 12 bytes y apila el argumento: ESP queda alineado antes de CALL.
+bytes 0x83, 0xec, 12
+guardar32 esi
 cargar32 eax, 0
 llamar_registro eax
 espera:

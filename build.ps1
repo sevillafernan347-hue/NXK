@@ -4,6 +4,7 @@
 param(
     [switch]$Test,
     [switch]$ExceptionTest,
+    [ValidateSet(3,6,13)][int]$ExceptionVector = 3,
     [ValidateSet('x86','x64')][string]$Architecture = 'x86'
 )
 $ErrorActionPreference = 'Stop'
@@ -71,6 +72,7 @@ $flags = @('-target',$target,'-ffreestanding','-fno-stack-protector','-fno-pic',
 if ($Architecture -eq 'x64') { $flags += '-mno-red-zone' }
 if ($Test) { $flags += '-DNXK_TEST' }
 if ($ExceptionTest) { $flags += '-DNXK_EXCEPTION_TEST' }
+if ($ExceptionTest) { $flags += "-DNXK_EXCEPTION_VECTOR=$ExceptionVector" }
 Invoke-Zig cc @flags -c kernel/main.c -o "$buildDir/main.o"
 Invoke-Zig cc @flags -c lib/memory.c -o "$buildDir/memory.o"
 Invoke-Zig cc @flags -c "$buildDir/inicio_nxe.c" -o "$buildDir/inicio_nxe.o"

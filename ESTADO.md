@@ -42,7 +42,7 @@ El gestor tambien puede excluir rangos de dispositivos o firmware, con pruebas
 para rangos parciales, repetidos y que cruzan paginas prestadas.
 Sigue pendiente memoria virtual y uso del gestor por tareas. El heap antiguo sigue
 siendo incremental; no tiene liberacion. El nuevo gestor es un puente C pendiente
-de migrar a NEXTRY. Proximo hito: diagnostico detallado de excepciones.
+de migrar a NEXTRY. Diagnostico detallado de excepciones implementado en la rama de trabajo.
 Lee `COLABORACION.md` para repartir tareas entre cuentas con copias separadas.
 
 Se agregaron comentarios de lectura a los 53 archivos fuente y lanzadores propios.
@@ -50,6 +50,6 @@ Consulta `LEER-CODIGO.md` para recorrerlos en orden. `lib/mover32.nxa` implement
 movimiento con solapamiento; sus pruebas cubren 2112 combinaciones por arranque.
 Los cargadores NXE y PE32 ahora usan nuestra copia de memoria x86.
 
-Ya existe una IDT inicial x86 que detiene la CPU ante excepciones. Falta identificar cada excepcion y mostrar su contexto. El prototipo aun no tiene procesos, planificador, sistema de archivos, red, escritorio grafico o soporte para arrancar directamente en una laptop UEFI.
+Ya existe una IDT inicial x86 que detiene la CPU ante excepciones. Ahora muestra vector, codigo de error, EIP y registros; pruebas provocadas de INT3, instruccion invalida y proteccion general. El prototipo aun no tiene procesos, planificador, sistema de archivos, red, escritorio grafico o soporte para arrancar directamente en una laptop UEFI.
 
 Ultima comprobacion: copia de memoria NEXTRY ASM con longitudes 0, 1, 3, 16, 17 y 256, direcciones desalineadas, retorno del destino, origen intacto y centinelas. Arranque y pruebas superadas en x86 con 32, 64, 128 y 1024 MiB y en x64 con 64 MiB. Esto no garantiza ausencia de errores.

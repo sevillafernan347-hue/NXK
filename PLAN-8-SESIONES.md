@@ -43,3 +43,8 @@ el gestor nuevo solo esta habilitado en x86.
 
 Limites: puente C, sin concurrencia ni memoria virtual. Toda pagina nueva se
 limpia antes de entregarla. El siguiente hito es diagnostico de excepciones.
+
+## Hito 3: diagnostico implementado en rama de trabajo
+
+Vector, error CPU, EIP y registros visibles. Pruebas provocadas para vectores
+3, 6 y 13. Pendiente integrar por revision; siguiente hito: temporizador e IRQ.
