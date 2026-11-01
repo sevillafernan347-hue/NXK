@@ -4,6 +4,14 @@ Git guarda el codigo y sus versiones. Cada chat necesita acceso al repositorio
 o una copia adjunta; una cuenta de ChatGPT no recibe acceso automaticamente
 por ser del mismo usuario. No compartas contrasenas ni tokens en el chat.
 
+El repositorio es publico. Los colaboradores deben hacer un fork: una copia
+independiente bajo su propia cuenta. Pueden guardar ahi todo el codigo que quieran
+sin alterar el NXK original. Para proponer una pieza separada que podamos revisar,
+usen `APORTES-EXTERNOS/<alias>/<componente>/` en su fork y abran un pull request
+que solo agregue esa carpeta. `main` requiere pull request y no recibe cambios
+directos. La cuenta principal revisa y decide si acepta el aporte; la integracion
+posterior al kernel requiere otro cambio y aprobacion del usuario.
+
 ## Reparto inicial
 
 | Responsable | Trabajo | Rama sugerida |

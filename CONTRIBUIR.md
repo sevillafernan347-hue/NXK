@@ -8,13 +8,22 @@ y maquinas con poca RAM. Lee primero `README.md`, `ESTADO.md`, `AGENTS.md` y
 ## Proponer un cambio
 
 1. Abre un issue describiendo el problema, el equipo/entorno y como reproducirlo.
-2. Haz fork del repositorio y crea una rama para un solo cambio.
-3. No regenres NXK desde cero. Conserva comentarios en espanol y explica cualquier
+2. Haz fork del repositorio y crea una rama para un solo cambio. Tu fork es tu copia
+   independiente; trabajar ahi no modifica el proyecto original.
+3. Para compartir un componente opcional sin editar NXK, agrega una carpeta nueva
+   en `APORTES-EXTERNOS/<tu-alias>/<nombre-del-componente>/`. Incluye su codigo,
+   instrucciones y pruebas propias. No reemplaces archivos de NXK ni uses sus rutas
+   para guardar variantes experimentales.
+4. Abre un pull request que solo agregue tu carpeta a `APORTES-EXTERNOS/`.
+   Esto conserva tu version aparte del kernel principal. El mantenedor decidira si
+   la acepta como aporte independiente; integrar codigo en el kernel requiere una
+   propuesta separada y aprobacion explicita.
+5. No regeneres NXK desde cero. Conserva comentarios en espanol y explica cualquier
    puente temporal a C, ensamblador externo o herramienta de compilacion.
-4. Incluye pruebas. Para cambios del kernel ejecuta `test.ps1 -Architecture x86`;
+6. Incluye pruebas. Para cambios del kernel ejecuta `test.ps1 -Architecture x86`;
    si toca RAM, ejecuta tambien `test.ps1 -Architecture x86 -MemoryMatrix`.
    Para cambios del lenguaje, ejecuta `lenguaje/pruebas.py`.
-5. Abre un pull request con commit base, archivos tocados, resultados reales y
+7. Abre un pull request con commit base, archivos tocados, resultados reales y
    limitaciones conocidas. No digas que probaste hardware fisico si no fue asi.
 
 ## Limites del proyecto
