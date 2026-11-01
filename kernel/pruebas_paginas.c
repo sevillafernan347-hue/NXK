@@ -35,6 +35,19 @@ int nxk_probar_paginas(void) {
     /* Un hueco de pagina dentro de la reserva invalida el mapa. */
     mapa[1]=(struct nxk_region_ram){0x609000,0x5f7000,1};
     if (nxk_paginas_iniciar(mapa,2)!=-4) return 15;
+    /* Reserva parcial redondeada: repeticion no descuenta paginas dos veces. */
+    mapa[1]=(struct nxk_region_ram){0x608000,0x5f8000,1};
+    if (nxk_paginas_iniciar(mapa,2) || nxk_paginas_total()!=1024) return 19;
+    if (nxk_paginas_reservar_region(0x803001,4095) || nxk_paginas_libres()!=1023) return 20;
+    if (nxk_paginas_reservar_region(0x803001,4095) || nxk_paginas_libres()!=1023) return 21;
+    void *activa=nxk_pagina_reservar();
+    uint32_t antes_reserva=nxk_paginas_libres();
+    if ((uintptr_t)activa!=0x800000) return 22;
+    if (nxk_paginas_reservar_region(0x800fff,1)!=-2) return 24;
+    if (nxk_paginas_libres()!=antes_reserva) return 25;
+    if (nxk_pagina_liberar(activa)) return 26;
+    if (nxk_paginas_reservar_region(0x3fffffff,2)!=-1 ||
+        nxk_paginas_reservar_region(0,0) || nxk_paginas_libres()!=1023) return 23;
     /* Restaurar el mapa real; agotar y liberar todas sus paginas sin escribirlas. */
     if (nxk_paginas_bios() || !nxk_paginas_total()) return 10;
     uint32_t cantidad=nxk_paginas_total();

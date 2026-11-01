@@ -11,7 +11,7 @@
 #define BYTES (CANTIDAD/8)
 static uint32_t libres, total;
 #if defined(__i386__)
-static uint32_t pista=PRIMERA;
+static uint32_t pista=PRIMERA, entregas_activas;
 static unsigned char *const disponibles=(void *)0x600000;
 static unsigned char *const entregadas=(void *)(0x600000+BYTES);
 static struct nxk_region_ram copia[32];
@@ -24,7 +24,7 @@ static void marcar(unsigned char *mapa, uint32_t n, int valor) {
 int nxk_paginas_iniciar(const struct nxk_region_ram *mapa, unsigned cantidad) {
 #if defined(__i386__)
     /* No reinicializar mientras alguien conserve paginas del gestor anterior. */
-    if (!mapa || !cantidad || cantidad>32 || libres!=total) return -1;
+    if (!mapa || !cantidad || cantidad>32 || entregas_activas) return -1;
     memcpy(copia,mapa,cantidad*sizeof(*mapa));
     for (unsigned i=0;i<cantidad;++i) {
         uint64_t a=copia[i].base, n=copia[i].longitud;
@@ -61,6 +61,7 @@ int nxk_paginas_iniciar(const struct nxk_region_ram *mapa, unsigned cantidad) {
     total=0;
     for (uint32_t p=PRIMERA;p<CANTIDAD;++p) total+=bit(disponibles,p);
     libres=total; pista=PRIMERA;
+    entregas_activas=0;
     return 0;
 #else
     (void)mapa; (void)cantidad; return -64;
@@ -81,7 +82,7 @@ void *nxk_pagina_reservar(void) {
     for (uint32_t p=pista;p<CANTIDAD;++p) {
         if (!bit(disponibles,p)) continue;
         marcar(disponibles,p,0); marcar(entregadas,p,1);
-        --libres; pista=p+1;
+        --libres; ++entregas_activas; pista=p+1;
         void *pagina=(void *)(uintptr_t)(p*4096);
         /* No filtrar a un nuevo usuario los bytes del anterior. */
         memset(pagina,0,4096);
@@ -98,11 +99,34 @@ int nxk_pagina_liberar(void *direccion) {
     if (!bit(entregadas,p)) return -2;
     /* Borrar antes de marcarla libre para que el siguiente uso no vea restos. */
     memset((void *)a,0,4096);
-    marcar(entregadas,p,0); marcar(disponibles,p,1); ++libres;
+    marcar(entregadas,p,0); marcar(disponibles,p,1); ++libres; --entregas_activas;
     if (p<pista) pista=p;
     return 0;
 #else
     (void)direccion; return -64;
+#endif
+}
+int nxk_paginas_reservar_region(uint32_t inicio, uint32_t longitud) {
+#if defined(__i386__)
+    if (!longitud) return 0;
+    uint64_t fin=(uint64_t)inicio+longitud;
+    if (fin>0x40000000ull) return -1;
+    uint32_t primero=inicio/4096, despues=(uint32_t)((fin+4095)/4096);
+    if (primero<PRIMERA) primero=PRIMERA;
+    /* Validacion previa: si alguna pagina esta en manos de un llamador,
+       no cambiamos ninguna parte del rango. */
+    for (uint32_t p=primero;p<despues;++p)
+        if (bit(entregadas,p)) return -2;
+    for (uint32_t p=primero;p<despues;++p) {
+        if (bit(disponibles,p)) { marcar(disponibles,p,0); --libres; }
+    }
+    if (pista>=primero && pista<despues) {
+        pista=despues;
+        while (pista<CANTIDAD && !bit(disponibles,pista)) ++pista;
+    }
+    return 0;
+#else
+    (void)inicio; (void)longitud; return -64;
 #endif
 }
 uint32_t nxk_paginas_libres(void) { return libres; }

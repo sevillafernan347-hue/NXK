@@ -37,3 +37,11 @@ contenido entre usos. Pruebas escriben patrones, comprueban que liberar los borr
 la vuelven a reservar y verifican todos los bytes en cero.
 Pasaron la matriz x86 y el arranque x64 de regresion. El limpiado usa memset ASM
 en x86; tiene un costo de 4 KiB por reserva y por liberacion.
+
+La misma rama agrega nxk_paginas_reservar_region para excluir rangos de memoria
+fisica (por ejemplo, regiones de firmware o dispositivos) del asignador. El rango
+se redondea a paginas, puede reservarse dos veces sin descontarlo dos veces, y se
+rechaza sin cambios si contiene una pagina prestada. El limite de direccion se
+valida con aritmetica de 64 bits. La inicializacion ahora impide reiniciar solo
+si hay paginas prestadas; las reservas permanentes no cuentan como prestamos.
+Casos parciales, repetidos, fuera de rango y en uso pasan en matriz x86 y x64.
