@@ -65,3 +65,8 @@ Demostracion inicial de tareas cooperativas x86 disponible con `tareas`.
 Dos pilas privadas, cuatro turnos por tarea y variables locales preservadas.
 Cambio de contexto en NEXTRY ASM y organizacion en C; sin preempcion ni
 aislamiento. Validacion: ENTREGA-TAREAS.md.
+
+Integracion en main: diagnostico de excepciones, PIT, tareas cooperativas y
+validacion PE. El gestor fisico ahora rechaza operaciones antes de inicializar
+sus metadatos, evitando accesos a una zona RAM aun no validada. Prueba previa
+al inicio y matriz x86 32/64/128/1024 MiB superadas.

@@ -12,6 +12,7 @@
 static uint32_t libres, total;
 #if defined(__i386__)
 static uint32_t pista=PRIMERA, entregas_activas;
+static int iniciado;
 static unsigned char *const disponibles=(void *)0x600000;
 static unsigned char *const entregadas=(void *)(0x600000+BYTES);
 static struct nxk_region_ram copia[32];
@@ -61,7 +62,7 @@ int nxk_paginas_iniciar(const struct nxk_region_ram *mapa, unsigned cantidad) {
     total=0;
     for (uint32_t p=PRIMERA;p<CANTIDAD;++p) total+=bit(disponibles,p);
     libres=total; pista=PRIMERA;
-    entregas_activas=0;
+    entregas_activas=0; iniciado=1;
     return 0;
 #else
     (void)mapa; (void)cantidad; return -64;
@@ -78,7 +79,7 @@ int nxk_paginas_bios(void) {
 }
 void *nxk_pagina_reservar(void) {
 #if defined(__i386__)
-    if (!libres) return 0;
+    if (!iniciado || !libres) return 0;
     for (uint32_t p=pista;p<CANTIDAD;++p) {
         if (!bit(disponibles,p)) continue;
         marcar(disponibles,p,0); marcar(entregadas,p,1);
@@ -93,6 +94,7 @@ void *nxk_pagina_reservar(void) {
 }
 int nxk_pagina_liberar(void *direccion) {
 #if defined(__i386__)
+    if (!iniciado) return -3;
     uintptr_t a=(uintptr_t)direccion;
     if ((a&4095) || a<0x800000 || a>=LIMITE || !total) return -1;
     uint32_t p=(uint32_t)(a/4096);
@@ -108,6 +110,8 @@ int nxk_pagina_liberar(void *direccion) {
 }
 int nxk_paginas_reservar_region(uint32_t inicio, uint32_t longitud) {
 #if defined(__i386__)
+    /* Nunca acceder a metadatos fijos antes de validar su RAM mediante BIOS. */
+    if (!iniciado) return -3;
     if (!longitud) return 0;
     uint64_t fin=(uint64_t)inicio+longitud;
     if (fin>0x40000000ull) return -1;

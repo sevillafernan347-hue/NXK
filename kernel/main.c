@@ -140,6 +140,13 @@ void kernel_main(void) {
     print("NXK 0.1 - kernel original " NXK_ARCH_TEXT "\n");
     print("NXK: RAM BIOS KiB: "); number(nxk_ram_kib()); put('\n');
 #if defined(__i386__)
+#ifdef NXK_TEST
+    if (nxk_pagina_reservar() || nxk_pagina_liberar((void *)0x800000)!=-3 ||
+        nxk_paginas_reservar_region(0x800000,4096)!=-3) {
+        print("NXK: PAGINAS PREINICIO FAIL\n"); out8(0xf4,0x11); nxk_es_detener();
+    }
+    print("NXK: PAGINAS PREINICIO OK\n");
+#endif
     if (nxk_paginas_bios()) print("NXK: gestor de paginas no disponible\n");
     print("NXK: PAGINAS LIBRES: "); number(nxk_paginas_libres()); put('\n');
 #endif
