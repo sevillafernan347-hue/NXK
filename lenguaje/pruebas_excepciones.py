@@ -8,13 +8,26 @@ entorno={k:v for k,v in entorno.items() if k.lower()!='psmodulepath'}
 raiz=pathlib.Path(__file__).resolve().parents[1]
 construir=['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',str(raiz/'build.ps1'),'-Architecture','x86']
 try:
-    for vector,error in ((3,0),(6,0),(13,0xfff8),(14,2),(114,3),(214,2),(314,0)):
+    for vector,error in ((3,0),(6,0),(13,0xfff8),(14,2),(114,3),(214,2),(314,0),(414,0),(514,0),(614,7)):
         subprocess.run(construir+['-Test','-ExceptionTest','-ExceptionVector',str(vector)],check=True,env=entorno)
         p=subprocess.run([str(raiz/'tools/qemu/qemu-system-i386.exe'),'-machine','pc','-accel','tcg',
             '-cpu','qemu32','-m','32M','-drive','file=build/x86/nxk-test.img,format=raw,if=ide',
             '-display','none','-serial','stdio','-monitor','none','-no-reboot',
             '-device','isa-debug-exit,iobase=0xf4,iosize=0x04'],cwd=raiz,capture_output=True,timeout=30)
         (raiz/f'build/x86/excepcion-{vector}.log').write_bytes(p.stdout)
+        if vector in (514,614):
+            esperado=13 if vector==514 else 14
+            patron=f'VECTOR: 0x{esperado:08X} ERROR: 0x{error:08X}'.encode()
+            if p.returncode!=37 or patron not in p.stdout or b'CS: 0x0000002B' not in p.stdout:
+                raise RuntimeError(f'Proteccion de usuario fallo: {p.stdout!r}')
+            if vector==614 and b'CR2: 0x00010000' not in p.stdout: raise RuntimeError('Direccion protegida incorrecta')
+            print(f'USUARIO {vector}: acceso privilegiado bloqueado.')
+            continue
+        if vector==414:
+            if p.returncode!=37 or b'USUARIO RING3 A KERNEL RING0 OK' not in p.stdout:
+                raise RuntimeError(f'Transicion de privilegios fallo: {p.stdout!r}')
+            print('USUARIO: transicion ring3 a ring0 verificada.')
+            continue
         if vector==314:
             if p.returncode!=37 or b'DOBLE FALLO - PILA DE EMERGENCIA ACTIVA' not in p.stdout:
                 raise RuntimeError(f'Pila de emergencia fallo: {p.stdout!r}')

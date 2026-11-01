@@ -5,7 +5,7 @@ param(
     [string]$FuenteApp = 'lenguaje/ejemplos/hola.nxf',
     [switch]$Test,
     [switch]$ExceptionTest,
-    [ValidateSet(3,6,13,14,114,214,314)][int]$ExceptionVector = 3,
+    [ValidateSet(3,6,13,14,114,214,314,414,514,614)][int]$ExceptionVector = 3,
     [ValidateSet('x86','x64')][string]$Architecture = 'x86'
 )
 $ErrorActionPreference = 'Stop'

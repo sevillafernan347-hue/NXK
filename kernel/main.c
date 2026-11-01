@@ -57,6 +57,12 @@ static void hexadecimal(uint32_t valor) {
     for (int i=7;i>=0;--i) put(digitos[(valor>>(i*4))&15]);
 }
 void nxk_excepcion_fatal(const uint32_t *pila) {
+#if defined(NXK_EXCEPTION_TEST) && defined(__i386__)
+    if (pila[8]==32 && (pila[11]&3)==3) {
+        uint16_t cs; __asm__ volatile("mov %%cs,%0":"=r"(cs));
+        if ((cs&3)==0) print("NXK: USUARIO RING3 A KERNEL RING0 OK\n");
+    }
+#endif
     print("\nNXK: EXCEPCION CONTROLADA. CPU detenida.\n");
 #if defined(__i386__)
     if (pila[8]==14) { uint32_t direccion; __asm__ volatile("mov %%cr2,%0":"=r"(direccion));
@@ -66,6 +72,7 @@ void nxk_excepcion_fatal(const uint32_t *pila) {
     print("VECTOR: "); hexadecimal(pila[8]);
     print(" ERROR: "); hexadecimal(pila[9]);
     print(" EIP: "); hexadecimal(pila[10]); put('\n');
+    print("CS: "); hexadecimal(pila[11]); put('\n');
     print("EAX: "); hexadecimal(pila[7]); print(" EBX: "); hexadecimal(pila[4]);
     print(" ECX: "); hexadecimal(pila[6]); print(" EDX: "); hexadecimal(pila[5]); put('\n');
 #ifdef NXK_EXCEPTION_TEST
@@ -158,7 +165,10 @@ void kernel_main(void) {
     print("NXK: TSS EMERGENCIA OK\n");
 #endif
 #if defined(NXK_EXCEPTION_TEST) && defined(__i386__)
-#if NXK_EXCEPTION_VECTOR == 314
+#if NXK_EXCEPTION_VECTOR == 414 || NXK_EXCEPTION_VECTOR == 514 || NXK_EXCEPTION_VECTOR == 614
+    extern _Noreturn void nxk_usuario_probar(void);
+    nxk_usuario_probar();
+#elif NXK_EXCEPTION_VECTOR == 314
     if (!nxk_alloc(8192) || nxk_paginacion_guarda((void *)0x101000)) nxk_es_detener();
     __asm__ volatile("movl $0x101004,%%esp; pushl %%eax; ud2" ::: "memory");
 #elif NXK_EXCEPTION_VECTOR == 214

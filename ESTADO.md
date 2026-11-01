@@ -110,3 +110,5 @@ probadas provocando un fallo sobre la guarda con ESP inutilizable. El manejador
 informa ESP anterior y detiene el kernel; no recupera procesos. Ver
 ENTREGA-EMERGENCIA.md. Sustituye la limitacion previa de ausencia de pila
 de emergencia para doble fallo.
+
+Prueba inicial de modo usuario x86: segmentos DPL3, paginas usuario y pila SS0/ESP0. INT 0x80 autorizado; CLI y escritura sobre kernel rechazadas. Solo pruebas fatales; aplicaciones habituales siguen ring0. Ver ENTREGA-MODO-USUARIO.md.

@@ -50,7 +50,7 @@ void nxk_reloj_iniciar(void) {
 }
 /* Doble fallo: cambio de tarea hardware a TSS con pila independiente.
  * Solo fatal, una CPU. No retorna ni se usa como planificador. */
-static uint64_t gdt_emergencia[5];
+static uint64_t gdt_emergencia[7];
 static uint32_t tss_normal[26], tss_emergencia[26];
 static void descriptor_tss(unsigned indice,void *tss) {
     uintptr_t base=(uintptr_t)tss;
@@ -74,6 +74,8 @@ int nxk_emergencia_iniciar(void) {
     unsigned char *pila=nxk_alloc(4096);
     if (!pila) return -2;
     for (unsigned i=0;i<24;++i) ((unsigned char *)gdt_emergencia)[i]=((const unsigned char *)(uintptr_t)anterior.base)[i];
+    gdt_emergencia[5]=0x00cffa000000ffffULL; /* CS usuario: selector 43. */
+    gdt_emergencia[6]=0x00cff2000000ffffULL; /* DS usuario: selector 51. */
     descriptor_tss(3,tss_normal); descriptor_tss(4,tss_emergencia);
     tss_normal[25]=104u<<16; tss_emergencia[25]=104u<<16;
     __asm__ volatile("mov %%cr3,%0":"=r"(tss_emergencia[7]));
@@ -89,6 +91,39 @@ int nxk_emergencia_iniciar(void) {
     __asm__ volatile("ltr %0" :: "r"(selector) : "memory");
     tabla[8]=(struct puerta){0,32,0,0x85,0}; /* Task gate, DPL0. */
     return 0;
+}
+/* Prueba aislada: dos paginas de usuario, resto de PTE solo supervisor.
+ * INT 0x80 demuestra la entrada al kernel; el manejador fatal termina la prueba.
+ * No es todavia una ABI publica de llamadas al sistema. */
+_Noreturn void nxk_usuario_probar(void) {
+    unsigned char *reserva=nxk_alloc(3*4096), *pila_kernel=nxk_alloc(4096);
+    if (!reserva || !pila_kernel) nxk_es_detener();
+    uintptr_t codigo=((uintptr_t)reserva+4095)&~(uintptr_t)4095;
+    uintptr_t pila=codigo+4096;
+    unsigned char *bytes=(void *)codigo;
+#if defined(NXK_EXCEPTION_VECTOR) && NXK_EXCEPTION_VECTOR == 514
+    bytes[0]=0xfa; /* CLI prohibida con CPL3 e IOPL0. */
+#elif defined(NXK_EXCEPTION_VECTOR) && NXK_EXCEPTION_VECTOR == 614
+    /* MOV [0x10000], 1: intento de escribir en codigo supervisor. */
+    const unsigned char intento[]={0xc7,0x05,0,0,1,0,1,0,0,0};
+    memcpy(bytes,intento,sizeof(intento));
+#else
+    bytes[0]=0xcd; bytes[1]=0x80; bytes[2]=0x0f; bytes[3]=0x0b;
+#endif
+    tss_normal[1]=(uint32_t)(uintptr_t)(pila_kernel+4096);
+    tss_normal[2]=16;
+    uintptr_t puerta_usuario=(uintptr_t)entrada[32];
+    tabla[128]=(struct puerta){(uint16_t)puerta_usuario,8,0,0xee,(uint16_t)(puerta_usuario>>16)};
+    volatile uint32_t *paginas=(void *)0x201000, *directorio=(void *)0x200000;
+    paginas[codigo/4096]=(uint32_t)codigo|5; /* Usuario, solo lectura. */
+    paginas[pila/4096]=(uint32_t)pila|7;
+    directorio[codigo>>22]|=4;
+    __asm__ volatile("mov %0,%%cr3" :: "r"(0x200000u) : "memory");
+    /* IF apagada en la prueba: IRQ0 aun no normaliza segmentos de usuario. */
+    __asm__ volatile("mov $51,%%ax; mov %%ax,%%ds; mov %%ax,%%es;"
+        "pushl $51; pushl %0; pushl $2; pushl $43; pushl %1; iret"
+        :: "r"((uint32_t)(pila+4096)),"r"((uint32_t)codigo) : "eax","memory");
+    __builtin_unreachable();
 }
 void nxk_excepciones_iniciar(void) {
     uintptr_t longitud=(uintptr_t)excepcion_nxa_fin-(uintptr_t)excepcion_nxa_inicio;
