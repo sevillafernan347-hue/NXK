@@ -31,7 +31,7 @@ with log.open('wb',buffering=0) as salida:
         esperar(b'normal, salida 42')
         for i in range(2):
             enviar(b'usuario fallos\n')
-            esperar(b'Seis fallos de usuario contenidos;',i+1)
+            esperar(b'Ocho fallos de usuario contenidos;',i+1)
             enviar(b'usuario\n')
             esperar(b'control devuelto al kernel.',i+2)
         enviar(b'usuario historial\n')

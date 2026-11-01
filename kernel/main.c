@@ -374,7 +374,7 @@ void kernel_main(void) {
                     if (!nxk_usuario_historial(i,&r)) usuario_resultado(&r); }
             }
             else if (nxk_equal(line, "usuario fallos")) {
-                print(nxk_usuario_comprobar_fallos() ? "Recuperacion no disponible o fallo.\n" : "Seis fallos de usuario contenidos; kernel operativo.\n");
+                print(nxk_usuario_comprobar_fallos() ? "Recuperacion no disponible o fallo.\n" : "Ocho fallos de usuario contenidos; kernel operativo.\n");
             }
             else if (nxk_equal(line, "usuario")) {
                 print(nxk_usuario_demo() ? "Modo usuario no disponible o fallo.\n" : "Programa ring3 termino con 42; control devuelto al kernel.\n");

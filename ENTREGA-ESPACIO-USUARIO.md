@@ -27,3 +27,13 @@ Se exige #PF(6), CR2=0 y ESP guardado=4; la entrada usa pila SS0/ESP0 valida
 y vuelve a consola. El historial incluye ESP de usuario en los registros de
 fallo y limpia ese campo al terminar correctamente. usuario fallos verifica
 seis casos. No implica recuperacion general de pilas del kernel.
+
+Politica explicita: al copiar directorio/tabla se retira U/S de todas las
+entradas heredadas antes de habilitar solo codigo y pila propios. Evita heredar
+permisos de usuario accidentales si se amplian los mapas kernel en el futuro.
+La demostracion normal ahora apila y recupera 42 desde su pila para verificar
+el acceso permitido. Nuevos casos: escritura sobre codigo propio (#PF7 y CR2
+exacto) y lectura de heap supervisor en 0x100000 (#PF5). usuario fallos ejecuta
+ocho casos y recupera el programa correcto tras cada uno. Matriz x86, consola
+y regresion x64 superadas. No se afirma proteccion NX: en modo actual las
+paginas escribibles tambien pueden ejecutarse. No hay usuarios multiples.

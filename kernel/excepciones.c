@@ -153,7 +153,7 @@ void nxk_usuario_atender_fallo(const uint32_t *contexto) {
     nxk_usuario_abortar(0x80000000u|v);
 }
 static int usuario_ejecutar(unsigned modo) {
-    if (usuario_activo || modo>6) return -1;
+    if (usuario_activo || modo>8) return -1;
     uint32_t cr3_original; __asm__ volatile("mov %%cr3,%0":"=r"(cr3_original));
     if (cr3_original!=0x200000u) return -4;
     static uintptr_t codigo, pila_kernel, directorio_usuario, tabla_usuario;
@@ -170,9 +170,11 @@ static int usuario_ejecutar(unsigned modo) {
     /* Solo clonamos la tabla inferior: el resto se comparte como supervisor. */
     memcpy(privado,(const void *)0x200000,4096);
     memcpy(entradas_usuario,(const void *)0x201000,4096);
+    /* Politica por defecto: ninguna pagina heredada obtiene acceso usuario. */
+    for (unsigned i=0;i<1024;++i) { privado[i]&=~4u; entradas_usuario[i]&=~4u; }
     privado[0]=(uint32_t)tabla_usuario|7;
     /* El codigo se prepara bajo el mapa kernel, que siempre es supervisor. */
-    const unsigned char programa[]={0xb8,42,0,0,0,0xcd,0x80,0x0f,0x0b};
+    const unsigned char programa[]={0x68,42,0,0,0,0x58,0xcd,0x80,0x0f,0x0b};
     memcpy((void *)codigo,programa,sizeof(programa));
     unsigned char *bytes=(void *)codigo;
     if (modo==1) bytes[0]=0xfa; /* CLI. */
@@ -192,6 +194,16 @@ static int usuario_ejecutar(unsigned modo) {
         /* ESP=4 y PUSH escriben en pagina cero; la TSS mantiene pila kernel. */
         const unsigned char pila_invalida[]={0xbc,4,0,0,0,0x50};
         memcpy(bytes,pila_invalida,sizeof(pila_invalida));
+    }
+    if (modo==7) {
+        const unsigned char escribir_codigo[]={0xc7,0x05,0,0,0,0,1,0,0,0};
+        memcpy(bytes,escribir_codigo,sizeof(escribir_codigo));
+        for (unsigned i=0;i<4;++i) bytes[2+i]=(unsigned char)(codigo>>(i*8));
+    }
+    if (modo==8) {
+        /* Lectura del heap kernel: no pertenece a las dos paginas usuario. */
+        const unsigned char leer_heap[]={0xa1,0,0,0x10,0};
+        memcpy(bytes,leer_heap,sizeof(leer_heap));
     }
     memset((void *)(codigo+4096),0,4096);
     uint32_t antes_codigo=p[codigo/4096], antes_pila=p[codigo/4096+1];
@@ -224,6 +236,7 @@ static int usuario_ejecutar(unsigned modo) {
         ++secuencia_resultado,resultado,fallo_ocurrido,fallo_vector,fallo_error,fallo_eip,fallo_direccion,fallo_pila};
     siguiente_resultado=(siguiente_resultado+1)%8;
     if (cantidad_resultados<8) ++cantidad_resultados;
+    if (modo==7 && (fallo_vector!=14 || fallo_error!=7 || fallo_direccion!=codigo)) return -7;
     if (modo==5 && (fallo_vector!=14 || fallo_error!=7 || fallo_direccion!=directorio_usuario)) return -6;
     if ((nxk_usuario_cs_guardado&3)!=3) return -2;
     if (modo) return resultado==(0x80000000u|fallo_vector) ? (int)fallo_vector : -3;
@@ -236,8 +249,8 @@ int nxk_usuario_caso_nulo(void) {
 int nxk_usuario_comprobar_fallos(void) {
     if (nxk_usuario_demo()) return 1;
     size_t antes=nxk_heap_used();
-    const unsigned vectores[]={13,14,6,14,14,14}, errores[]={0,7,0,4,7,6};
-    for (unsigned modo=1;modo<=6;++modo) {
+    const unsigned vectores[]={13,14,6,14,14,14,14,14}, errores[]={0,7,0,4,7,6,7,5};
+    for (unsigned modo=1;modo<=8;++modo) {
         if (usuario_ejecutar(modo)!=(int)vectores[modo-1] || fallo_error!=errores[modo-1]) return 2;
         struct nxk_usuario_resultado registro;
         if (nxk_usuario_historial(0,&registro) || !registro.fallo ||
@@ -245,6 +258,7 @@ int nxk_usuario_comprobar_fallos(void) {
         if (modo==2 && fallo_direccion!=0x10000) return 3;
         if (modo==4 && fallo_direccion!=0) return 4;
         if (modo==6 && (fallo_direccion || fallo_pila!=4)) return 10;
+        if (modo==8 && fallo_direccion!=0x100000) return 11;
         if (nxk_usuario_demo() || nxk_heap_used()!=antes) return 5;
         if (nxk_usuario_historial(0,&registro) || registro.fallo || registro.vector ||
             registro.error || registro.eip || registro.direccion || registro.pila || registro.salida!=42) return 7;
