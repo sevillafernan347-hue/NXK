@@ -15,7 +15,7 @@ segmento ds, ax
 segmento es, ax
 apilar_inmediato32 51
 guardar32 edx
-apilar_inmediato32 2
+apilar_inmediato32 0x202
 apilar_inmediato32 43
 guardar32 ecx
 retornar_interrupcion32

@@ -58,6 +58,10 @@ if ($Architecture -eq 'x86') {
     $asm += '# PE ' + (Get-FileHash "$buildDir/hola.exe" -Algorithm SHA256).Hash + "`n"
     $asm += '# EXCEPCIONES ' + (Get-FileHash "$buildDir/excepciones.bin" -Algorithm SHA256).Hash + "`n"
 }
+if ($Architecture -eq 'x86') {
+    $asm += '# RELOJ ' + (Get-FileHash "$buildDir/reloj.bin" -Algorithm SHA256).Hash + "`n"
+    $asm += '# TAREAS ' + (Get-FileHash "$buildDir/tareas.bin" -Algorithm SHA256).Hash + "`n"
+}
 [IO.File]::WriteAllText((Join-Path $PSScriptRoot "$buildDir/app_embebida.S"), $asm)
 function Invoke-Zig { & $zig @args; if ($LASTEXITCODE -ne 0) { throw "Zig fallo: $args" } }
 if ($Architecture -eq 'x86') {
@@ -71,6 +75,7 @@ if ($Architecture -eq 'x86') {
     & $python lenguaje/ensamblador.py kernel/entrada32.nxa --permitir-externos -o "$buildDir/entrada.bin"
     if ($LASTEXITCODE -ne 0) { throw 'Error en la entrada NEXTRY ASM.' }
     $entrada = ".section .text.entry`n.global kernel_entry`nkernel_entry:`n.incbin `"$buildDir/entrada.bin`"`n.section .note.GNU-stack,`"`",@progbits`n"
+    $entrada += "# ENTRADA " + (Get-FileHash "$buildDir/entrada.bin" -Algorithm SHA256).Hash + "`n"
     [IO.File]::WriteAllText((Join-Path $PSScriptRoot "$buildDir/entrada_objeto.S"),$entrada)
     $entrySource = "$buildDir/entrada_objeto.S"
 }
@@ -107,6 +112,7 @@ if ($Architecture -eq 'x86') {
         & $python lenguaje/ensamblador.py "kernel/usuario_$parte.nxa" --permitir-externos -o "$buildDir/usuario_$parte.bin"
         if ($LASTEXITCODE -ne 0) { throw 'Error en NEXTRY ASM de usuario.' }
         $usuarioObjeto += ".global nxk_usuario_$parte`nnxk_usuario_${parte}:`n.incbin `"$buildDir/usuario_$parte.bin`"`n"
+        $usuarioObjeto += "# USUARIO $parte " + (Get-FileHash "$buildDir/usuario_$parte.bin" -Algorithm SHA256).Hash + "`n"
     }
     [IO.File]::WriteAllText((Join-Path $PSScriptRoot "$buildDir/usuario_objeto.S"), $usuarioObjeto)
     Invoke-Zig cc -target $target -c "$buildDir/usuario_objeto.S" -o "$buildDir/usuario32.o"
@@ -140,6 +146,10 @@ if ($Architecture -eq 'x86') {
     if ($LASTEXITCODE -ne 0) { throw 'Las direcciones del enlace no son estables.' }
 }
 Invoke-Zig ld.lld -T kernel/linker.ld --oformat=binary @objects -o "$buildDir/kernel.bin"
+if ($Architecture -eq 'x86') {
+    & $python lenguaje/verificar_binarios_nxa.py $buildDir
+    if ($LASTEXITCODE -ne 0) { throw 'El enlace no contiene los binarios NEXTRY ASM actuales.' }
+}
 $boot = [IO.File]::ReadAllBytes((Join-Path $PWD "$buildDir/boot.bin"))
 $kernel = [IO.File]::ReadAllBytes((Join-Path $PWD "$buildDir/kernel.bin"))
 if ($boot.Length -ne 512 -or $boot[510] -ne 0x55 -or $boot[511] -ne 0xaa) { throw 'Sector de arranque invalido' }

@@ -329,7 +329,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -363,6 +363,9 @@ void kernel_main(void) {
             else if (nxk_equal(line, "archivos")) {
                 for (unsigned i=0;i<8;++i) { const char *s=nxk_archivo_nombre(i); if (s) { print(s); put('\n'); } }
             }
+            else if (nxk_equal(line, "usuario bucle")) {
+                print(nxk_usuario_caso_bucle() ? "Fallo de limite temporal.\n" : "Bucle interrumpido por PIT; consola recuperada.\n");
+            }
             else if (nxk_equal(line, "usuario nulo")) {
                 print(nxk_usuario_caso_nulo() ? "Fallo de prueba.\n" : "Acceso nulo contenido; consulta usuario estado.\n");
             }
@@ -374,7 +377,7 @@ void kernel_main(void) {
                     if (!nxk_usuario_historial(i,&r)) usuario_resultado(&r); }
             }
             else if (nxk_equal(line, "usuario fallos")) {
-                print(nxk_usuario_comprobar_fallos() ? "Recuperacion no disponible o fallo.\n" : "Ocho fallos de usuario contenidos; kernel operativo.\n");
+                print(nxk_usuario_comprobar_fallos() ? "Recuperacion no disponible o fallo.\n" : "Nueve casos de usuario contenidos; kernel operativo.\n");
             }
             else if (nxk_equal(line, "usuario")) {
                 print(nxk_usuario_demo() ? "Modo usuario no disponible o fallo.\n" : "Programa ring3 termino con 42; control devuelto al kernel.\n");

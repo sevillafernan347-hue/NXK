@@ -19,22 +19,26 @@ extern void nxk_excepcion_fatal(const uint32_t *pila);
 static unsigned char entrada[33][32];
 /* Plantilla generada por NEXTRY ASM; el puente resuelve la llamada C. */
 extern const unsigned char reloj_nxa_inicio[], reloj_nxa_fin[];
-static unsigned char reloj_entrada[18];
+static unsigned char reloj_entrada[42];
 static volatile uint32_t ticks;
 static void puerto(uint16_t p,uint8_t v) {
     __asm__ volatile("outb %0,%1" :: "a"(v),"Nd"(p));
     __asm__ volatile("outb %%al,$0x80" :: "a"(0));
 }
-void nxk_reloj_irq(void) { ++ticks; puerto(0x20,0x20); }
+static void usuario_temporizador(const uint32_t *contexto);
+void nxk_reloj_irq(const uint32_t *contexto) {
+    ++ticks; puerto(0x20,0x20); /* EOI antes de una posible salida anticipada. */
+    usuario_temporizador(contexto);
+}
 uint32_t nxk_reloj_ticks(void) { return ticks; }
 void nxk_reloj_iniciar(void) {
     __asm__ volatile("cli" ::: "memory");
-    if ((uintptr_t)reloj_nxa_fin-(uintptr_t)reloj_nxa_inicio!=18 ||
-        reloj_nxa_inicio[7]!=0xb8 || reloj_nxa_inicio[17]!=0xcf)
+    if ((uintptr_t)reloj_nxa_fin-(uintptr_t)reloj_nxa_inicio!=42 ||
+        reloj_nxa_inicio[25]!=0xb8 || reloj_nxa_inicio[41]!=0xcf)
         nxk_es_detener();
-    for (unsigned i=0;i<18;++i) reloj_entrada[i]=reloj_nxa_inicio[i];
+    for (unsigned i=0;i<42;++i) reloj_entrada[i]=reloj_nxa_inicio[i];
     uintptr_t f=(uintptr_t)nxk_reloj_irq, e=(uintptr_t)reloj_entrada;
-    for (unsigned i=0;i<4;++i) reloj_entrada[8+i]=(unsigned char)(f>>(8*i));
+    for (unsigned i=0;i<4;++i) reloj_entrada[26+i]=(unsigned char)(f>>(8*i));
     uint16_t cs; __asm__ volatile("mov %%cs,%0":"=r"(cs));
     tabla[32]=(struct puerta){(uint16_t)e,cs,0,0x8e,(uint16_t)(e>>16)};
     /* PIC maestro/esclavo a 32/40; solo IRQ0 habilitada. */
@@ -131,6 +135,7 @@ uint32_t nxk_usuario_pila_guardada, nxk_usuario_cs_guardado;
 extern uint32_t nxk_usuario_entrar(uint32_t codigo,uint32_t pila);
 extern void nxk_usuario_salir(void);
 static int usuario_activo;
+static uint32_t usuario_inicio;
 static uint32_t fallo_vector, fallo_error, fallo_direccion, fallo_eip, fallo_ocurrido, fallo_pila;
 static struct nxk_usuario_resultado historial[8];
 static unsigned siguiente_resultado, cantidad_resultados;
@@ -141,6 +146,14 @@ int nxk_usuario_historial(unsigned reciente,struct nxk_usuario_resultado *salida
     *salida=historial[(siguiente_resultado+7-reciente)%8]; return 0;
 }
 extern _Noreturn void nxk_usuario_abortar(uint32_t resultado);
+static void usuario_temporizador(const uint32_t *contexto) {
+    /* Segmentos 0..3, PUSHAD 4..11, EIP/CS/EFLAGS 12..14, ESP/SS 15..16. */
+    if (!usuario_activo || (contexto[13]&3)!=3 || (uint32_t)(ticks-usuario_inicio)<10) return;
+    fallo_ocurrido=1; fallo_vector=32; fallo_error=fallo_direccion=0;
+    fallo_eip=contexto[12]; fallo_pila=contexto[15];
+    nxk_usuario_cs_guardado=contexto[13];
+    nxk_usuario_abortar(0x80000020u);
+}
 void nxk_usuario_atender_fallo(const uint32_t *contexto) {
     unsigned v=contexto[8];
     /* Nunca interceptar fallos de ring0, NMI ni doble fallo. */
@@ -153,7 +166,7 @@ void nxk_usuario_atender_fallo(const uint32_t *contexto) {
     nxk_usuario_abortar(0x80000000u|v);
 }
 static int usuario_ejecutar(unsigned modo) {
-    if (usuario_activo || modo>8) return -1;
+    if (usuario_activo || modo>9) return -1;
     uint32_t cr3_original; __asm__ volatile("mov %%cr3,%0":"=r"(cr3_original));
     if (cr3_original!=0x200000u) return -4;
     static uintptr_t codigo, pila_kernel, directorio_usuario, tabla_usuario;
@@ -205,6 +218,7 @@ static int usuario_ejecutar(unsigned modo) {
         const unsigned char leer_heap[]={0xa1,0,0,0x10,0};
         memcpy(bytes,leer_heap,sizeof(leer_heap));
     }
+    if (modo==9) { bytes[0]=0xeb; bytes[1]=0xfe; } /* Bucle que nunca sale. */
     memset((void *)(codigo+4096),0,4096);
     uint32_t antes_codigo=p[codigo/4096], antes_pila=p[codigo/4096+1];
     uint32_t antes_directorio=d[codigo>>22], esp0=tss_normal[1], ss0=tss_normal[2];
@@ -216,6 +230,7 @@ static int usuario_ejecutar(unsigned modo) {
     entradas_usuario[codigo/4096+1]=(uint32_t)(codigo+4096)|7;
     __asm__ volatile("mov %0,%%cr3" :: "r"((uint32_t)directorio_usuario) : "memory");
     nxk_usuario_cs_guardado=0;
+    usuario_inicio=ticks;
     usuario_activo=1; fallo_vector=fallo_error=fallo_direccion=fallo_eip=fallo_ocurrido=fallo_pila=0;
     uint32_t resultado=nxk_usuario_entrar((uint32_t)codigo,(uint32_t)(codigo+8192));
     uint32_t cr3_regreso; __asm__ volatile("mov %%cr3,%0":"=r"(cr3_regreso));
@@ -243,14 +258,15 @@ static int usuario_ejecutar(unsigned modo) {
     return resultado==42 ? 0 : -2;
 }
 int nxk_usuario_demo(void) { return usuario_ejecutar(0); }
+int nxk_usuario_caso_bucle(void) { return usuario_ejecutar(9)==32 ? 0 : -1; }
 int nxk_usuario_caso_nulo(void) {
     return usuario_ejecutar(4)==14 && fallo_error==4 && !fallo_direccion ? 0 : -1;
 }
 int nxk_usuario_comprobar_fallos(void) {
     if (nxk_usuario_demo()) return 1;
     size_t antes=nxk_heap_used();
-    const unsigned vectores[]={13,14,6,14,14,14,14,14}, errores[]={0,7,0,4,7,6,7,5};
-    for (unsigned modo=1;modo<=8;++modo) {
+    const unsigned vectores[]={13,14,6,14,14,14,14,14,32}, errores[]={0,7,0,4,7,6,7,5,0};
+    for (unsigned modo=1;modo<=9;++modo) {
         if (usuario_ejecutar(modo)!=(int)vectores[modo-1] || fallo_error!=errores[modo-1]) return 2;
         struct nxk_usuario_resultado registro;
         if (nxk_usuario_historial(0,&registro) || !registro.fallo ||
@@ -299,6 +315,7 @@ void nxk_excepciones_iniciar(void) {
 #else
 unsigned nxk_usuario_historial_cantidad(void) { return 0; }
 int nxk_usuario_historial(unsigned i,struct nxk_usuario_resultado *s) { (void)i;(void)s;return -64; }
+int nxk_usuario_caso_bucle(void) { return -64; }
 int nxk_usuario_caso_nulo(void) { return -64; }
 void nxk_usuario_atender_fallo(const uint32_t *p) { (void)p; }
 int nxk_usuario_comprobar_fallos(void) { return -64; }

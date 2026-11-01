@@ -51,3 +51,6 @@ ninguna cambie al volver a enlazar. El envoltorio .S generado solo empaqueta
 los bytes NXA mediante incbin, no contiene la implementacion del puente.
 Se mantienen los convenios cdecl y los selectores existentes. Estos intrinsecos
 son privilegiados y no convierten NEXTRY ASM en una plataforma segura por si solos.
+
+IRQ0 usa guardar_segmento32/recuperar_segmento32 con ds, es, fs o gs.
+Solo modo 32; conserva selectores al atender interrupciones desde CPL3.

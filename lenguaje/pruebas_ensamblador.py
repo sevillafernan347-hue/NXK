@@ -29,6 +29,12 @@ recuperar16 di
         for fuente in ('modo 16\nguardar_banderas32','modo 32\nleer_memoria32 ax, 10','modo 32\napilar_inmediato32','modo 32\nrecuperar_banderas32 eax'):
             with self.assertRaises(ValueError): ensamblar(fuente)
 
+    def test_segmentos_irq(self):
+        fuente='modo 32\nguardar_segmento32 ds\nguardar_segmento32 es\nguardar_segmento32 fs\nguardar_segmento32 gs\nrecuperar_segmento32 gs\nrecuperar_segmento32 fs\nrecuperar_segmento32 es\nrecuperar_segmento32 ds'
+        self.assertEqual(ensamblar(fuente),bytes.fromhex('1e 06 0f a0 0f a8 0f a9 0f a1 07 1f'))
+        for fuente in ('modo 16\nguardar_segmento32 ds','modo 32\nguardar_segmento32 cs','modo 32\nrecuperar_segmento32 ss'):
+            with self.assertRaises(ValueError): ensamblar(fuente)
+
     def test_operaciones32(self):
         fuente = '''modo 32
 comparar32 edi, esi
