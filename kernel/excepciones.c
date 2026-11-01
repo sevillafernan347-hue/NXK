@@ -4,6 +4,7 @@
  */
 #include <stdint.h>
 #include "nxk_es.h"
+#include "nxk.h"
 #if defined(__i386__)
 struct __attribute__((packed)) puerta {
     uint16_t bajo, selector;
@@ -46,6 +47,48 @@ void nxk_reloj_iniciar(void) {
     puerto(0x43,0x36); puerto(0x40,0x9c); puerto(0x40,0x2e);
     ticks=0;
     __asm__ volatile("sti" ::: "memory");
+}
+/* Doble fallo: cambio de tarea hardware a TSS con pila independiente.
+ * Solo fatal, una CPU. No retorna ni se usa como planificador. */
+static uint64_t gdt_emergencia[5];
+static uint32_t tss_normal[26], tss_emergencia[26];
+static void descriptor_tss(unsigned indice,void *tss) {
+    uintptr_t base=(uintptr_t)tss;
+    unsigned char *d=(void *)&gdt_emergencia[indice];
+    d[0]=103; d[1]=0; d[2]=(unsigned char)base; d[3]=(unsigned char)(base>>8);
+    d[4]=(unsigned char)(base>>16); d[5]=0x89; d[6]=0; d[7]=(unsigned char)(base>>24);
+}
+static _Noreturn void doble_fallo(void) {
+    nxk_es_mostrar("NXK: DOBLE FALLO - PILA DE EMERGENCIA ACTIVA");
+    nxk_es_mostrar("ESP anterior:"); nxk_es_numero(tss_normal[14]);
+#ifdef NXK_EXCEPTION_TEST
+    nxk_es_escribir_puerto(0xf4,0x12);
+#endif
+    nxk_es_detener();
+}
+int nxk_emergencia_iniciar(void) {
+    struct descriptor anterior;
+    __asm__ volatile("sgdt %0":"=m"(anterior));
+    /* Contrato BIOS actual: nulo, codigo 8 y datos 16. No alterar otros GDT. */
+    if (anterior.limite!=23) return -1;
+    unsigned char *pila=nxk_alloc(4096);
+    if (!pila) return -2;
+    for (unsigned i=0;i<24;++i) ((unsigned char *)gdt_emergencia)[i]=((const unsigned char *)(uintptr_t)anterior.base)[i];
+    descriptor_tss(3,tss_normal); descriptor_tss(4,tss_emergencia);
+    tss_normal[25]=104u<<16; tss_emergencia[25]=104u<<16;
+    __asm__ volatile("mov %%cr3,%0":"=r"(tss_emergencia[7]));
+    tss_emergencia[8]=(uint32_t)(uintptr_t)doble_fallo;
+    tss_emergencia[9]=2; /* IF apagada durante diagnostico fatal. */
+    tss_emergencia[14]=(uint32_t)(uintptr_t)(pila+4096);
+    tss_emergencia[18]=16; tss_emergencia[19]=8;
+    tss_emergencia[20]=16; tss_emergencia[21]=16;
+    tss_emergencia[22]=16; tss_emergencia[23]=16;
+    struct descriptor nueva={sizeof(gdt_emergencia)-1,(uint32_t)(uintptr_t)gdt_emergencia};
+    __asm__ volatile("lgdt %0" :: "m"(nueva) : "memory");
+    uint16_t selector=24;
+    __asm__ volatile("ltr %0" :: "r"(selector) : "memory");
+    tabla[8]=(struct puerta){0,32,0,0x85,0}; /* Task gate, DPL0. */
+    return 0;
 }
 void nxk_excepciones_iniciar(void) {
     uintptr_t longitud=(uintptr_t)excepcion_nxa_fin-(uintptr_t)excepcion_nxa_inicio;

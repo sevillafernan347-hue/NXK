@@ -45,3 +45,8 @@ inicializada y una pagina completa dentro del heap ya reservado. Se prueban
 rechazos antes del inicio, fuera del heap y con direcciones desalineadas.
 Contador de guardas visible en mem; marcar una guarda existente es idempotente.
 Las tareas repetidas conservan dos guardas y el mismo consumo de heap.
+
+Actualizacion posterior: ya existe TSS/pila de emergencia para doble fallo
+x86. La prueba con ESP sobre guarda paso en QEMU. Las limitaciones anteriores
+sobre ausencia de esa pila corresponden a la entrega original; consultar
+ENTREGA-EMERGENCIA.md para el mecanismo nuevo y sus limites.

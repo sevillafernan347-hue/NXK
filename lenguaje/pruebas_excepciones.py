@@ -8,13 +8,18 @@ entorno={k:v for k,v in entorno.items() if k.lower()!='psmodulepath'}
 raiz=pathlib.Path(__file__).resolve().parents[1]
 construir=['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',str(raiz/'build.ps1'),'-Architecture','x86']
 try:
-    for vector,error in ((3,0),(6,0),(13,0xfff8),(14,2),(114,3),(214,2)):
+    for vector,error in ((3,0),(6,0),(13,0xfff8),(14,2),(114,3),(214,2),(314,0)):
         subprocess.run(construir+['-Test','-ExceptionTest','-ExceptionVector',str(vector)],check=True,env=entorno)
         p=subprocess.run([str(raiz/'tools/qemu/qemu-system-i386.exe'),'-machine','pc','-accel','tcg',
             '-cpu','qemu32','-m','32M','-drive','file=build/x86/nxk-test.img,format=raw,if=ide',
             '-display','none','-serial','stdio','-monitor','none','-no-reboot',
             '-device','isa-debug-exit,iobase=0xf4,iosize=0x04'],cwd=raiz,capture_output=True,timeout=30)
         (raiz/f'build/x86/excepcion-{vector}.log').write_bytes(p.stdout)
+        if vector==314:
+            if p.returncode!=37 or b'DOBLE FALLO - PILA DE EMERGENCIA ACTIVA' not in p.stdout:
+                raise RuntimeError(f'Pila de emergencia fallo: {p.stdout!r}')
+            print('DOBLE FALLO: pila independiente verificada.')
+            continue
         m=re.search(rb'VECTOR: 0x([0-9A-F]+) ERROR: 0x([0-9A-F]+) EIP: 0x([0-9A-F]+)',p.stdout)
         if p.returncode!=37 or not m or tuple(int(x,16) for x in m.groups()[:2])!=(14 if vector in (114,214) else vector,error):
             raise RuntimeError(f'Diagnostico incorrecto para vector {vector}: {p.stdout!r}')

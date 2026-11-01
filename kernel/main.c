@@ -152,8 +152,16 @@ void kernel_main(void) {
     print("NXK: GUARDAS LIMITES OK\n");
 #endif
 #endif
+#if defined(__i386__)
+    extern int nxk_emergencia_iniciar(void);
+    if (nxk_emergencia_iniciar()) { print("NXK: EMERGENCIA FAIL\n"); nxk_es_detener(); }
+    print("NXK: TSS EMERGENCIA OK\n");
+#endif
 #if defined(NXK_EXCEPTION_TEST) && defined(__i386__)
-#if NXK_EXCEPTION_VECTOR == 214
+#if NXK_EXCEPTION_VECTOR == 314
+    if (!nxk_alloc(8192) || nxk_paginacion_guarda((void *)0x101000)) nxk_es_detener();
+    __asm__ volatile("movl $0x101004,%%esp; pushl %%eax; ud2" ::: "memory");
+#elif NXK_EXCEPTION_VECTOR == 214
     if (!nxk_alloc(8192)) nxk_es_detener();
     if (nxk_paginacion_guarda((void *)0x101000)) nxk_es_detener();
     *(volatile unsigned char *)0x101000=1;

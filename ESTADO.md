@@ -104,3 +104,9 @@ ENTREGA-PAGINACION.md.
 Guardas: validacion de paginacion activa y heap reservado; contador observable
 con mem y pruebas de idempotencia/reutilizacion. Lenguajes del repositorio
 actualizados en .gitattributes, README y LENGUAJES.md.
+
+Doble fallo x86: puerta de tarea y TSS de emergencia con pila independiente,
+probadas provocando un fallo sobre la guarda con ESP inutilizable. El manejador
+informa ESP anterior y detiene el kernel; no recupera procesos. Ver
+ENTREGA-EMERGENCIA.md. Sustituye la limitacion previa de ausencia de pila
+de emergencia para doble fallo.
