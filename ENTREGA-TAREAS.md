@@ -18,3 +18,11 @@ No cambia EFLAGS ni segmentos; las tareas comparten privilegios y estado de
 interrupciones y deben mantenerlos. No llamar desde una IRQ. El PIT cuenta
 el tiempo, pero aun no decide que tarea ejecutar. No ejecutar codigo externo
 como tarea. Siguiente etapa: estados de tarea y finalizacion controlada.
+
+Refuerzo de pilas: sello al inicio y validacion del puntero guardado antes y
+despues de cada cambio. Pruebas negativas con sello alterado y puntero fuera
+del margen valido, sin activar la pila corrupta. Repeticion de demostracion
+sin consumo adicional de heap. Matriz x86 32/64/128/1024 MiB superada.
+Esta deteccion es posterior a posibles escrituras: no impide desbordamientos
+ni ofrece aislamiento. Para eso siguen pendientes memoria virtual y guardas.
+No se incorporo codigo Linux ni se midio superioridad respecto de Linux.

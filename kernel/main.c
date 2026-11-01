@@ -159,6 +159,9 @@ void kernel_main(void) {
     print("NXK: RELOJ IRQ OK\n");
     if (nxk_tareas_demo()) { print("NXK: TAREAS FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
     print("NXK: TAREAS COOPERATIVAS OK\n");
+    extern int nxk_tareas_probar_limites(void);
+    if (nxk_tareas_probar_limites()) { print("NXK: PILAS FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
+    print("NXK: PILAS Y REUTILIZACION OK\n");
 #endif
 #ifdef NXK_TEST
     unsigned char prueba_memoria[19];
