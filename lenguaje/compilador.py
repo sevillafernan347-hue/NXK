@@ -31,7 +31,7 @@ class Token:
 PALABRAS = set('funcion fin variable constante si sino mientras repetir veces '
                'mostrar numero llamar volver detener afirmar leer_puerto '
                'escribir_puerto verdadero falso y o no y_bits o_bits xor_bits '
-               'memoria_usada romper continuar entero logico texto guardar_archivo mostrar_archivo borrar_archivo'.split())
+               'memoria_usada romper continuar entero logico texto guardar_archivo mostrar_archivo borrar_archivo agregar_archivo renombrar_archivo'.split())
 ALIAS = {'función': 'funcion', 'número': 'numero'}
 PATRON = re.compile(
     r'(?P<ESPACIO>[^\S\n]+)|(?P<COMENTARIO>\#[^\n]*)|(?P<NL>\n)|'
@@ -154,7 +154,7 @@ class Analizador:
             elif k == 'NOMBRE':
                 self.tomar('=')
                 salida.append(('asignar', t, self.expresion())); self.linea()
-            elif k == 'guardar_archivo':
+            elif k in ('guardar_archivo','agregar_archivo','renombrar_archivo'):
                 nombre=self.expresion(); self.tomar(',')
                 salida.append((k,t,nombre,self.expresion())); self.linea()
             elif k in ('mostrar_archivo','borrar_archivo'):
@@ -274,11 +274,11 @@ class Generador:
                 if constante: self.error(t, 'No se puede cambiar una constante.')
                 nuevo, valor = self.expresion(s[2]); self.tipo(t, nuevo, tipo)
                 poner(f'{nombre} = {valor};')
-            elif k in ('guardar_archivo','mostrar_archivo','borrar_archivo'):
+            elif k in ('guardar_archivo','agregar_archivo','renombrar_archivo','mostrar_archivo','borrar_archivo'):
                 tipo,nombre=self.expresion(s[2]); self.tipo(t,tipo,'texto')
-                if k=='guardar_archivo':
+                if k in ('guardar_archivo','agregar_archivo','renombrar_archivo'):
                     tipo,datos=self.expresion(s[3]); self.tipo(t,tipo,'texto')
-                    poner(f'nxk_es_guardar_archivo({nombre}, {datos});')
+                    poner(f'nxk_es_{k}({nombre}, {datos});')
                 else: poner(f'nxk_es_{k}({nombre});')
             elif k in ('mostrar', 'numero', 'afirmar'):
                 tipo, valor = self.expresion(s[2])

@@ -193,3 +193,11 @@ Lectura desde volumen: tras `volumen montar`, `mostrar_archivo` busca RAM y,
 si el nombre falta, consulta NXFS. Una copia RAM (incluso vacia) tiene prioridad.
 Los errores de lectura terminan la app; lectura por partes hasta 4096 bytes de NXFS. Guardar y borrar
 solo modifican RAM. Ejemplo protegido: lenguaje/ejemplos/usuario_volumen.nxf.
+
+## Agregar y renombrar archivos RAM
+
+`agregar_archivo "nota", " mas texto"` agrega sin borrar lo anterior y requiere
+archivo existente; el total no puede superar 256 bytes.
+`renombrar_archivo "nota", "nuevo"` cambia nombre sin reemplazar otro archivo.
+Ambas ordenes reciben textos, estan disponibles en CPL3 y modulo kernel, y
+no escriben NXFS. Un error termina la aplicacion protegida con codigo 1.

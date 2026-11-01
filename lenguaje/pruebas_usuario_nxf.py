@@ -8,7 +8,10 @@ casos={
  'bucle':'funcion inicio\nmientras verdadero\nfin\nfin',
  'puerto':'funcion inicio\nentero dato = 0\nleer_puerto dato, 0x3fd\nfin',
  'archivo_ausente':'funcion inicio\nmostrar_archivo "no_existe"\nfin',
- 'nombre_invalido':'funcion inicio\nguardar_archivo "../x", "dato"\nfin'}
+ 'nombre_invalido':'funcion inicio\nguardar_archivo "../x", "dato"\nfin',
+ 'agregar_ausente':'funcion inicio\nagregar_archivo "ausente", "dato"\nfin',
+ 'agregar_lleno':'funcion inicio\nguardar_archivo "lleno", "'+'A'*255+'"\nagregar_archivo "lleno", "XX"\nfin',
+ 'renombrar_duplicado':'funcion inicio\nguardar_archivo "a", "original"\nguardar_archivo "b", "destino"\nrenombrar_archivo "a", "b"\nfin'}
 try:
     for nombre,fuente in casos.items():
         archivo=raiz/f'build/x86/negativo-{nombre}.nxf'; archivo.write_text(fuente)

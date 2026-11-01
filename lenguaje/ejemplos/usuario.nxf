@@ -6,8 +6,10 @@ funcion inicio
         suma = suma + 2
     fin
     guardar_archivo "nota", "Archivo creado desde NEXTRY protegido"
-    mostrar_archivo "nota"
-    borrar_archivo "nota"
+    agregar_archivo "nota", ". Texto agregado"
+    renombrar_archivo "nota", "nota_final"
+    mostrar_archivo "nota_final"
+    borrar_archivo "nota_final"
     afirmar suma == 10
     numero suma
 fin

@@ -176,3 +176,9 @@ iniciales en cero, recargas sin crecimiento de heap y app leyendo datos del
 mismo NXFS. Dos pruebas de empaquetador, 20 de lenguaje, siete de ensamblador,
 diez escenarios previos de excepciones, matriz x86 y regresion x64 superados.
 Imagen demo: build/x86/nxe-disco-pruebas/correcto.img.
+
+NEXTRY protegido incorpora agregar_archivo y renombrar_archivo para RAM, con
+validacion de punteros, capacidad y colisiones. Enlace de apps elimina runtime
+no utilizado: ejemplo 726 bytes frente a 823 con los mismos objetos sin GC.
+21 pruebas de compilador, ocho fuentes negativas, 16 NXE2 y matrices previas
+superadas. Ver ENTREGA-ARCHIVOS-USUARIO-AMPLIADOS.md.

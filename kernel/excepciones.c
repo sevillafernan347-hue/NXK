@@ -159,7 +159,7 @@ static void usuario_servicio(uint32_t *c) {
         if (n) { memcpy(datos,(void *)(uintptr_t)p,n); nxk_pe_salida(datos,n); }
         c[11]=n; return;
     }
-    if (servicio<2 || servicio>5) { c[11]=0xfffffffeu; return; }
+    if (servicio<2 || servicio>7) { c[11]=0xfffffffeu; return; }
     char nombre[24]; unsigned i;
     for (i=0;i<24;++i) {
         if (!usuario_rango(p+i,1,0) || p+i<p) return;
@@ -168,11 +168,23 @@ static void usuario_servicio(uint32_t *c) {
     }
     if (i==24) return;
     uint32_t buffer=c[10], cantidad=c[9];
+    if (servicio==7) {
+        char nuevo[24]; unsigned j;
+        for (j=0;j<24;++j) {
+            if (buffer+j<buffer || !usuario_rango(buffer+j,1,0)) return;
+            nuevo[j]=*(const char *)(uintptr_t)(buffer+j);
+            if (!nuevo[j]) break;
+        }
+        if (j==24) return;
+        if (!nxk_archivo_renombrar(nombre,nuevo)) c[11]=0;
+        return;
+    }
     if (servicio==4) { if (!nxk_archivo_borrar(nombre)) c[11]=0; return; }
     if (cantidad>256 || !usuario_rango(buffer,cantidad,servicio==3 || servicio==5)) return;
-    if (servicio==2) {
+    if (servicio==2 || servicio==6) {
         if (cantidad) memcpy(datos,(void *)(uintptr_t)buffer,cantidad);
-        if (!nxk_archivo_escribir(nombre,datos,cantidad)) c[11]=0;
+        int r=servicio==6 ? nxk_archivo_agregar(nombre,datos,cantidad) : nxk_archivo_escribir(nombre,datos,cantidad);
+        if (!r) c[11]=0;
     } else {
         int leidos=servicio==5 ? nxk_archivo_leer_parte(nombre,datos,cantidad,c[5]) : nxk_archivo_leer_visible(nombre,datos,cantidad);
         if (leidos<0) return;
@@ -210,7 +222,7 @@ void nxk_usuario_atender_fallo(const uint32_t *contexto) {
     nxk_usuario_abortar(0x80000000u|v);
 }
 static int usuario_ejecutar(unsigned modo) {
-    if (usuario_activo || modo>29) return -1;
+    if (usuario_activo || modo>36) return -1;
     uint32_t cr3_original; __asm__ volatile("mov %%cr3,%0":"=r"(cr3_original));
     if (cr3_original!=0x200000u) return -4;
     static uintptr_t codigo, pila_kernel, directorio_usuario, tabla_usuario, tabla_usuario_alta;
@@ -320,6 +332,27 @@ static int usuario_ejecutar(unsigned modo) {
             bytes[28+i]=(unsigned char)(esperado>>(8*i));
         }
     }
+    if (modo>=30) {
+        const unsigned char llamada[]={0xb8,6,0,0,0,0xbb,0,0,0,0,0xb9,0,0,0,0,
+            0xba,2,0,0,0,0xcd,0x81,0x3d,0,0,0,0,0x74,2,0x0f,0x0b,0xb8,42,0,0,0,0xcd,0x80};
+        memcpy(bytes,llamada,sizeof(llamada)); memcpy(bytes+200,"CD",2);
+        uint32_t puntero=(uint32_t)codigo+200, cantidad=2, esperado=0;
+        if (modo==31) { puntero=0x10000; esperado=0xffffffffu; }
+        if (modo==32) { cantidad=257; esperado=0xffffffffu; }
+        if (modo==33) { cantidad=256; esperado=0xffffffffu; }
+        if (modo>=34) {
+            bytes[1]=7; cantidad=0;
+            memcpy(bytes+200,modo==34 ? "usr_taken" : "usr_final",10);
+            if (modo==34) esperado=0xffffffffu;
+            if (modo==36) { memcpy(bytes+128,"usr_final",10); puntero=0x10000; esperado=0xffffffffu; }
+        }
+        for (unsigned i=0;i<4;++i) {
+            bytes[6+i]=(unsigned char)((codigo+128)>>(i*8));
+            bytes[11+i]=(unsigned char)(puntero>>(i*8));
+            bytes[16+i]=(unsigned char)(cantidad>>(i*8));
+            bytes[23+i]=(unsigned char)(esperado>>(i*8));
+        }
+    }
     uintptr_t virtual_codigo=codigo;
     uint32_t *entradas_activas=entradas_usuario;
     if (modo==17 || modo==29) {
@@ -406,12 +439,20 @@ int nxk_usuario_probar_servicios(void) {
     size_t antes=nxk_heap_used();
     for (unsigned modo=11;modo<=16;++modo)
         if (usuario_ejecutar(modo) || nxk_heap_used()!=antes) return 2;
-    char datos[2];
-    if (nxk_archivo_leer("usr_test",datos,2)!=-2 || nxk_archivo_escribir("usr_test","AB",2)) return 3;
+    char datos[4];
+    if (nxk_archivo_leer("usr_test",datos,4)!=-2 || nxk_archivo_leer("usr_final",datos,4)!=-2 ||
+        nxk_archivo_leer("usr_taken",datos,4)!=-2 || nxk_archivo_escribir("usr_test","AB",2)) return 3;
+    if (nxk_archivo_escribir("usr_taken",0,0)) { nxk_archivo_borrar("usr_test"); return 3; }
     antes=nxk_heap_used(); int fallo=0;
     for (unsigned modo=18;modo<=28;++modo)
         if (usuario_ejecutar(modo) || nxk_heap_used()!=antes) { fallo=4; break; }
-    if (nxk_archivo_borrar("usr_test")) fallo=5;
+    if (!fallo) for (unsigned modo=30;modo<=36;++modo) {
+        if (usuario_ejecutar(modo) || nxk_heap_used()!=antes ||
+            nxk_archivo_leer(modo>=35 ? "usr_final" : "usr_test",datos,4)!=4 ||
+            datos[0]!='A' || datos[1]!='B' || datos[2]!='C' || datos[3]!='D') { fallo=6; break; }
+        if (nxk_archivo_leer("usr_taken",datos,4)!=0) { fallo=7; break; }
+    }
+    nxk_archivo_borrar("usr_test"); nxk_archivo_borrar("usr_final"); nxk_archivo_borrar("usr_taken");
     return fallo;
 }
 int nxk_usuario_caso_bucle(void) { return usuario_ejecutar(9)==32 ? 0 : -1; }

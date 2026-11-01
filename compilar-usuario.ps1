@@ -14,11 +14,11 @@ $python=Join-Path $PSScriptRoot 'tools/python/python.exe'
 & $python lenguaje/compilador.py $Fuente -o "$dir/programa.c"
 if ($LASTEXITCODE -ne 0) { throw 'Fuente de usuario invalida.' }
 function Z { & $zig @args; if ($LASTEXITCODE -ne 0) { throw 'Error compilando aplicacion usuario.' } }
-$flags=@('-target','x86-freestanding-none','-ffreestanding','-fno-stack-protector','-fno-pic','-fno-builtin','-mno-sse','-mno-sse2','-mno-mmx','-Os','-Wall','-Wextra','-Werror','-Ilib')
+$flags=@('-target','x86-freestanding-none','-ffreestanding','-fno-stack-protector','-fno-pic','-fno-builtin','-ffunction-sections','-fdata-sections','-mno-sse','-mno-sse2','-mno-mmx','-Os','-Wall','-Wextra','-Werror','-Ilib')
 Z cc @flags -c "$dir/programa.c" -o "$dir/programa.o"
 Z cc @flags -c lenguaje/runtime_usuario.c -o "$dir/runtime.o"
-Z ld.lld -T lenguaje/usuario.ld "$dir/runtime.o" "$dir/programa.o" -o "$dir/programa.elf"
-Z ld.lld -T lenguaje/usuario.ld --oformat=binary "$dir/runtime.o" "$dir/programa.o" -o "$dir/programa.bin"
+Z ld.lld --gc-sections -T lenguaje/usuario.ld "$dir/runtime.o" "$dir/programa.o" -o "$dir/programa.elf"
+Z ld.lld --gc-sections -T lenguaje/usuario.ld --oformat=binary "$dir/runtime.o" "$dir/programa.o" -o "$dir/programa.bin"
 
 if (!$Salida) { $Salida="$dir/programa.nxe" }
 $padre=Split-Path $Salida -Parent
