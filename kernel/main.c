@@ -10,6 +10,7 @@
 #include "archivos.h"
 #include "paginacion.h"
 #include "usuario.h"
+#include "ata.h"
 #if defined(__i386__)
 #define NXK_ARCH_TEXT "x86 de 32 bits"
 #define NXK_MODE_MARKER "NXK: PROTECTED MODE 32 OK\n"
@@ -260,6 +261,10 @@ void kernel_main(void) {
 #ifdef NXK_TEST
     if (nxk_archivos_probar()) { print("NXK: ARCHIVOS FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
     print("NXK: ARCHIVOS RAM OK\n");
+#if defined(__i386__)
+    if (nxk_ata_probar()) { print("NXK: ATA FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
+    print("NXK: ATA LECTURA OK\n");
+#endif
     unsigned char prueba_memoria[19];
     memset(prueba_memoria, 0xcc, sizeof(prueba_memoria));
     void *retorno_memoria=memset(prueba_memoria+1, 0x1a5, 17);
@@ -345,7 +350,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | discos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -375,6 +380,13 @@ void kernel_main(void) {
             }
             else if (prefijo(line,"borrar ")) {
                 print(nxk_archivo_borrar(line+7) ? "No se pudo borrar.\n" : "Archivo borrado.\n");
+            }
+            else if (nxk_equal(line, "discos")) {
+                for (unsigned u=0;u<2;++u) { struct nxk_ata_info info;
+                    print("IDE "); number(u);
+                    if (nxk_ata_identificar(u,&info)) print(": no disponible o no compatible.\n");
+                    else { print(": "); print(info.modelo); print(" sectores de 512 bytes: "); number(info.sectores); put('\n'); }
+                }
             }
             else if (nxk_equal(line, "archivos")) {
                 for (unsigned i=0;i<8;++i) { const char *s=nxk_archivo_nombre(i); if (s) { print(s); put('\n'); } }

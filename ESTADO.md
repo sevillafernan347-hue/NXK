@@ -146,3 +146,7 @@ carga archivos externos. Ver ENTREGA-NEXTRY-USUARIO.md.
 Aplicaciones NEXTRY protegidas pueden guardar, mostrar y borrar archivos RAM
 mediante servicios validados. Destinos de lectura limitados a pila escribible.
 Compilador con 20 pruebas y ejemplo completo; ver ENTREGA-ARCHIVOS-USUARIO.md.
+
+Controlador ATA PIO de lectura x86: identifica IDE primario y lee sectores
+LBA28 con limites, sondeos acotados y buffer temporal. Comando discos.
+Validacion en QEMU: ENTREGA-ATA-LECTURA.md. Sin escrituras ni persistencia.
