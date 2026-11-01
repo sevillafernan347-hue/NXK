@@ -45,6 +45,7 @@ if (!$log.Contains('NXK: LLENADO OK') -or !$log.Contains('NXK: COPIA OK')) { thr
 if (!$log.Contains('NXK: MOVER OK')) { throw "Fallo en copia con solapamiento: $log" }
 if (!$log.Contains('NXK: HEAP LIMITES OK')) { throw "Fallo en limites del heap: $log" }
 if ($Architecture -eq 'x86') {
+    if (!$log.Contains('NXK: PAGINACION Y WP OK')) { throw 'Falta inicio de paginacion.' }
     if (!$log.Contains('NXK: PAGINAS OK')) { throw "Fallo del gestor de paginas: $log" }
     if ($log -notmatch 'NXK: PAGINAS LIBRES: (\d+)' -or [int]$Matches[1] -lt (($size-10)*256)) { throw 'Cantidad de paginas inesperada.' }
     if ($log -notmatch 'NXK: RAM BIOS KiB: (\d+)') { throw 'Falta el mapa BIOS.' }

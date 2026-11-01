@@ -57,6 +57,10 @@ static void hexadecimal(uint32_t valor) {
 }
 void nxk_excepcion_fatal(const uint32_t *pila) {
     print("\nNXK: EXCEPCION CONTROLADA. CPU detenida.\n");
+#if defined(__i386__)
+    if (pila[8]==14) { uint32_t direccion; __asm__ volatile("mov %%cr2,%0":"=r"(direccion));
+        print("CR2: "); hexadecimal(direccion); put('\n'); }
+#endif
     /* PUSHAD: ocho registros; despues vector, error, EIP, CS y EFLAGS. */
     print("VECTOR: "); hexadecimal(pila[8]);
     print(" ERROR: "); hexadecimal(pila[9]);
@@ -132,8 +136,17 @@ void kernel_main(void) {
     serial_init();
     extern void nxk_excepciones_iniciar(void);
     nxk_excepciones_iniciar();
+#if defined(__i386__)
+    extern int nxk_paginacion_iniciar(void);
+    if (nxk_paginacion_iniciar()) { print("NXK: PAGINACION FAIL\n"); nxk_es_detener(); }
+    print("NXK: PAGINACION Y WP OK\n");
+#endif
 #if defined(NXK_EXCEPTION_TEST) && defined(__i386__)
-#if NXK_EXCEPTION_VECTOR == 13
+#if NXK_EXCEPTION_VECTOR == 14
+    __asm__ volatile("movl $1,0" ::: "memory");
+#elif NXK_EXCEPTION_VECTOR == 114
+    *(volatile unsigned char *)(uintptr_t)kernel_main=0;
+#elif NXK_EXCEPTION_VECTOR == 13
     __asm__ volatile("mov $0xfff8, %%ax; mov %%ax, %%ds" ::: "eax", "memory");
 #elif NXK_EXCEPTION_VECTOR == 6
     __asm__ volatile("ud2");

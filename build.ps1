@@ -5,7 +5,7 @@ param(
     [string]$FuenteApp = 'lenguaje/ejemplos/hola.nxf',
     [switch]$Test,
     [switch]$ExceptionTest,
-    [ValidateSet(3,6,13)][int]$ExceptionVector = 3,
+    [ValidateSet(3,6,13,14,114)][int]$ExceptionVector = 3,
     [ValidateSet('x86','x64')][string]$Architecture = 'x86'
 )
 $ErrorActionPreference = 'Stop'
@@ -87,6 +87,7 @@ Invoke-Zig cc @flags -c lib/memory.c -o "$buildDir/memory.o"
 Invoke-Zig cc @flags -c "$buildDir/inicio_nxe.c" -o "$buildDir/inicio_nxe.o"
 Invoke-Zig cc @flags -c kernel/nxe.c -o "$buildDir/nxe.o"
 Invoke-Zig cc @flags -c kernel/excepciones.c -o "$buildDir/excepciones.o"
+Invoke-Zig cc @flags -c kernel/paginacion.c -o "$buildDir/paginacion.o"
 Invoke-Zig cc @flags -c kernel/ram.c -o "$buildDir/ram.o"
 Invoke-Zig cc @flags -c kernel/paginas.c -o "$buildDir/paginas.o"
 Invoke-Zig cc @flags -c compatibilidad/windows/pe.c -o "$buildDir/pe.o"
@@ -96,6 +97,7 @@ $objects += "$buildDir/excepciones.o"
 $objects += "$buildDir/tareas.o"
 $objects += "$buildDir/archivos.o"
 $objects += "$buildDir/ram.o"
+$objects += "$buildDir/paginacion.o"
 $objects += "$buildDir/paginas.o"
 if ($Architecture -eq 'x86') {
     Invoke-Zig cc -target $target -c compatibilidad/windows/retorno32.S -o "$buildDir/pe_retorno.o"

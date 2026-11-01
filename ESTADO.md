@@ -91,3 +91,8 @@ la referencia actualizada esta en lenguaje/REGLAS.md.
 El gestor fisico x86 reserva y libera bloques contiguos con alineacion en
 paginas. Validacion completa antes de liberar, borrado y pruebas negativas.
 Ver ENTREGA-BLOQUES-MEMORIA.md. Sigue sin sincronizacion ni memoria virtual.
+
+Paginacion inicial x86 activada: mapeo identidad 1 GiB, solo supervisor, pagina
+cero ausente y codigo/rodata del kernel protegidos con CR0.WP. Diagnostico CR2
+para fallos de pagina. No constituye aislamiento de procesos; ver
+ENTREGA-PAGINACION.md para pruebas y limites.

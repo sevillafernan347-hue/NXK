@@ -7,6 +7,8 @@ SECTIONS {
     . = 0x10000;
     .text : { *(.text.entry) *(.text*) }
     .rodata : { *(.rodata*) }
+    . = ALIGN(4096);
+    __sololectura_fin = .;
     .data : { *(.data*) }
     .bss (NOLOAD) : { __bss_start = .; *(.bss*) *(COMMON) __bss_end = .; }
     ASSERT(. < 0x18000, "NXK supera el limite inicial de 32 KiB")
