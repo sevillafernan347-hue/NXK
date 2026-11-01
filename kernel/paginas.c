@@ -96,6 +96,8 @@ int nxk_pagina_liberar(void *direccion) {
     if ((a&4095) || a<0x800000 || a>=LIMITE || !total) return -1;
     uint32_t p=(uint32_t)(a/4096);
     if (!bit(entregadas,p)) return -2;
+    /* Borrar antes de marcarla libre para que el siguiente uso no vea restos. */
+    memset((void *)a,0,4096);
     marcar(entregadas,p,0); marcar(disponibles,p,1); ++libres;
     if (p<pista) pista=p;
     return 0;

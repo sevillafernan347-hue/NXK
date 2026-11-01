@@ -18,7 +18,9 @@ int nxk_probar_paginas(void) {
         if (((unsigned char *)a)[i]!=0x35 || ((unsigned char *)b)[i]!=0x79) return 3;
     if (!nxk_paginas_iniciar(mapa,3)) return 4;
     if (!nxk_pagina_liberar((void *)0x800000) || !nxk_pagina_liberar((char *)a+1)) return 5;
-    if (nxk_pagina_liberar(a) || !nxk_pagina_liberar(a) || nxk_pagina_reservar()!=a) return 6;
+    if (nxk_pagina_liberar(a)) return 6;
+    for (unsigned i=0;i<4096;++i) if (((unsigned char *)a)[i]) return 18;
+    if (!nxk_pagina_liberar(a) || nxk_pagina_reservar()!=a) return 6;
     for (unsigned i=0;i<4096;++i) if (((unsigned char *)a)[i]) return 17;
     if (nxk_pagina_liberar(a) || nxk_pagina_liberar(b)) return 7;
     mapa[0].base=UINT64_MAX-10; mapa[0].longitud=20;

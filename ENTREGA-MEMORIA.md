@@ -32,7 +32,8 @@ integro su validacion pagina a pagina y pruebas de region partida y hueco; la
 autoría del cambio y sus pruebas se verifican en este historial.
 
 Avance posterior: nxk_pagina_reservar limpia 4096 bytes antes de devolver la
-pagina, evitando filtrar el contenido del uso anterior. Pruebas escriben patrones,
-liberan la pagina, la vuelven a reservar y verifican todos los bytes en cero.
+pagina y nxk_pagina_liberar la borra antes de marcarla libre, evitando conservar
+contenido entre usos. Pruebas escriben patrones, comprueban que liberar los borra,
+la vuelven a reservar y verifican todos los bytes en cero.
 Pasaron la matriz x86 y el arranque x64 de regresion. El limpiado usa memset ASM
-en x86; tiene un costo de 4 KiB por reserva.
+en x86; tiene un costo de 4 KiB por reserva y por liberacion.
