@@ -28,6 +28,9 @@ if ($Architecture -eq 'x86') {
 $asm = ".section .rodata`n.global nxe_demo_inicio, nxe_demo_fin`nnxe_demo_inicio:`n.incbin `"$buildDir/hola.nxe`"`nnxe_demo_fin:`n.section .note.GNU-stack,`"`",@progbits`n"
 if ($Architecture -eq 'x86') { $asm += ".section .rodata`n.global pe_demo_inicio, pe_demo_fin`npe_demo_inicio:`n.incbin `"$buildDir/hola.exe`"`npe_demo_fin:`n" }
 if ($Architecture -eq 'x86') {
+    & $python lenguaje/ensamblador.py kernel/tareas32.nxa -o "$buildDir/tareas.bin"
+    if ($LASTEXITCODE -ne 0) { throw 'Error ensamblando tareas.' }
+    $asm += ".section .text`n.global nxk_cambiar_tarea`nnxk_cambiar_tarea:`n.incbin `"$buildDir/tareas.bin`"`n"
     & $python lenguaje/ensamblador.py kernel/reloj32.nxa -o "$buildDir/reloj.bin"
     if ($LASTEXITCODE -ne 0) { throw 'Error ensamblando IRQ0 con NEXTRY ASM.' }
     $asm += ".section .rodata`n.global reloj_nxa_inicio, reloj_nxa_fin`nreloj_nxa_inicio:`n.incbin `"$buildDir/reloj.bin`"`nreloj_nxa_fin:`n"
@@ -76,6 +79,7 @@ if ($Architecture -eq 'x64') { $flags += '-mno-red-zone' }
 if ($Test) { $flags += '-DNXK_TEST' }
 if ($ExceptionTest) { $flags += '-DNXK_EXCEPTION_TEST' }
 if ($ExceptionTest) { $flags += "-DNXK_EXCEPTION_VECTOR=$ExceptionVector" }
+Invoke-Zig cc @flags -c kernel/tareas.c -o "$buildDir/tareas.o"
 Invoke-Zig cc @flags -c kernel/main.c -o "$buildDir/main.o"
 Invoke-Zig cc @flags -c lib/memory.c -o "$buildDir/memory.o"
 Invoke-Zig cc @flags -c "$buildDir/inicio_nxe.c" -o "$buildDir/inicio_nxe.o"
@@ -87,6 +91,7 @@ Invoke-Zig cc @flags -c compatibilidad/windows/pe.c -o "$buildDir/pe.o"
 Invoke-Zig cc -target $target -c "$buildDir/app_embebida.S" -o "$buildDir/app_embebida.o"
 $objects=@("$buildDir/entry.o","$buildDir/main.o","$buildDir/memory.o","$buildDir/inicio_nxe.o","$buildDir/nxe.o","$buildDir/pe.o","$buildDir/app_embebida.o")
 $objects += "$buildDir/excepciones.o"
+$objects += "$buildDir/tareas.o"
 $objects += "$buildDir/ram.o"
 $objects += "$buildDir/paginas.o"
 if ($Architecture -eq 'x86') {

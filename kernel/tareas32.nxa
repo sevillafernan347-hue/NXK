@@ -1,0 +1,17 @@
+# Cambio cooperativo cdecl: cambiar(&pila_anterior, pila_siguiente).
+# Conserva registros que exige la ABI; cada tarea conserva su propia pila.
+modo 32
+guardar32 ebp
+guardar32 ebx
+guardar32 esi
+guardar32 edi
+cargar_pila32 eax, 20
+cargar_pila32 edx, 24
+# Guardar ESP en [EAX] y activar ESP recibido en EDX.
+bytes 0x89, 0x20
+copiar32 esp, edx
+recuperar32 edi
+recuperar32 esi
+recuperar32 ebx
+recuperar32 ebp
+devolver

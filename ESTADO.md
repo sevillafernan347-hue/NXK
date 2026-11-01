@@ -60,3 +60,8 @@ configuraciones de RAM. Sigue sin planificador. Ver ENTREGA-RELOJ.md.
 
 Entrada IRQ0 migrada a kernel/reloj32.nxa. El ensamblador propio ya permite
 recuperar registros generales y retornar de una interrupcion x86.
+
+Demostracion inicial de tareas cooperativas x86 disponible con `tareas`.
+Dos pilas privadas, cuatro turnos por tarea y variables locales preservadas.
+Cambio de contexto en NEXTRY ASM y organizacion en C; sin preempcion ni
+aislamiento. Validacion: ENTREGA-TAREAS.md.
