@@ -30,6 +30,25 @@ int nxk_probar_formatos(void) {
     unsigned pe=copia[60] | (unsigned)copia[61]<<8 | (unsigned)copia[62]<<16 | (unsigned)copia[63]<<24;
     copia[pe+4]=0x64; copia[pe+5]=0x86;
     if (nxk_pe_cargar(copia,n)!=-2) return 9;
+    /* PE32+ y subsistema nativo del kernel Windows no son apps Win32. */
+    copiar(copia,pe_demo_inicio,n); copia[pe+24]=0x0b; copia[pe+25]=2;
+    if (nxk_pe_cargar(copia,n)!=-3) return 12;
+    copiar(copia,pe_demo_inicio,n); copia[pe+24+68]=1; copia[pe+24+69]=0;
+    if (nxk_pe_cargar(copia,n)!=-5) return 13;
+    /* Entrada en memoria virtual sin bytes de codigo respaldados: rechazar. */
+    copiar(copia,pe_demo_inicio,n);
+    unsigned opt=pe+24, tabla=opt+(copia[pe+20] | (unsigned)copia[pe+21]<<8);
+    unsigned cuenta=copia[pe+6] | (unsigned)copia[pe+7]<<8;
+    for (unsigned k=0;k<cuenta;++k) {
+        unsigned q=tabla+k*40;
+        if (!(copia[q+39]&0x20)) continue;
+        for (unsigned b=0;b<4;++b) {
+            copia[opt+16+b]=copia[q+12+b];
+            copia[q+16+b]=0;
+        }
+        break;
+    }
+    if (nxk_pe_cargar(copia,n)!=-9) return 14;
     copiar(copia,pe_demo_inicio,n);
     unsigned i;
     for (i=0; i+12<n; ++i) {

@@ -88,7 +88,7 @@ int nxk_pe_cargar(const unsigned char *p, size_t longitud) {
         if (va<cabecera || !rango(va,ocupa,total) || !rango(pos,crudo,longitud)) return -8;
         inicios[i]=va; finales[i]=va+ocupa;
         for (uint32_t j=0; j<i; ++j) if (va<finales[j] && inicios[j]<finales[i]) return -8;
-        if (entrada>=va && entrada-va<ocupa && (u32(s+36)&0x20000000)) entrada_ejecutable=1;
+        if (entrada>=va && entrada-va<crudo && (u32(s+36)&0x20000000)) entrada_ejecutable=1;
     }
     if (!entrada_ejecutable) return -9;
     memset(imagen,0,total); imagen_longitud=total;
