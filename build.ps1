@@ -28,6 +28,9 @@ if ($Architecture -eq 'x86') {
 $asm = ".section .rodata`n.global nxe_demo_inicio, nxe_demo_fin`nnxe_demo_inicio:`n.incbin `"$buildDir/hola.nxe`"`nnxe_demo_fin:`n.section .note.GNU-stack,`"`",@progbits`n"
 if ($Architecture -eq 'x86') { $asm += ".section .rodata`n.global pe_demo_inicio, pe_demo_fin`npe_demo_inicio:`n.incbin `"$buildDir/hola.exe`"`npe_demo_fin:`n" }
 if ($Architecture -eq 'x86') {
+    & $python lenguaje/ensamblador.py kernel/reloj32.nxa -o "$buildDir/reloj.bin"
+    if ($LASTEXITCODE -ne 0) { throw 'Error ensamblando IRQ0 con NEXTRY ASM.' }
+    $asm += ".section .rodata`n.global reloj_nxa_inicio, reloj_nxa_fin`nreloj_nxa_inicio:`n.incbin `"$buildDir/reloj.bin`"`nreloj_nxa_fin:`n"
     & $python lenguaje/ensamblador.py kernel/excepciones32.nxa -o "$buildDir/excepciones.bin"
     if ($LASTEXITCODE -ne 0) { throw 'Error al ensamblar las excepciones con NEXTRY ASM.' }
     $asm += ".section .rodata`n.global excepcion_nxa_inicio, excepcion_nxa_fin`nexcepcion_nxa_inicio:`n.incbin `"$buildDir/excepciones.bin`"`nexcepcion_nxa_fin:`n"

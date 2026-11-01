@@ -57,3 +57,6 @@ Ultima comprobacion: copia de memoria NEXTRY ASM con longitudes 0, 1, 3, 16, 17 
 Temporizador inicial x86: PIT ~100 Hz, PIC con IRQ0, contador consultable con
 `tiempo`. Pruebas de cinco ticks y retorno IRQ superadas en las cuatro
 configuraciones de RAM. Sigue sin planificador. Ver ENTREGA-RELOJ.md.
+
+Entrada IRQ0 migrada a kernel/reloj32.nxa. El ensamblador propio ya permite
+recuperar registros generales y retornar de una interrupcion x86.

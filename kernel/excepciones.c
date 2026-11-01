@@ -15,10 +15,9 @@ static struct puerta tabla[256];
 extern const unsigned char excepcion_nxa_inicio[], excepcion_nxa_fin[];
 extern void nxk_excepcion_fatal(const uint32_t *pila);
 static unsigned char entrada[33][32];
-/* Entrada IRQ0 propia: PUSHAD, pila alineada, llamada C, POPAD e IRETD.
- * ESI conserva la pila original segun el convenio C. No cambia de tarea. */
-static unsigned char reloj_entrada[]={0x60,0xfc,0x89,0xe6,0x83,0xe4,0xf0,
-    0xb8,0,0,0,0,0xff,0xd0,0x89,0xf4,0x61,0xcf};
+/* Plantilla generada por NEXTRY ASM; el puente resuelve la llamada C. */
+extern const unsigned char reloj_nxa_inicio[], reloj_nxa_fin[];
+static unsigned char reloj_entrada[18];
 static volatile uint32_t ticks;
 static void puerto(uint16_t p,uint8_t v) {
     __asm__ volatile("outb %0,%1" :: "a"(v),"Nd"(p));
@@ -28,6 +27,10 @@ void nxk_reloj_irq(void) { ++ticks; puerto(0x20,0x20); }
 uint32_t nxk_reloj_ticks(void) { return ticks; }
 void nxk_reloj_iniciar(void) {
     __asm__ volatile("cli" ::: "memory");
+    if ((uintptr_t)reloj_nxa_fin-(uintptr_t)reloj_nxa_inicio!=18 ||
+        reloj_nxa_inicio[7]!=0xb8 || reloj_nxa_inicio[17]!=0xcf)
+        nxk_es_detener();
+    for (unsigned i=0;i<18;++i) reloj_entrada[i]=reloj_nxa_inicio[i];
     uintptr_t f=(uintptr_t)nxk_reloj_irq, e=(uintptr_t)reloj_entrada;
     for (unsigned i=0;i<4;++i) reloj_entrada[8+i]=(unsigned char)(f>>(8*i));
     uint16_t cs; __asm__ volatile("mov %%cs,%0":"=r"(cs));

@@ -19,6 +19,8 @@ FIJAS = {
     'escribir_control cr0, eax': b'\x0f\x22\xc0',
     'saltar_registro eax': b'\xff\xe0',
     'guardar_registros32': b'\x60',
+    'recuperar_registros32': b'\x61',
+    'retornar_interrupcion32': b'\xcf',
     'alinear_pila16': b'\x83\xe4\xf0',
     'llamar_registro eax': b'\xff\xd0',
     'cero eax': b'\x31\xc0',

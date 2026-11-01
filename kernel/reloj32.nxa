@@ -1,0 +1,15 @@
+# Entrada IRQ0 del temporizador. Solo modo protegido x86 de 32 bits.
+# Guarda todos los registros generales; IRETD restaura EIP, CS y EFLAGS.
+origen 0
+modo 32
+guardar_registros32
+direccion_adelante
+# ESI conserva la pila original a traves de la llamada C.
+copiar32 esi, esp
+alinear_pila16
+# El instalador sustituye este inmediato por nxk_reloj_irq.
+cargar32 eax, 0
+llamar_registro eax
+copiar32 esp, esi
+recuperar_registros32
+retornar_interrupcion32
