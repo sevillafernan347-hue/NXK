@@ -36,6 +36,8 @@ limite inicial 1 GiB, exclusion de regiones reservadas y proteccion de los prime
 El arranque x64 aun no proporciona el mapa ni habilita este gestor.
 Pruebas de agotamiento y recuperacion de todas las paginas superadas en las cuatro
 configuraciones x86; tambien solapamientos, doble liberacion y direcciones invalidas.
+Cada pagina fisica ahora se limpia al reservarla; las pruebas comprueban que los
+datos escritos antes de liberarla no aparezcan en su siguiente uso.
 Sigue pendiente memoria virtual y uso del gestor por tareas. El heap antiguo sigue
 siendo incremental; no tiene liberacion. El nuevo gestor es un puente C pendiente
 de migrar a NEXTRY. Proximo hito: diagnostico detallado de excepciones.

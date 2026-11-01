@@ -41,5 +41,5 @@ de escribirlo. Reserva, liberacion, reutilizacion, rechazo de doble liberacion y
 agotamiento comprobados con 32/64/128/1024 MiB. Regresion x64 de arranque superada;
 el gestor nuevo solo esta habilitado en x86.
 
-Limites: puente C, sin concurrencia, sin memoria virtual, sin borrado automatico
-de las paginas entregadas. El siguiente hito es diagnostico de excepciones.
+Limites: puente C, sin concurrencia ni memoria virtual. Toda pagina nueva se
+limpia antes de entregarla. El siguiente hito es diagnostico de excepciones.

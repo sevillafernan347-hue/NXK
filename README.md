@@ -23,6 +23,7 @@ powershell -ExecutionPolicy Bypass -File run.ps1 -Architecture x86
 El mapa BIOS E820 se recoge en NEXTRY ASM y se consulta mediante un puente C.
 La consola informa RAM descrita por BIOS y espacio del heap por separado.
 El gestor x86 ya reserva y libera paginas fisicas de 4 KiB hasta 1 GiB.
+Cada pagina se pone en cero antes de entregarla a un nuevo usuario.
 Todavia faltan memoria virtual, procesos, archivos y aislamiento.
 El compilador genera C; el kernel aun no esta escrito completamente en NEXTRY.
 El EXE de demostracion usa solo tres funciones Win32: no hay compatibilidad general.

@@ -82,7 +82,10 @@ void *nxk_pagina_reservar(void) {
         if (!bit(disponibles,p)) continue;
         marcar(disponibles,p,0); marcar(entregadas,p,1);
         --libres; pista=p+1;
-        return (void *)(uintptr_t)(p*4096);
+        void *pagina=(void *)(uintptr_t)(p*4096);
+        /* No filtrar a un nuevo usuario los bytes del anterior. */
+        memset(pagina,0,4096);
+        return pagina;
     }
 #endif
     return 0;
