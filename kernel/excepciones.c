@@ -171,7 +171,7 @@ static void usuario_servicio(uint32_t *c) {
         if (cantidad) memcpy(datos,(void *)(uintptr_t)buffer,cantidad);
         if (!nxk_archivo_escribir(nombre,datos,cantidad)) c[11]=0;
     } else {
-        int leidos=nxk_archivo_leer(nombre,datos,cantidad);
+        int leidos=nxk_archivo_leer_visible(nombre,datos,cantidad);
         if (leidos<0) return;
         if (leidos) memcpy((void *)(uintptr_t)buffer,datos,(unsigned)leidos);
         c[11]=(uint32_t)leidos;

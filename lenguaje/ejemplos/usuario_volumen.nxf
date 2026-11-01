@@ -1,0 +1,5 @@
+# Monta primero NXFS con volumen montar en la consola.
+funcion inicio
+    mostrar "NEXTRY leyendo un archivo del volumen"
+    mostrar_archivo "leeme.txt"
+fin

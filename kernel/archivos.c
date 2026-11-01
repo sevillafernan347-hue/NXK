@@ -1,6 +1,7 @@
 /* Sistema de archivos RAM propio. Puente C; sin disco ni concurrencia.
  * Validar antes de modificar conserva archivos ante operaciones rechazadas. */
 #include "archivos.h"
+#include "volumen.h"
 struct archivo { char nombre[24]; unsigned char datos[256]; size_t n; };
 static struct archivo *tabla;
 static int valido(const char *s) {
@@ -54,6 +55,11 @@ int nxk_archivo_renombrar(const char *s,const char *nuevo) {
     memset(tabla[i].nombre,0,24); memcpy(tabla[i].nombre,copia,j);
     return 0;
 }
+int nxk_archivo_leer_visible(const char *nombre,void *datos,size_t capacidad) {
+    int resultado=nxk_archivo_leer(nombre,datos,capacidad);
+    /* No esconder errores de capacidad o nombres invalidos tras otro backend. */
+    return resultado==-2 ? nxk_volumen_leer(nombre,datos,capacidad) : resultado;
+}
 int nxk_archivo_borrar(const char *s) {
     if (!valido(s)) return -1;
     int i=buscar(s); if (i<0) return -2;
@@ -66,7 +72,7 @@ int nxk_archivos_probar(void) {
     unsigned char b[256],d[256];
     for (unsigned i=0;i<256;++i) d[i]=(unsigned char)i;
     if (nxk_archivo_escribir("prueba",d,256) || nxk_archivo_escribir("prueba",d,257)!=-1 ||
-        nxk_archivo_leer("prueba",b,255)!=-3 || nxk_archivo_leer("prueba",b,256)!=256) return 1;
+        nxk_archivo_leer_visible("prueba",b,255)!=-3 || nxk_archivo_leer("prueba",b,256)!=256) return 1;
     for (unsigned i=0;i<256;++i) if (b[i]!=d[i]) return 2;
     if (nxk_archivo_borrar("prueba") || nxk_archivo_leer("prueba",b,256)!=-2) return 3;
     for (unsigned i=0;i<8;++i) { char s[2]={(char)('a'+i),0}; if (nxk_archivo_escribir(s,d,1)) return 4; }

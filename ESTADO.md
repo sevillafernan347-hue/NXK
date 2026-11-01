@@ -155,3 +155,8 @@ Volumen NXFS1 de solo lectura sobre imagen IDE secundaria: montaje, listado y
 lectura hasta 4096 bytes con verificacion de huellas y metadatos. Comandos
 volumen montar/listar/leer. Nueve imagenes de prueba superadas. Aun sin guardar
 desde NXK al disco. Ver ENTREGA-VOLUMEN-NXFS.md.
+
+NEXTRY protegido puede leer archivos NXFS montados con mostrar_archivo,
+prioridad RAM y fallback solo por ausencia. Se verifican corrupcion/capacidad
+antes de entregar datos a CPL3. Cinco escenarios dedicados con imagenes intactas
+y ejemplo usuario_volumen.nxf. Ver ENTREGA-NEXTRY-LECTURA-NXFS.md.

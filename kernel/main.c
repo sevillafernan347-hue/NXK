@@ -124,7 +124,7 @@ void nxk_es_guardar_archivo(const char *nombre,const char *texto) {
     if (n==256 || nxk_archivo_escribir(nombre,texto,n)) nxk_es_fallo(0);
 }
 void nxk_es_mostrar_archivo(const char *nombre) {
-    char datos[256]; int n=nxk_archivo_leer(nombre,datos,256);
+    char datos[256]; int n=nxk_archivo_leer_visible(nombre,datos,256);
     if (n<0) nxk_es_fallo(0);
     for (int i=0;i<n;++i) put(datos[i]); put('\n');
 }
@@ -375,7 +375,7 @@ void kernel_main(void) {
                 else { *nuevo++=0; print(nxk_archivo_renombrar(nombre,nuevo) ? "No se pudo renombrar.\n" : "Archivo renombrado.\n"); }
             }
             else if (prefijo(line,"leer ")) {
-                char datos[256]; int n=nxk_archivo_leer(line+5,datos,sizeof(datos));
+                char datos[256]; int n=nxk_archivo_leer_visible(line+5,datos,sizeof(datos));
                 if (n<0) print("No se pudo leer.\n");
                 else { for (int i=0;i<n;++i) put(datos[i]); put('\n'); }
             }
