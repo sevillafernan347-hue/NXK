@@ -2,7 +2,7 @@
  * Pendiente expresarlo en NEXTRY ASM. Solo una ejecucion activa por CPU. */
 .code32
 .section .text
-.global nxk_usuario_entrar, nxk_usuario_salir
+.global nxk_usuario_entrar, nxk_usuario_salir, nxk_usuario_abortar
 nxk_usuario_entrar:
     pushfl
     pushl %ebp
@@ -27,6 +27,10 @@ nxk_usuario_salir:
     cld
     movl 4(%esp), %ecx
     movl %ecx, nxk_usuario_cs_guardado
+    jmp restaurar_kernel
+nxk_usuario_abortar:
+    movl 4(%esp), %eax
+restaurar_kernel:
     pushl %eax
     movw $16, %ax
     movw %ax, %ds

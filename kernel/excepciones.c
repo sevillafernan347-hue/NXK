@@ -129,7 +129,21 @@ _Noreturn void nxk_usuario_probar(void) {
 uint32_t nxk_usuario_pila_guardada, nxk_usuario_cs_guardado;
 extern uint32_t nxk_usuario_entrar(uint32_t codigo,uint32_t pila);
 extern void nxk_usuario_salir(void);
-int nxk_usuario_demo(void) {
+static int usuario_activo;
+static uint32_t fallo_vector, fallo_error, fallo_direccion;
+extern _Noreturn void nxk_usuario_abortar(uint32_t resultado);
+void nxk_usuario_atender_fallo(const uint32_t *contexto) {
+    unsigned v=contexto[8];
+    /* Nunca interceptar fallos de ring0, NMI ni doble fallo. */
+    if (!usuario_activo || (contexto[11]&3)!=3 ||
+        (v!=0 && v!=6 && v!=13 && v!=14)) return;
+    fallo_vector=v; fallo_error=contexto[9]; fallo_direccion=0;
+    if (v==14) __asm__ volatile("mov %%cr2,%0":"=r"(fallo_direccion));
+    nxk_usuario_cs_guardado=contexto[11];
+    nxk_usuario_abortar(0x80000000u|v);
+}
+static int usuario_ejecutar(unsigned modo) {
+    if (usuario_activo || modo>4) return -1;
     static uintptr_t codigo, pila_kernel;
     if (!codigo) {
         unsigned char *r=nxk_alloc(4*4096);
@@ -141,6 +155,15 @@ int nxk_usuario_demo(void) {
     /* Restaurado a supervisor/escritura al salir de la ejecucion anterior. */
     const unsigned char programa[]={0xb8,42,0,0,0,0xcd,0x80,0x0f,0x0b};
     memcpy((void *)codigo,programa,sizeof(programa));
+    unsigned char *bytes=(void *)codigo;
+    if (modo==1) bytes[0]=0xfa; /* CLI. */
+    if (modo==2) {
+        const unsigned char escribir[]={0xc7,0x05,0,0,1,0,1,0,0,0};
+        memcpy(bytes,escribir,sizeof(escribir));
+    }
+    if (modo==3) { bytes[0]=0x0f; bytes[1]=0x0b; } /* UD2. */
+    if (modo==4) { const unsigned char leer[]={0xa1,0,0,0,0}; memcpy(bytes,leer,sizeof(leer)); }
+
     memset((void *)(codigo+4096),0,4096);
     uint32_t antes_codigo=p[codigo/4096], antes_pila=p[codigo/4096+1];
     uint32_t antes_directorio=d[codigo>>22], esp0=tss_normal[1], ss0=tss_normal[2];
@@ -153,13 +176,30 @@ int nxk_usuario_demo(void) {
     d[codigo>>22]|=4;
     __asm__ volatile("mov %0,%%cr3" :: "r"(0x200000u) : "memory");
     nxk_usuario_cs_guardado=0;
+    usuario_activo=1; fallo_vector=fallo_error=fallo_direccion=0;
     uint32_t resultado=nxk_usuario_entrar((uint32_t)codigo,(uint32_t)(codigo+8192));
+    usuario_activo=0;
     /* Retirar permisos de usuario y la puerta temporal antes de continuar. */
     p[codigo/4096]=antes_codigo; p[codigo/4096+1]=antes_pila;
     d[codigo>>22]=antes_directorio; tabla[128]=antes_puerta;
     tss_normal[1]=esp0; tss_normal[2]=ss0;
     __asm__ volatile("mov %0,%%cr3" :: "r"(0x200000u) : "memory");
-    return resultado==42 && (nxk_usuario_cs_guardado&3)==3 ? 0 : -2;
+    if ((nxk_usuario_cs_guardado&3)!=3) return -2;
+    if (modo) return resultado==(0x80000000u|fallo_vector) ? (int)fallo_vector : -3;
+    return resultado==42 ? 0 : -2;
+}
+int nxk_usuario_demo(void) { return usuario_ejecutar(0); }
+int nxk_usuario_comprobar_fallos(void) {
+    if (nxk_usuario_demo()) return 1;
+    size_t antes=nxk_heap_used();
+    const unsigned vectores[]={13,14,6,14}, errores[]={0,7,0,4};
+    for (unsigned modo=1;modo<=4;++modo) {
+        if (usuario_ejecutar(modo)!=(int)vectores[modo-1] || fallo_error!=errores[modo-1]) return 2;
+        if (modo==2 && fallo_direccion!=0x10000) return 3;
+        if (modo==4 && fallo_direccion!=0) return 4;
+        if (nxk_usuario_demo() || nxk_heap_used()!=antes) return 5;
+    }
+    return 0;
 }
 void nxk_excepciones_iniciar(void) {
     uintptr_t longitud=(uintptr_t)excepcion_nxa_fin-(uintptr_t)excepcion_nxa_inicio;
@@ -186,6 +226,8 @@ void nxk_excepciones_iniciar(void) {
     __asm__ volatile("lidt %0" :: "m"(d) : "memory");
 }
 #else
+void nxk_usuario_atender_fallo(const uint32_t *p) { (void)p; }
+int nxk_usuario_comprobar_fallos(void) { return -64; }
 int nxk_usuario_demo(void) { return -64; }
 void nxk_excepciones_iniciar(void) {}
 uint32_t nxk_reloj_ticks(void) { return 0; }

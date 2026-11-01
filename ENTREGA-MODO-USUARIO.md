@@ -46,3 +46,17 @@ puente pendiente de migrar a NEXTRY ASM.
 Enlazador: limite de imagen permanece en 32 KiB; BSS NOLOAD permite ocupar
 hasta 64 KiB de RAM total del kernel, dentro de la reserva fisica existente.
 Se mantienen ambas comprobaciones y la validacion de longitud de build.ps1.
+
+## Contencion de fallos en la demostracion sincronica
+
+Solo durante la ejecucion conocida, CPL3 y vectores 0/6/13/14 se devuelve un
+resultado de fallo al llamador por la pila guardada. Se registra vector, error
+y CR2; la limpieza comun restaura PTE, puerta y TSS. Excepciones en ring0,
+NMI, doble fallo y otros vectores conservan el tratamiento fatal.
+Comando usuario fallos: cuatro programas conocidos provocan CLI, escritura
+supervisor, UD2 y lectura nula. Cada caso verifica vector/error/direccion y
+ejecuta despues el programa correcto; no consume mas heap tras inicializar.
+Prueba de consola automatizada en lenguaje/pruebas_consola.py.
+Esto recupera la demostracion; todavia no gestiona procesos independientes ni
+acepta binarios externos arbitrarios. Sigue sin preempcion y con IRQ apagadas
+en CPL3. Los manejadores son puentes C/asm.
