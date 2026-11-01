@@ -6,6 +6,7 @@
 #include "nxk_es.h"
 #include "nxe.h"
 #include "pe.h"
+#include "paginas.h"
 #if defined(__i386__)
 #define NXK_ARCH_TEXT "x86 de 32 bits"
 #define NXK_MODE_MARKER "NXK: PROTECTED MODE 32 OK\n"
@@ -118,6 +119,10 @@ void kernel_main(void) {
     for (unsigned i=0; i<2000; ++i) vga[i] = 0x0b20;
     print("NXK 0.1 - kernel original " NXK_ARCH_TEXT "\n");
     print("NXK: RAM BIOS KiB: "); number(nxk_ram_kib()); put('\n');
+#if defined(__i386__)
+    if (nxk_paginas_bios()) print("NXK: gestor de paginas no disponible\n");
+    print("NXK: PAGINAS LIBRES: "); number(nxk_paginas_libres()); put('\n');
+#endif
     uint8_t *block = nxk_alloc(64);
     if (!block || block[0] || nxk_alloc(0x80001)) {
         print("NXK: MEMORY FAIL\n");
@@ -193,6 +198,13 @@ void kernel_main(void) {
     for (size_t i=0;i<disponible;++i) if (ultimo[i])
         { print("NXK: HEAP FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
     print("NXK: HEAP LIMITES OK\n");
+    extern int nxk_probar_paginas(void);
+    int fallo_paginas=nxk_probar_paginas();
+    if (fallo_paginas) {
+        print("NXK: PAGINAS FAIL caso "); number((size_t)fallo_paginas); put('\n');
+        out8(0xf4,0x11); nxk_es_detener();
+    }
+    print("NXK: PAGINAS OK\n");
     print("NXK: BOOT PASS\n");
     out8(0xf4, 0x10);
 #endif
@@ -219,6 +231,8 @@ void kernel_main(void) {
                 print("Heap disponible: "); number(nxk_heap_available()); print(" bytes\n");
                 print("RAM utilizable descrita por BIOS: "); number(nxk_ram_kib());
                 print(" KiB (0 = mapa no disponible; no es RAM libre)\n");
+                print("Paginas fisicas libres/total (4 KiB): "); number(nxk_paginas_libres());
+                print(" / "); number(nxk_paginas_total()); put('\n');
             } else if (nxk_equal(line, "halt")) {
                 print("NXK detenido. Puedes cerrar QEMU.\n");
                 for (;;) __asm__ volatile("cli; hlt");

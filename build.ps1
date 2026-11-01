@@ -77,11 +77,13 @@ Invoke-Zig cc @flags -c "$buildDir/inicio_nxe.c" -o "$buildDir/inicio_nxe.o"
 Invoke-Zig cc @flags -c kernel/nxe.c -o "$buildDir/nxe.o"
 Invoke-Zig cc @flags -c kernel/excepciones.c -o "$buildDir/excepciones.o"
 Invoke-Zig cc @flags -c kernel/ram.c -o "$buildDir/ram.o"
+Invoke-Zig cc @flags -c kernel/paginas.c -o "$buildDir/paginas.o"
 Invoke-Zig cc @flags -c compatibilidad/windows/pe.c -o "$buildDir/pe.o"
 Invoke-Zig cc -target $target -c "$buildDir/app_embebida.S" -o "$buildDir/app_embebida.o"
 $objects=@("$buildDir/entry.o","$buildDir/main.o","$buildDir/memory.o","$buildDir/inicio_nxe.o","$buildDir/nxe.o","$buildDir/pe.o","$buildDir/app_embebida.o")
 $objects += "$buildDir/excepciones.o"
 $objects += "$buildDir/ram.o"
+$objects += "$buildDir/paginas.o"
 if ($Architecture -eq 'x86') {
     Invoke-Zig cc -target $target -c compatibilidad/windows/retorno32.S -o "$buildDir/pe_retorno.o"
     $objects += "$buildDir/pe_retorno.o"
@@ -89,6 +91,8 @@ if ($Architecture -eq 'x86') {
 if ($Test) {
     Invoke-Zig cc @flags -c kernel/pruebas_cargadores.c -o "$buildDir/pruebas_cargadores.o"
     $objects += "$buildDir/pruebas_cargadores.o"
+    Invoke-Zig cc @flags -c kernel/pruebas_paginas.c -o "$buildDir/pruebas_paginas.o"
+    $objects += "$buildDir/pruebas_paginas.o"
 }
 Invoke-Zig ld.lld -T kernel/linker.ld @objects -o "$buildDir/kernel.elf"
 if ($Architecture -eq 'x86') {

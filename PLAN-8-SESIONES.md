@@ -30,5 +30,16 @@ rechace desbordamientos y agotamiento sin alterar el estado ni los datos previos
 La deteccion BIOS E820 ya esta implementada en NEXTRY ASM y recibida por el
 kernel mediante un puente C. Pruebas x86 de RAM 32/64/128/1024 MiB superadas;
 regresion x64 con 64 MiB superada, aunque esa variante no detecta RAM todavia.
-Pendiente para el hito 2: normalizar regiones, reservar zonas ocupadas y crear
-el gestor de paginas con liberacion. El hardware ASUS sigue sin probarse.
+El hardware ASUS sigue sin probarse.
+
+## Hito 2: gestor inicial implementado y probado en QEMU
+
+El gestor marca paginas completas de RAM, excluye cualquier pagina tocada por
+una region reservada y evita duplicados entre rangos superpuestos. Reserva los
+primeros 8 MiB y administra hasta 1 GiB. Verifica el espacio de sus metadatos antes
+de escribirlo. Reserva, liberacion, reutilizacion, rechazo de doble liberacion y
+agotamiento comprobados con 32/64/128/1024 MiB. Regresion x64 de arranque superada;
+el gestor nuevo solo esta habilitado en x86.
+
+Limites: puente C, sin concurrencia, sin memoria virtual, sin borrado automatico
+de las paginas entregadas. El siguiente hito es diagnostico de excepciones.

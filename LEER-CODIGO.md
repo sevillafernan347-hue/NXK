@@ -20,6 +20,10 @@ No edites `build` para cambiar el programa: su contenido se genera otra vez al c
 
 ## Mapa de los archivos propios
 
+- [kernel/paginas.c](kernel/paginas.c): gestor de paginas fisicas x86, con comentarios sobre las reservas y los mapas de bits.
+- [kernel/pruebas_paginas.c](kernel/pruebas_paginas.c): pruebas de solapamientos, agotamiento, reutilizacion y liberaciones incorrectas.
+- [lib/paginas.h](lib/paginas.h): interfaz de reserva y liberacion de paginas.
+
 - [kernel/ram.c](kernel/ram.c): interpreta el mapa BIOS recibido del arranque x86; puente C pendiente de migracion.
 - [COLABORACION.md](COLABORACION.md): instrucciones y mensajes para las otras cuentas.
 

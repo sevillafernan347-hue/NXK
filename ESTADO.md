@@ -30,8 +30,15 @@ Los 200 archivos principales de la biblioteca se comprobaron contra sus hashes S
 Mapa BIOS E820 agregado al arranque NEXTRY ASM x86. `kernel/ram.c` informa
 RAM utilizable por debajo de 4 GiB; el comando `mem` la distingue del heap.
 Pruebas de deteccion superadas en QEMU con 32, 64, 128 y 1024 MiB.
-El siguiente paso es validar/reservar regiones para un gestor de paginas fisicas.
-El mapa aun no se usa para asignar memoria y el arranque x64 no lo proporciona.
+El mapa ya alimenta un gestor de paginas fisicas x86: reserva/liberacion de 4 KiB,
+limite inicial 1 GiB, exclusion de regiones reservadas y proteccion de los primeros
+8 MiB. Los metadatos usan 64 KiB en 0x600000, verificados contra el mapa BIOS.
+El arranque x64 aun no proporciona el mapa ni habilita este gestor.
+Pruebas de agotamiento y recuperacion de todas las paginas superadas en las cuatro
+configuraciones x86; tambien solapamientos, doble liberacion y direcciones invalidas.
+Sigue pendiente memoria virtual y uso del gestor por tareas. El heap antiguo sigue
+siendo incremental; no tiene liberacion. El nuevo gestor es un puente C pendiente
+de migrar a NEXTRY. Proximo hito: diagnostico detallado de excepciones.
 Lee `COLABORACION.md` para repartir tareas entre cuentas con copias separadas.
 
 Se agregaron comentarios de lectura a los 53 archivos fuente y lanzadores propios.
