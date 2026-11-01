@@ -73,3 +73,7 @@ al inicio y matriz x86 32/64/128/1024 MiB superadas.
 
 Archivos RAM propios disponibles: crear/reemplazar, leer, listar y borrar.
 Ocho entradas de 256 bytes, sin persistencia. Ver ENTREGA-ARCHIVOS-RAM.md.
+
+Tareas cooperativas: estado DORMIDA y despertar por plazos PIT, reposo HLT
+cuando ninguna esta lista y finalizacion al retornar del trabajo. Demo `tareas`
+verificada en matriz x86; sigue sin preempcion ni API general de procesos.

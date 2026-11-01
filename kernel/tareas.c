@@ -4,7 +4,9 @@
 #if defined(__i386__)
 extern void nxk_cambiar_tarea(uint32_t **anterior, uint32_t *siguiente);
 static uint32_t *principal, *pilas[2];
-enum estado_tarea { LISTA, EJECUTANDO, TERMINADA };
+enum estado_tarea { LISTA, EJECUTANDO, DORMIDA, TERMINADA };
+extern uint32_t nxk_reloj_ticks(void);
+static uint32_t despertar[2];
 static enum estado_tarea estados[2];
 static unsigned actual, pasos[2], fallos;
 static unsigned char *memoria[2];
@@ -16,18 +18,37 @@ static int pila_valida(unsigned id) {
         p>=base+64 && p<=base+4096-20;
 }
 static void ceder(void) { nxk_cambiar_tarea(&pilas[actual],principal); }
-static void ejecutar(void) {
+/* Comparacion modular valida para intervalos menores de 2^31 ticks. */
+static int vencido(uint32_t ahora,uint32_t plazo) {
+    return (uint32_t)(ahora-plazo)<0x80000000u;
+}
+static void dormir(uint32_t cantidad) {
+    despertar[actual]=nxk_reloj_ticks()+cantidad;
+    estados[actual]=DORMIDA;
+    ceder();
+}
+static void trabajo(void) {
     unsigned id=actual;
     volatile uint32_t local=0x12340000u+id;
     for (unsigned i=0;i<4;++i) {
         if (local!=0x12340000u+id || actual!=id) ++fallos;
         ++pasos[id];
-        ceder();
+        uint32_t antes=nxk_reloj_ticks();
+        dormir(id+1);
+        if ((uint32_t)(nxk_reloj_ticks()-antes)<id+1) ++fallos;
     }
-    estados[id]=TERMINADA;
+}
+/* Retornar de la funcion de trabajo termina la tarea, nunca salta a basura. */
+static void ejecutar(void) {
+    trabajo();
+    estados[actual]=TERMINADA;
     for (;;) ceder();
 }
 int nxk_tareas_demo(void) {
+    uint32_t banderas;
+    __asm__ volatile("pushfl; popl %0" : "=r"(banderas));
+    /* El PIT no puede despertar tareas con IF deshabilitada. */
+    if (!(banderas&0x200)) return -4;
     /* Reservar una sola vez: repetir el comando no consume mas heap. */
     for (unsigned i=0;i<2;++i) {
         if (!memoria[i]) memoria[i]=nxk_alloc(4096);
@@ -39,21 +60,35 @@ int nxk_tareas_demo(void) {
         pilas[i]=p; pasos[i]=0; estados[i]=LISTA;
     }
     fallos=0;
-    for (unsigned vuelta=0;vuelta<5;++vuelta)
+    uint32_t inicio=nxk_reloj_ticks();
+    for (;;) {
+        unsigned pendientes=0, ejecutadas=0;
         for (actual=0;actual<2;++actual) {
             if (estados[actual]==TERMINADA) continue;
+            ++pendientes;
+            if (estados[actual]==DORMIDA) {
+                if (!vencido(nxk_reloj_ticks(),despertar[actual])) continue;
+                estados[actual]=LISTA;
+            }
             if (!pila_valida(actual)) return -2;
             estados[actual]=EJECUTANDO;
             nxk_cambiar_tarea(&principal,pilas[actual]);
+            ++ejecutadas;
             if (!pila_valida(actual)) return -2;
             if (estados[actual]==EJECUTANDO) estados[actual]=LISTA;
         }
+        if (!pendientes) break;
+        /* Cota del organizador; no puede detener una tarea que nunca ceda. */
+        if ((uint32_t)(nxk_reloj_ticks()-inicio)>100) return -3;
+        if (!ejecutadas) __asm__ volatile("hlt");
+    }
     return fallos || pasos[0]!=4 || pasos[1]!=4 ||
         estados[0]!=TERMINADA || estados[1]!=TERMINADA;
 }
 #ifdef NXK_TEST
 /* Corrupcion controlada: demostrar que el comprobador rechaza ambos casos. */
 int nxk_tareas_probar_limites(void) {
+    if (!vencido(3,0xfffffffeu) || vencido(0xfffffffdu,3) || !vencido(7,7)) return 5;
     if (nxk_tareas_demo()) return 1;
     size_t usado=nxk_heap_used();
     if (nxk_tareas_demo() || nxk_heap_used()!=usado) return 2;

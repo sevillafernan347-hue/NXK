@@ -299,7 +299,7 @@ void kernel_main(void) {
                 for (unsigned i=0;i<8;++i) { const char *s=nxk_archivo_nombre(i); if (s) { print(s); put('\n'); } }
             }
             else if (nxk_equal(line, "tareas")) {
-                print(nxk_tareas_demo() ? "Tareas no disponibles o fallo.\n" : "Dos tareas: cuatro turnos por tarea, pilas propias verificadas.\n");
+                print(nxk_tareas_demo() ? "Tareas no disponibles o fallo.\n" : "Dos tareas: pilas propias, esperas PIT y finalizacion verificadas.\n");
             }
             else if (nxk_equal(line, "tiempo")) {
                 print("Ticks PIT (~100 Hz; contador de 32 bits): "); number(nxk_reloj_ticks()); put('\n');
