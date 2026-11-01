@@ -102,7 +102,14 @@ $objects += "$buildDir/paginas.o"
 if ($Architecture -eq 'x86') {
     Invoke-Zig cc -target $target -c compatibilidad/windows/retorno32.S -o "$buildDir/pe_retorno.o"
     $objects += "$buildDir/pe_retorno.o"
-    Invoke-Zig cc -target $target -c kernel/usuario32.S -o "$buildDir/usuario32.o"
+    $usuarioObjeto = ".section .text`n"
+    foreach ($parte in @('entrar','salir','abortar')) {
+        & $python lenguaje/ensamblador.py "kernel/usuario_$parte.nxa" --permitir-externos -o "$buildDir/usuario_$parte.bin"
+        if ($LASTEXITCODE -ne 0) { throw 'Error en NEXTRY ASM de usuario.' }
+        $usuarioObjeto += ".global nxk_usuario_$parte`nnxk_usuario_${parte}:`n.incbin `"$buildDir/usuario_$parte.bin`"`n"
+    }
+    [IO.File]::WriteAllText((Join-Path $PSScriptRoot "$buildDir/usuario_objeto.S"), $usuarioObjeto)
+    Invoke-Zig cc -target $target -c "$buildDir/usuario_objeto.S" -o "$buildDir/usuario32.o"
     $objects += "$buildDir/usuario32.o"
 }
 if ($Test) {
@@ -121,6 +128,13 @@ if ($Architecture -eq 'x86') {
     $entradaFinal = $entrada + '# ' + [IO.File]::ReadAllText((Join-Path $PSScriptRoot "$buildDir/simbolos-entrada.json")) + "`n"
     [IO.File]::WriteAllText((Join-Path $PSScriptRoot $entrySource),$entradaFinal)
     Invoke-Zig cc -target $target -c $entrySource -o "$buildDir/entry.o"
+    foreach ($parte in @('entrar','salir','abortar')) {
+        & $python lenguaje/ensamblador.py "kernel/usuario_$parte.nxa" --simbolos "$buildDir/simbolos-entrada.json" -o "$buildDir/usuario_$parte.bin"
+        if ($LASTEXITCODE -ne 0) { throw 'Error resolviendo simbolos de usuario NEXTRY ASM.' }
+    }
+    $usuarioFinal = $usuarioObjeto + '# ' + [IO.File]::ReadAllText((Join-Path $PSScriptRoot "$buildDir/simbolos-entrada.json")) + "`n"
+    [IO.File]::WriteAllText((Join-Path $PSScriptRoot "$buildDir/usuario_objeto.S"), $usuarioFinal)
+    Invoke-Zig cc -target $target -c "$buildDir/usuario_objeto.S" -o "$buildDir/usuario32.o"
     Invoke-Zig ld.lld -T kernel/linker.ld @objects -o "$buildDir/kernel.elf"
     & $python lenguaje/simbolos_elf.py "$buildDir/kernel.elf" "$buildDir/simbolos-entrada.json" --comprobar
     if ($LASTEXITCODE -ne 0) { throw 'Las direcciones del enlace no son estables.' }

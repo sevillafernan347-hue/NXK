@@ -118,3 +118,7 @@ Comando usuario x86: demostracion conocida ring3 termina con codigo 42 y devuelv
 Recuperacion de la demostracion de usuario: cuatro fallos controlados vuelven al llamador y a consola; comando usuario fallos. Fallos ring0 y doble fallo siguen fatales. Matriz x86, diez escenarios anteriores, regresion x64 y consola automatizada superados. No es aun gestion general de procesos.
 
 Diagnosticos de usuario: historial circular de ocho resultados (salida/vector/error/EIP/CR2), consultable con usuario estado e usuario historial. usuario nulo provoca y contiene un fallo conocido. Pruebas de limpieza, orden y limites del historial, matriz x86, x64 y consola superadas.
+
+Puente de modo usuario migrado de GNU asm a tres fuentes NEXTRY ASM: entrada,
+salida y aborto. Simbolos externos resueltos en dos pasadas y verificados.
+Pruebas: ENTREGA-USUARIO-NXA.md. TSS/GDT y organizacion siguen en C.

@@ -125,6 +125,20 @@ def ensamblar(fuente, simbolos=None, permitir_externos=False):
                     if modo!=16:raise ValueError('Se requiere modo 16')
                     datos.extend((0x89,0x06+8*REGISTROS.index(args[1])))
                     emitir(valor(args[0]),2)
+                elif orden in ('guardar_banderas32','recuperar_banderas32','apilar_inmediato32',
+                               'leer_memoria32','escribir_memoria32'):
+                    if modo!=32: raise ValueError('Esta instruccion requiere modo 32')
+                    cantidad=2 if orden in ('leer_memoria32','escribir_memoria32') else (1 if orden=='apilar_inmediato32' else 0)
+                    if (len(args) if argumento else 0)!=cantidad: raise ValueError('Cantidad de argumentos incorrecta')
+                    if orden in ('guardar_banderas32','recuperar_banderas32'):
+                        datos.append(0x9c if orden=='guardar_banderas32' else 0x9d)
+                    elif orden=='apilar_inmediato32': datos.append(0x68); emitir(valor(argumento),4)
+                    else:
+                        r=args[0] if orden=='leer_memoria32' else args[1]
+                        if not r.startswith('e'): raise ValueError('Se requiere registro de 32 bits')
+                        indice=REGISTROS.index(r[1:])
+                        datos.extend((0x8b if orden=='leer_memoria32' else 0x89,0x05+8*indice))
+                        emitir(valor(args[1] if orden=='leer_memoria32' else args[0]),4)
                 elif texto in FIJAS:datos.extend(FIJAS[texto])
                 elif orden in ('cargar16','cargar32'):
                     registro=args[0]; bits=16 if orden=='cargar16' else 32

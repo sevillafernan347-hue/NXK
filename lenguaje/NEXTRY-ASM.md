@@ -34,3 +34,20 @@ destino y ECX como cantidad. Modifica esos tres registros. La direccion
 depende de DF; usar `direccion_adelante` antes de una copia hacia adelante.
 Ejemplo completo: `lib/copiar32.nxa`.
 
+
+## Puente de modo usuario x86
+
+Los archivos kernel/usuario_entrar.nxa, usuario_salir.nxa y usuario_abortar.nxa
+sustituyen el puente GNU asm. Instrucciones nuevas, solo modo 32:
+
+- guardar_banderas32 / recuperar_banderas32: PUSHFD / POPFD.
+- apilar_inmediato32 valor: PUSH de un inmediato de 32 bits.
+- leer_memoria32 registro, direccion: MOV desde direccion absoluta DS.
+- escribir_memoria32 direccion, registro: MOV hacia direccion absoluta DS.
+
+Las referencias externas se declaran con externo nombre. El enlace provisional
+obtiene las direcciones y el ensamblado final las resuelve; se comprueba que
+ninguna cambie al volver a enlazar. El envoltorio .S generado solo empaqueta
+los bytes NXA mediante incbin, no contiene la implementacion del puente.
+Se mantienen los convenios cdecl y los selectores existentes. Estos intrinsecos
+son privilegiados y no convierten NEXTRY ASM en una plataforma segura por si solos.

@@ -23,6 +23,12 @@ recuperar16 di
         self.assertEqual(ensamblar(fuente), bytes.fromhex(
             '66 81 f8 50 41 4d 53 81 c5 01 00 81 fd 20 00 89 2e 00 50 57 5f'))
 
+    def test_memoria_banderas_usuario(self):
+        fuente='modo 32\nguardar_banderas32\nescribir_memoria32 0x12345678, esp\nleer_memoria32 esp, 0x12345678\napilar_inmediato32 43\nrecuperar_banderas32'
+        self.assertEqual(ensamblar(fuente),bytes.fromhex('9c 89 25 78 56 34 12 8b 25 78 56 34 12 68 2b 00 00 00 9d'))
+        for fuente in ('modo 16\nguardar_banderas32','modo 32\nleer_memoria32 ax, 10','modo 32\napilar_inmediato32','modo 32\nrecuperar_banderas32 eax'):
+            with self.assertRaises(ValueError): ensamblar(fuente)
+
     def test_operaciones32(self):
         fuente = '''modo 32
 comparar32 edi, esi

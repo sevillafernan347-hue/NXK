@@ -1,0 +1,19 @@
+# Aborto cdecl (resultado): descarta el contexto de excepcion.
+modo 32
+externo nxk_usuario_pila_guardada
+cargar_pila32 eax, 4
+# Recuperar segmentos, pila kernel, registros preservados y banderas.
+guardar32 eax
+cargar16 ax, 16
+segmento ds, ax
+segmento es, ax
+segmento fs, ax
+segmento gs, ax
+recuperar32 eax
+leer_memoria32 esp, nxk_usuario_pila_guardada
+recuperar32 edi
+recuperar32 esi
+recuperar32 ebx
+recuperar32 ebp
+recuperar_banderas32
+devolver

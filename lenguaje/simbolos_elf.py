@@ -1,7 +1,7 @@
 # GUIA DE LECTURA NXK - lenguaje/simbolos_elf.py
 # Lee direcciones del archivo ELF enlazado para resolver referencias externas de la entrada NEXTRY ASM.
 # Contexto y orden de estudio: ver LEER-CODIGO.md en la carpeta principal.
-"""Extrae los tres simbolos ELF32 usados por la entrada NEXTRY ASM."""
+"""Extrae los simbolos ELF32 usados por la entrada NEXTRY ASM."""
 import json,struct,argparse
 from pathlib import Path
 def simbolos(datos):
@@ -16,8 +16,8 @@ def simbolos(datos):
         for pos in range(s[4],s[4]+s[5],s[9]):
             nombre,valor=struct.unpack_from('<II',datos,pos)
             texto=cadenas[nombre:].split(b'\0',1)[0].decode()
-            if texto in ('__bss_start','__bss_end','kernel_main'):salida[texto]=valor
-    if len(salida)!=3:raise ValueError('Faltan simbolos del nucleo')
+            if texto in ('__bss_start','__bss_end','kernel_main','nxk_usuario_pila_guardada','nxk_usuario_cs_guardado'):salida[texto]=valor
+    if len(salida)!=5:raise ValueError('Faltan simbolos del nucleo')
     return salida
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('elf',type=Path);p.add_argument('json',type=Path);p.add_argument('--comprobar',action='store_true');a=p.parse_args()
