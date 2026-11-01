@@ -48,6 +48,21 @@ int nxk_probar_paginas(void) {
     if (nxk_pagina_liberar(activa)) return 26;
     if (nxk_paginas_reservar_region(0x3fffffff,2)!=-1 ||
         nxk_paginas_reservar_region(0,0) || nxk_paginas_libres()!=1023) return 23;
+    /* Bloque alineado: no debe cruzar la pagina reservada 0x803000. */
+    void *bloque=nxk_paginas_reservar_bloque(4,4);
+    if ((uintptr_t)bloque!=0x804000 || nxk_paginas_libres()!=1019) return 27;
+    memset(bloque,0x7b,4*4096);
+    uint32_t libres_antes=nxk_paginas_libres();
+    if (nxk_paginas_reservar_bloque(0,1) || nxk_paginas_reservar_bloque(1,3) ||
+        nxk_paginas_reservar_bloque(UINT32_MAX,1) || nxk_paginas_libres()!=libres_antes) return 28;
+    if (nxk_paginas_liberar_bloque(bloque,5)!=-2 || nxk_paginas_libres()!=libres_antes) return 29;
+    for (unsigned i=0;i<4*4096;++i) if (((unsigned char *)bloque)[i]!=0x7b) return 30;
+    if (nxk_paginas_liberar_bloque(bloque,4) || nxk_paginas_libres()!=1023 ||
+        nxk_paginas_liberar_bloque(bloque,4)!=-2) return 31;
+    for (unsigned i=0;i<4*4096;++i) if (((unsigned char *)bloque)[i]) return 32;
+    if (nxk_paginas_liberar_bloque((void *)0x3ffff000,2)!=-1) return 33;
+    /* Muchas paginas libres pero ninguna corrida de 1021 paginas. */
+    if (nxk_paginas_reservar_bloque(1021,1) || nxk_paginas_libres()!=1023) return 34;
     /* Restaurar el mapa real; agotar y liberar todas sus paginas sin escribirlas. */
     if (nxk_paginas_bios() || !nxk_paginas_total()) return 10;
     uint32_t cantidad=nxk_paginas_total();

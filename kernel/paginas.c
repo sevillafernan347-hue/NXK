@@ -133,5 +133,49 @@ int nxk_paginas_reservar_region(uint32_t inicio, uint32_t longitud) {
     (void)inicio; (void)longitud; return -64;
 #endif
 }
+/* Busca una corrida completa antes de tocar los mapas. */
+void *nxk_paginas_reservar_bloque(uint32_t cantidad,uint32_t alineacion) {
+#if defined(__i386__)
+    if (!iniciado || !cantidad || cantidad>libres || !alineacion ||
+        alineacion>CANTIDAD || (alineacion&(alineacion-1))) return 0;
+    uint32_t p=(PRIMERA+alineacion-1)&~(alineacion-1);
+    while (p<=CANTIDAD-cantidad) {
+        uint32_t n=0;
+        while (n<cantidad && bit(disponibles,p+n)) ++n;
+        if (n==cantidad) {
+            for (uint32_t i=0;i<cantidad;++i) {
+                marcar(disponibles,p+i,0); marcar(entregadas,p+i,1);
+            }
+            libres-=cantidad; entregas_activas+=cantidad;
+            void *base=(void *)(uintptr_t)(p*4096);
+            memset(base,0,(size_t)cantidad*4096);
+            return base;
+        }
+        /* Ningun inicio hasta la pagina ocupada puede alojar este bloque. */
+        p=(p+n+1+alineacion-1)&~(alineacion-1);
+    }
+#else
+    (void)cantidad; (void)alineacion;
+#endif
+    return 0;
+}
+int nxk_paginas_liberar_bloque(void *inicio,uint32_t cantidad) {
+#if defined(__i386__)
+    uintptr_t a=(uintptr_t)inicio;
+    if (!iniciado || !cantidad || (a&4095) || a<0x800000 || a>=LIMITE) return -1;
+    uint32_t p=(uint32_t)(a/4096);
+    if (cantidad>CANTIDAD-p) return -1;
+    for (uint32_t i=0;i<cantidad;++i) if (!bit(entregadas,p+i)) return -2;
+    memset(inicio,0,(size_t)cantidad*4096);
+    for (uint32_t i=0;i<cantidad;++i) {
+        marcar(entregadas,p+i,0); marcar(disponibles,p+i,1);
+    }
+    libres+=cantidad; entregas_activas-=cantidad;
+    if (p<pista) pista=p;
+    return 0;
+#else
+    (void)inicio; (void)cantidad; return -64;
+#endif
+}
 uint32_t nxk_paginas_libres(void) { return libres; }
 uint32_t nxk_paginas_total(void) { return total; }

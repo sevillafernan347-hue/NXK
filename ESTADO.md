@@ -87,3 +87,7 @@ sin editar fuentes del kernel. Ejemplo tipos.nxf ejecutado en x86 con 64 MiB.
 El alias de consola sigue siendo ejecutar hola.nxe. Imagen local x86 actual
 contiene tipos.nxf como demostracion. El PDF anterior no incluye esta extension;
 la referencia actualizada esta en lenguaje/REGLAS.md.
+
+El gestor fisico x86 reserva y libera bloques contiguos con alineacion en
+paginas. Validacion completa antes de liberar, borrado y pruebas negativas.
+Ver ENTREGA-BLOQUES-MEMORIA.md. Sigue sin sincronizacion ni memoria virtual.
