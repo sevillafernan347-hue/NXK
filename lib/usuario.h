@@ -4,7 +4,7 @@
 #define NXK_USUARIO_H
 #include "nxk.h"
 struct nxk_usuario_resultado {
-    uint32_t secuencia, salida, fallo, vector, error, eip, direccion;
+    uint32_t secuencia, salida, fallo, vector, error, eip, direccion, pila;
 };
 unsigned nxk_usuario_historial_cantidad(void);
 int nxk_usuario_historial(unsigned reciente,struct nxk_usuario_resultado *salida);

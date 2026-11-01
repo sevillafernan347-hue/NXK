@@ -122,3 +122,5 @@ Diagnosticos de usuario: historial circular de ocho resultados (salida/vector/er
 Puente de modo usuario migrado de GNU asm a tres fuentes NEXTRY ASM: entrada,
 salida y aborto. Simbolos externos resueltos en dos pasadas y verificados.
 Pruebas: ENTREGA-USUARIO-NXA.md. TSS/GDT y organizacion siguen en C.
+
+La demostracion de usuario usa directorio y tabla inferior privados (CR3 separado) sin cambiar permisos del mapa kernel. Verifica restauracion y permisos originales tras cada salida. usuario fallos cubre seis casos, incluyendo escritura en tablas privadas y ESP usuario invalido; ambos contenidos. Historial incluye ESP. Matriz x86, x64 y consola superadas. Sigue siendo un unico espacio reutilizable, sin procesos generales ni preempcion. Ver ENTREGA-ESPACIO-USUARIO.md.

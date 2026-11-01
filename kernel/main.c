@@ -114,7 +114,7 @@ static void usuario_resultado(const struct nxk_usuario_resultado *r) {
     print("Ejecucion "); number(r->secuencia);
     if (!r->fallo) { print(": normal, salida "); number(r->salida); put('\n'); return; }
     print(": fallo, vector "); number(r->vector); print(" error "); number(r->error);
-    print(" EIP "); hexadecimal(r->eip); print(" direccion "); hexadecimal(r->direccion); put('\n');
+    print(" EIP "); hexadecimal(r->eip); print(" direccion "); hexadecimal(r->direccion); print(" pila "); hexadecimal(r->pila); put('\n');
 }
 /* Puente pequeno entre NXK Espanol y las operaciones del nucleo. */
 void nxk_es_mostrar(const char *texto) { print(texto); put('\n'); }
@@ -374,7 +374,7 @@ void kernel_main(void) {
                     if (!nxk_usuario_historial(i,&r)) usuario_resultado(&r); }
             }
             else if (nxk_equal(line, "usuario fallos")) {
-                print(nxk_usuario_comprobar_fallos() ? "Recuperacion no disponible o fallo.\n" : "Cuatro fallos de usuario contenidos; kernel operativo.\n");
+                print(nxk_usuario_comprobar_fallos() ? "Recuperacion no disponible o fallo.\n" : "Seis fallos de usuario contenidos; kernel operativo.\n");
             }
             else if (nxk_equal(line, "usuario")) {
                 print(nxk_usuario_demo() ? "Modo usuario no disponible o fallo.\n" : "Programa ring3 termino con 42; control devuelto al kernel.\n");
