@@ -23,3 +23,26 @@ NX, aislamiento entre usuarios ni recuperacion del fallo. Las apps habituales
 siguen en ring0. Implementacion C/asm puente pendiente de NEXTRY ASM.
 
 Validacion: diez escenarios de excepciones/transiciones, matriz x86 32/64/128/1024 MiB y regresion x64 64 MiB superados.
+
+## Demostracion con retorno al llamador
+
+Comando usuario: programa conocido CPL3 carga EAX=42 y ejecuta INT 0x80.
+El puente temporal kernel/usuario32.S guarda pila, registros preservados por
+ABI y EFLAGS del llamador; la puerta usa SS0/ESP0 y restaura segmentos kernel,
+pila del llamador y estado de interrupciones. La funcion valida codigo de salida
+y CS usuario, retira permisos de usuario y restaura puerta y TSS anteriores.
+Una reserva de 16 KiB contiene codigo, pila usuario, alineacion y pila kernel;
+se reutiliza, sin asignaciones parciales. Las aplicaciones NXE siguen ring0.
+
+Pruebas: retorno/repeticion sin crecimiento del heap en matriz x86 y arranque
+x64. Consola por serie: usuario dos veces seguido de help, resultado correcto.
+Se repiten diez escenarios anteriores de excepciones/proteccion.
+El soporte es sincronico, una ejecucion, solo programa conocido y sin IRQ en
+CPL3. No es una API para ejecutar codigo externo ni un proceso independiente.
+Un bucle de usuario sin salida bloquearia el sistema. Fallos de usuario siguen
+siendo fatales. No hay preempcion ni cambio de CR3 por proceso. GNU asm es un
+puente pendiente de migrar a NEXTRY ASM.
+
+Enlazador: limite de imagen permanece en 32 KiB; BSS NOLOAD permite ocupar
+hasta 64 KiB de RAM total del kernel, dentro de la reserva fisica existente.
+Se mantienen ambas comprobaciones y la validacion de longitud de build.ps1.

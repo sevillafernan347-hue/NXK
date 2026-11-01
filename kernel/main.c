@@ -25,6 +25,7 @@ static inline uint8_t in8(uint16_t port) {
     return value;
 }
 extern int nxk_tareas_demo(void);
+extern int nxk_usuario_demo(void);
 extern void nxk_reloj_iniciar(void);
 extern uint32_t nxk_reloj_ticks(void);
 static unsigned row, column;
@@ -216,6 +217,11 @@ void kernel_main(void) {
     /* HLT solo regresa si llega una interrupcion: verifica retornos y EOI. */
     while (nxk_reloj_ticks()<5) __asm__ volatile("hlt");
     print("NXK: RELOJ IRQ OK\n");
+    if (nxk_usuario_demo()) { print("NXK: USUARIO RETORNO FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
+    size_t heap_usuario=nxk_heap_used();
+    if (nxk_usuario_demo() || nxk_heap_used()!=heap_usuario) {
+        print("NXK: USUARIO REUSO FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
+    print("NXK: USUARIO RETORNO Y REUSO OK\n");
     if (nxk_tareas_demo()) { print("NXK: TAREAS FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
     print("NXK: TAREAS COOPERATIVAS OK\n");
     extern int nxk_tareas_probar_limites(void);
@@ -310,7 +316,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | archivos | halt\nejecutar hola.nxe | ejecutar hola.exe\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | archivos | halt\nejecutar hola.nxe | ejecutar hola.exe\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -343,6 +349,9 @@ void kernel_main(void) {
             }
             else if (nxk_equal(line, "archivos")) {
                 for (unsigned i=0;i<8;++i) { const char *s=nxk_archivo_nombre(i); if (s) { print(s); put('\n'); } }
+            }
+            else if (nxk_equal(line, "usuario")) {
+                print(nxk_usuario_demo() ? "Modo usuario no disponible o fallo.\n" : "Programa ring3 termino con 42; control devuelto al kernel.\n");
             }
             else if (nxk_equal(line, "tareas")) {
                 print(nxk_tareas_demo() ? "Tareas no disponibles o fallo.\n" : "Dos tareas: pilas propias, esperas PIT y finalizacion verificadas.\n");

@@ -125,6 +125,42 @@ _Noreturn void nxk_usuario_probar(void) {
         :: "r"((uint32_t)(pila+4096)),"r"((uint32_t)codigo) : "eax","memory");
     __builtin_unreachable();
 }
+/* Demostracion reutilizable: programa conocido que termina con EAX=42. */
+uint32_t nxk_usuario_pila_guardada, nxk_usuario_cs_guardado;
+extern uint32_t nxk_usuario_entrar(uint32_t codigo,uint32_t pila);
+extern void nxk_usuario_salir(void);
+int nxk_usuario_demo(void) {
+    static uintptr_t codigo, pila_kernel;
+    if (!codigo) {
+        unsigned char *r=nxk_alloc(4*4096);
+        if (!r) return -1;
+        codigo=((uintptr_t)r+4095)&~(uintptr_t)4095;
+        pila_kernel=(uintptr_t)r+4*4096;
+    }
+    volatile uint32_t *p=(void *)0x201000,*d=(void *)0x200000;
+    /* Restaurado a supervisor/escritura al salir de la ejecucion anterior. */
+    const unsigned char programa[]={0xb8,42,0,0,0,0xcd,0x80,0x0f,0x0b};
+    memcpy((void *)codigo,programa,sizeof(programa));
+    memset((void *)(codigo+4096),0,4096);
+    uint32_t antes_codigo=p[codigo/4096], antes_pila=p[codigo/4096+1];
+    uint32_t antes_directorio=d[codigo>>22], esp0=tss_normal[1], ss0=tss_normal[2];
+    struct puerta antes_puerta=tabla[128];
+    uintptr_t salida=(uintptr_t)nxk_usuario_salir;
+    tabla[128]=(struct puerta){(uint16_t)salida,8,0,0xee,(uint16_t)(salida>>16)};
+    tss_normal[1]=(uint32_t)pila_kernel; tss_normal[2]=16;
+    p[codigo/4096]=(uint32_t)codigo|5;
+    p[codigo/4096+1]=(uint32_t)(codigo+4096)|7;
+    d[codigo>>22]|=4;
+    __asm__ volatile("mov %0,%%cr3" :: "r"(0x200000u) : "memory");
+    nxk_usuario_cs_guardado=0;
+    uint32_t resultado=nxk_usuario_entrar((uint32_t)codigo,(uint32_t)(codigo+8192));
+    /* Retirar permisos de usuario y la puerta temporal antes de continuar. */
+    p[codigo/4096]=antes_codigo; p[codigo/4096+1]=antes_pila;
+    d[codigo>>22]=antes_directorio; tabla[128]=antes_puerta;
+    tss_normal[1]=esp0; tss_normal[2]=ss0;
+    __asm__ volatile("mov %0,%%cr3" :: "r"(0x200000u) : "memory");
+    return resultado==42 && (nxk_usuario_cs_guardado&3)==3 ? 0 : -2;
+}
 void nxk_excepciones_iniciar(void) {
     uintptr_t longitud=(uintptr_t)excepcion_nxa_fin-(uintptr_t)excepcion_nxa_inicio;
     /* Plantilla NXA: vector en byte 3, B8 en 16 y direccion C en 17. */
@@ -150,6 +186,7 @@ void nxk_excepciones_iniciar(void) {
     __asm__ volatile("lidt %0" :: "m"(d) : "memory");
 }
 #else
+int nxk_usuario_demo(void) { return -64; }
 void nxk_excepciones_iniciar(void) {}
 uint32_t nxk_reloj_ticks(void) { return 0; }
 void nxk_reloj_iniciar(void) {}

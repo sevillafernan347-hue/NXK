@@ -102,6 +102,8 @@ $objects += "$buildDir/paginas.o"
 if ($Architecture -eq 'x86') {
     Invoke-Zig cc -target $target -c compatibilidad/windows/retorno32.S -o "$buildDir/pe_retorno.o"
     $objects += "$buildDir/pe_retorno.o"
+    Invoke-Zig cc -target $target -c kernel/usuario32.S -o "$buildDir/usuario32.o"
+    $objects += "$buildDir/usuario32.o"
 }
 if ($Test) {
     Invoke-Zig cc @flags -c kernel/pruebas_cargadores.c -o "$buildDir/pruebas_cargadores.o"
