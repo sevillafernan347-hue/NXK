@@ -5,6 +5,8 @@ Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
 
 Empieza por [LEER-CODIGO.md](LEER-CODIGO.md), [ESTADO.md](ESTADO.md) y
 [COLABORACION.md](COLABORACION.md). El codigo tiene comentarios en espanol.
+Las propuestas de cambios se reciben mediante issues y pull requests; consulta
+[CONTRIBUIR.md](CONTRIBUIR.md).
 
 ## Construir en Windows
 
