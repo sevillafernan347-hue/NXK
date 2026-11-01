@@ -26,15 +26,23 @@ int nxk_paginas_iniciar(const struct nxk_region_ram *mapa, unsigned cantidad) {
     /* No reinicializar mientras alguien conserve paginas del gestor anterior. */
     if (!mapa || !cantidad || cantidad>32 || libres!=total) return -1;
     memcpy(copia,mapa,cantidad*sizeof(*mapa));
-    int metadatos_validos=0;
     for (unsigned i=0;i<cantidad;++i) {
         uint64_t a=copia[i].base, n=copia[i].longitud;
         if (n>UINT64_MAX-a) return -2;
         uint64_t b=a+n;
-        if (copia[i].tipo==1 && a<=0x600000 && b>=0x610000) metadatos_validos=1;
         if (n && copia[i].tipo!=1 && a<0x610000 && b>0x600000) return -3;
     }
-    if (!metadatos_validos) return -4;
+    /* El BIOS puede partir una region RAM justo en la zona de metadatos.
+       Exigimos que cada pagina de los 64 KiB este cubierta completamente
+       por alguna region utilizable; regiones reservadas ya fueron rechazadas. */
+    for (uint32_t m=0x600000;m<0x610000;m+=4096) {
+        int cubierta=0;
+        for (unsigned i=0;i<cantidad && !cubierta;++i) {
+            uint64_t base=copia[i].base, longitud=copia[i].longitud;
+            if (copia[i].tipo==1 && base<=m && base+longitud>=m+4096) cubierta=1;
+        }
+        if (!cubierta) return -4;
+    }
     /* Solo ahora podemos escribir en la zona destinada a los mapas de bits. */
     memset(disponibles,0,BYTES); memset(entregadas,0,BYTES);
     for (unsigned paso=0;paso<2;++paso) {

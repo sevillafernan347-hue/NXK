@@ -23,6 +23,13 @@ int nxk_probar_paginas(void) {
     mapa[0]=(struct nxk_region_ram){0x600000,0x600000,1};
     mapa[1]=(struct nxk_region_ram){0x600001,1,2};
     if (!nxk_paginas_iniciar(mapa,3)) return 9;
+    /* Dos regiones contiguas pueden cubrir juntas la reserva de metadatos. */
+    mapa[0]=(struct nxk_region_ram){0x600000,0x8000,1};
+    mapa[1]=(struct nxk_region_ram){0x608000,0x5f8000,1};
+    if (nxk_paginas_iniciar(mapa,2) || nxk_paginas_total()!=1024) return 14;
+    /* Un hueco de pagina dentro de la reserva invalida el mapa. */
+    mapa[1]=(struct nxk_region_ram){0x609000,0x5f7000,1};
+    if (nxk_paginas_iniciar(mapa,2)!=-4) return 15;
     /* Restaurar el mapa real; agotar y liberar todas sus paginas sin escribirlas. */
     if (nxk_paginas_bios() || !nxk_paginas_total()) return 10;
     uint32_t cantidad=nxk_paginas_total();

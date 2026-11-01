@@ -25,3 +25,8 @@ dos paginas reales y se agotan/liberan todas las paginas del mapa real.
 
 Archivos para estudiar: kernel/paginas.c, kernel/pruebas_paginas.c, lib/paginas.h.
 El comando mem muestra el numero de paginas libres y el total administrado.
+
+Una propuesta externa (`memoria-A.diff`, adjunta por el usuario) detecto que
+E820 puede dividir en varias regiones contiguas los 64 KiB de metadatos. Se
+integro su validacion pagina a pagina y pruebas de region partida y hueco; la
+autoría del cambio y sus pruebas se verifican en este historial.
