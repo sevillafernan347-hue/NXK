@@ -6,6 +6,7 @@
 #include "nxk_es.h"
 #include "nxk.h"
 #include "usuario.h"
+#include "archivos.h"
 #if defined(__i386__)
 struct __attribute__((packed)) puerta {
     uint16_t bajo, selector;
@@ -140,18 +141,41 @@ static uintptr_t usuario_base;
 extern const unsigned char servicio_nxa_inicio[], servicio_nxa_fin[];
 static unsigned char servicio_entrada[42];
 extern void nxk_pe_salida(const char *datos,uint32_t n);
-static void usuario_servicio(uint32_t *contexto) {
-    uint32_t numero=contexto[11], direccion=contexto[8], n=contexto[10];
-    contexto[11]=0xffffffffu;
-    if (!usuario_activo || (contexto[13]&3)!=3) return;
-    if (numero!=1) { contexto[11]=0xfffffffeu; return; }
-    if (n>256) return;
-    if (!n) { contexto[11]=0; return; }
-    if (direccion<usuario_base || direccion-usuario_base>=8192 ||
-        n>8192-(direccion-usuario_base)) return;
-    char copia[256];
-    memcpy(copia,(const void *)(uintptr_t)direccion,n);
-    nxk_pe_salida(copia,n); contexto[11]=n;
+static int usuario_rango(uint32_t p,uint32_t n,int escritura) {
+    if (!n) return 1;
+    uintptr_t minimo=usuario_base+(escritura ? 4096 : 0);
+    return p>=minimo && p-usuario_base<8192 && n<=8192-(p-usuario_base);
+}
+static void usuario_servicio(uint32_t *c) {
+    uint32_t servicio=c[11], p=c[8], n=c[10];
+    c[11]=0xffffffffu;
+    if (!usuario_activo || (c[13]&3)!=3) return;
+    char datos[256];
+    if (servicio==1) {
+        if (n>256 || !usuario_rango(p,n,0)) return;
+        if (n) { memcpy(datos,(void *)(uintptr_t)p,n); nxk_pe_salida(datos,n); }
+        c[11]=n; return;
+    }
+    if (servicio<2 || servicio>4) { c[11]=0xfffffffeu; return; }
+    char nombre[24]; unsigned i;
+    for (i=0;i<24;++i) {
+        if (!usuario_rango(p+i,1,0) || p+i<p) return;
+        nombre[i]=*(const char *)(uintptr_t)(p+i);
+        if (!nombre[i]) break;
+    }
+    if (i==24) return;
+    uint32_t buffer=c[10], cantidad=c[9];
+    if (servicio==4) { if (!nxk_archivo_borrar(nombre)) c[11]=0; return; }
+    if (cantidad>256 || !usuario_rango(buffer,cantidad,servicio==3)) return;
+    if (servicio==2) {
+        if (cantidad) memcpy(datos,(void *)(uintptr_t)buffer,cantidad);
+        if (!nxk_archivo_escribir(nombre,datos,cantidad)) c[11]=0;
+    } else {
+        int leidos=nxk_archivo_leer(nombre,datos,cantidad);
+        if (leidos<0) return;
+        if (leidos) memcpy((void *)(uintptr_t)buffer,datos,(unsigned)leidos);
+        c[11]=(uint32_t)leidos;
+    }
 }
 static uint32_t fallo_vector, fallo_error, fallo_direccion, fallo_eip, fallo_ocurrido, fallo_pila;
 static struct nxk_usuario_resultado historial[8];
@@ -183,7 +207,7 @@ void nxk_usuario_atender_fallo(const uint32_t *contexto) {
     nxk_usuario_abortar(0x80000000u|v);
 }
 static int usuario_ejecutar(unsigned modo) {
-    if (usuario_activo || modo>17) return -1;
+    if (usuario_activo || modo>22) return -1;
     uint32_t cr3_original; __asm__ volatile("mov %%cr3,%0":"=r"(cr3_original));
     if (cr3_original!=0x200000u) return -4;
     static uintptr_t codigo, pila_kernel, directorio_usuario, tabla_usuario, tabla_usuario_alta;
@@ -259,6 +283,22 @@ static int usuario_ejecutar(unsigned modo) {
             bytes[18+i]=(unsigned char)(esperado>>(i*8));
         }
     }
+    if (modo>=18) {
+        const char nombre[]="usr_test"; memcpy(bytes+128,nombre,sizeof(nombre));
+        const unsigned char llamada[]={0xb8,3,0,0,0,0xbb,0,0,0,0,0xb9,0,0,0,0,
+            0xba,2,0,0,0,0xcd,0x81,0x3d,0,0,0,0,0x74,2,0x0f,0x0b,0xb8,42,0,0,0,0xcd,0x80};
+        memcpy(bytes,llamada,sizeof(llamada));
+        uint32_t destino=(uint32_t)codigo, esperado=0xffffffffu;
+        if (modo==19) { destino=(uint32_t)codigo+4096; esperado=2; }
+        if (modo==20) destino=0x10000;
+        if (modo==21) for (unsigned i=0;i<24;++i) bytes[128+i]='a';
+        if (modo==22) destino=(uint32_t)codigo+8191;
+        for (unsigned i=0;i<4;++i) {
+            bytes[6+i]=(unsigned char)((codigo+128)>>(8*i));
+            bytes[11+i]=(unsigned char)(destino>>(8*i));
+            bytes[23+i]=(unsigned char)(esperado>>(8*i));
+        }
+    }
     uintptr_t virtual_codigo=codigo;
     uint32_t *entradas_activas=entradas_usuario;
     if (modo==17) {
@@ -320,7 +360,13 @@ int nxk_usuario_probar_servicios(void) {
     size_t antes=nxk_heap_used();
     for (unsigned modo=11;modo<=16;++modo)
         if (usuario_ejecutar(modo) || nxk_heap_used()!=antes) return 2;
-    return 0;
+    char datos[2];
+    if (nxk_archivo_leer("usr_test",datos,2)!=-2 || nxk_archivo_escribir("usr_test","AB",2)) return 3;
+    antes=nxk_heap_used(); int fallo=0;
+    for (unsigned modo=18;modo<=22;++modo)
+        if (usuario_ejecutar(modo) || nxk_heap_used()!=antes) { fallo=4; break; }
+    if (nxk_archivo_borrar("usr_test")) fallo=5;
+    return fallo;
 }
 int nxk_usuario_caso_bucle(void) { return usuario_ejecutar(9)==32 ? 0 : -1; }
 int nxk_usuario_caso_nulo(void) {

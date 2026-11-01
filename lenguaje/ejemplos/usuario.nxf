@@ -5,6 +5,9 @@ funcion inicio
     repetir 5 veces
         suma = suma + 2
     fin
+    guardar_archivo "nota", "Archivo creado desde NEXTRY protegido"
+    mostrar_archivo "nota"
+    borrar_archivo "nota"
     afirmar suma == 10
     numero suma
 fin

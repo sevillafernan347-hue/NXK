@@ -6,6 +6,9 @@
 #define NXK_ES_H
 #include <stdint.h>
 void nxk_es_inicio(void);
+void nxk_es_guardar_archivo(const char *nombre,const char *texto);
+void nxk_es_mostrar_archivo(const char *nombre);
+void nxk_es_borrar_archivo(const char *nombre);
 void nxk_es_mostrar(const char *texto);
 void nxk_es_numero(uint32_t valor);
 uint32_t nxk_es_memoria_usada(void);

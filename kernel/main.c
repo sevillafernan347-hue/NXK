@@ -117,6 +117,18 @@ static void usuario_resultado(const struct nxk_usuario_resultado *r) {
     print(" EIP "); hexadecimal(r->eip); print(" direccion "); hexadecimal(r->direccion); print(" pila "); hexadecimal(r->pila); put('\n');
 }
 /* Puente pequeno entre NXK Espanol y las operaciones del nucleo. */
+void nxk_es_guardar_archivo(const char *nombre,const char *texto) {
+    size_t n=0; while (n<256 && texto[n]) ++n;
+    if (n==256 || nxk_archivo_escribir(nombre,texto,n)) nxk_es_fallo(0);
+}
+void nxk_es_mostrar_archivo(const char *nombre) {
+    char datos[256]; int n=nxk_archivo_leer(nombre,datos,256);
+    if (n<0) nxk_es_fallo(0);
+    for (int i=0;i<n;++i) put(datos[i]); put('\n');
+}
+void nxk_es_borrar_archivo(const char *nombre) {
+    if (nxk_archivo_borrar(nombre)) nxk_es_fallo(0);
+}
 void nxk_es_mostrar(const char *texto) { print(texto); put('\n'); }
 void nxk_pe_salida(const char *datos, uint32_t longitud) {
     while (longitud--) put(*datos++);

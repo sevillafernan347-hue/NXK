@@ -23,6 +23,12 @@ class Lenguaje(unittest.TestCase):
         self.error('funcion inicio\nconstante entero n = 3\nn = 4\nfin','constante')
         self.assertIn('_Bool',compilar('funcion inicio\nvariable logico listo = falso\nafirmar no listo\nfin'))
 
+    def test_archivos_usuario(self):
+        c=compilar('funcion inicio\nguardar_archivo "a", "hola"\nmostrar_archivo "a"\nborrar_archivo "a"\nfin')
+        self.assertIn('nxk_es_guardar_archivo',c)
+        self.error('funcion inicio\nguardar_archivo "a", 3\nfin','texto')
+        self.error('funcion inicio\nmostrar_archivo 2\nfin','texto')
+
     def test_control_bucles(self):
         for orden in ('romper', 'continuar'):
             self.error(f'funcion inicio\n{orden}\nfin', 'dentro de un bucle')

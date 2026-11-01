@@ -175,3 +175,14 @@ En una imagen nueva: `usuario nextry`. Diferente de FuenteApp/hola.nxe ring0.
 Runtime inicial con mostrar/numero/operaciones/afirmar y limite de una pagina
 de codigo. Puertos y memoria_usada no disponibles; detener termina solo la app.
 Consultar ENTREGA-NEXTRY-USUARIO.md para limites y comprobaciones.
+
+## Archivos en RAM para aplicaciones protegidas
+
+- `guardar_archivo "nota", "Hola"`: crea o reemplaza texto.
+- `mostrar_archivo "nota"`: lee y muestra el contenido.
+- `borrar_archivo "nota"`: elimina el archivo.
+
+Argumentos de tipo texto. Disponibles en runtime CPL3 y modulo kernel; no en
+ABI NXE 1. Ocho archivos compartidos, nombres hasta 23 caracteres y 256 bytes
+por archivo; el wrapper de texto admite hasta 255 bytes. Se pierden al reiniciar.
+Errores de archivo terminan la app CPL3 con error. No hay permisos por usuario.

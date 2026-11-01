@@ -3,6 +3,7 @@
  * Contexto y orden de estudio: ver LEER-CODIGO.md en la carpeta principal.
  */
 #include "nxe.h"
+#include "nxk_es.h"
 static const NXE_API *sistema;
 void nxk_es_mostrar(const char *t) { sistema->mostrar(t); }
 void nxk_es_numero(uint32_t n) { sistema->numero(n); }
@@ -26,3 +27,8 @@ uint32_t nxe_entrada(const NXE_API *api) {
     nxk_es_inicio();
     return 0;
 }
+
+/* ABI NXE 1 no publica archivos; no cambiarla silenciosamente. */
+void nxk_es_guardar_archivo(const char *n,const char *t) { (void)n;(void)t; nxk_es_fallo(0); }
+void nxk_es_mostrar_archivo(const char *n) { (void)n; nxk_es_fallo(0); }
+void nxk_es_borrar_archivo(const char *n) { (void)n; nxk_es_fallo(0); }

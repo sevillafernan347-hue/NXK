@@ -6,7 +6,9 @@ construir=['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',str
 casos={
  'afirmacion':'funcion inicio\nafirmar falso\nfin',
  'bucle':'funcion inicio\nmientras verdadero\nfin\nfin',
- 'puerto':'funcion inicio\nentero dato = 0\nleer_puerto dato, 0x3fd\nfin'}
+ 'puerto':'funcion inicio\nentero dato = 0\nleer_puerto dato, 0x3fd\nfin',
+ 'archivo_ausente':'funcion inicio\nmostrar_archivo "no_existe"\nfin',
+ 'nombre_invalido':'funcion inicio\nguardar_archivo "../x", "dato"\nfin'}
 try:
     for nombre,fuente in casos.items():
         archivo=raiz/f'build/x86/negativo-{nombre}.nxf'; archivo.write_text(fuente)

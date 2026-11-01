@@ -43,6 +43,7 @@ with log.open('wb',buffering=0) as salida:
         esperar(b'Servicio y rechazos de punteros verificados.')
         enviar(b'usuario nextry\n')
         esperar(b'NEXTRY protegido: aplicacion en modo usuario')
+        esperar(b'Archivo creado desde NEXTRY protegido')
         esperar(b'Aplicacion NEXTRY protegida termino.')
         enviar(b'help\n')
         esperar(b'help | version')

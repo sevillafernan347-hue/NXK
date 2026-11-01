@@ -23,6 +23,21 @@ void nxk_es_numero(uint32_t n) {
     do { b[--i]=(char)('0'+n%10); n/=10; } while (n);
     if (escribir(b+i,10-i)!=10-i || escribir("\n",1)!=1) nxk_es_fallo(0);
 }
+static uint32_t archivo(uint32_t servicio,const char *nombre,void *datos,uint32_t n) {
+    __asm__ volatile("int $0x81":"+a"(servicio):"b"(nombre),"c"(datos),"d"(n):"memory","cc");
+    return servicio;
+}
+void nxk_es_guardar_archivo(const char *nombre,const char *texto) {
+    uint32_t n=0; while (n<256 && texto[n]) ++n;
+    if (n==256 || archivo(2,nombre,(void *)texto,n)) nxk_es_fallo(0);
+}
+void nxk_es_mostrar_archivo(const char *nombre) {
+    char datos[256]; uint32_t n=archivo(3,nombre,datos,256);
+    if (n>256 || escribir(datos,n)!=n || escribir("\n",1)!=1) nxk_es_fallo(0);
+}
+void nxk_es_borrar_archivo(const char *nombre) {
+    if (archivo(4,nombre,0,0)) nxk_es_fallo(0);
+}
 uint32_t nxk_es_dividir(uint32_t a,uint32_t b) { if (!b) nxk_es_fallo(0); return a/b; }
 uint32_t nxk_es_resto(uint32_t a,uint32_t b) { if (!b) nxk_es_fallo(0); return a%b; }
 uint32_t nxk_es_memoria_usada(void) { nxk_es_fallo(0); }

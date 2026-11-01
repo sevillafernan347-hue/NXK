@@ -142,3 +142,7 @@ NEXTRY CPL3: usuario nextry ejecuta fuente .nxf integrada con runtime de usuario
 texto y numeros mediante servicios validados. FuenteUsuario permite elegir
 archivo al construir. Codigo de una pagina y pila propia; no cambia NXE ni
 carga archivos externos. Ver ENTREGA-NEXTRY-USUARIO.md.
+
+Aplicaciones NEXTRY protegidas pueden guardar, mostrar y borrar archivos RAM
+mediante servicios validados. Destinos de lectura limitados a pila escribible.
+Compilador con 20 pruebas y ejemplo completo; ver ENTREGA-ARCHIVOS-USUARIO.md.
