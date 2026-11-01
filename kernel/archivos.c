@@ -36,6 +36,24 @@ int nxk_archivo_leer(const char *s,void *datos,size_t capacidad) {
     if (capacidad<tabla[i].n || (!datos && tabla[i].n)) return -3;
     memcpy(datos,tabla[i].datos,tabla[i].n); return (int)tabla[i].n;
 }
+int nxk_archivo_agregar(const char *s,const void *datos,size_t n) {
+    if (!valido(s) || (!datos && n)) return -1;
+    int i=buscar(s); if (i<0) return -2;
+    /* Restar evita que n + longitud desborde size_t. */
+    if (n>256-tabla[i].n) return -3;
+    if (n) memmove(tabla[i].datos+tabla[i].n,datos,n);
+    tabla[i].n+=n; return 0;
+}
+int nxk_archivo_renombrar(const char *s,const char *nuevo) {
+    if (!valido(s) || !valido(nuevo)) return -1;
+    int i=buscar(s); if (i<0) return -2;
+    int otro=buscar(nuevo);
+    if (otro>=0) return otro==i ? 0 : -3;
+    char copia[24]; unsigned j=0;
+    do { copia[j]=nuevo[j]; } while (nuevo[j++]);
+    memset(tabla[i].nombre,0,24); memcpy(tabla[i].nombre,copia,j);
+    return 0;
+}
 int nxk_archivo_borrar(const char *s) {
     if (!valido(s)) return -1;
     int i=buscar(s); if (i<0) return -2;
@@ -54,7 +72,13 @@ int nxk_archivos_probar(void) {
     for (unsigned i=0;i<8;++i) { char s[2]={(char)('a'+i),0}; if (nxk_archivo_escribir(s,d,1)) return 4; }
     if (nxk_archivo_escribir("lleno",d,1)!=-3 || nxk_archivo_escribir("../x",d,1)!=-1) return 5;
     if (nxk_archivo_borrar("a") || nxk_archivo_escribir("nuevo",0,0) || nxk_archivo_leer("nuevo",b,256)!=0) return 6;
-    nxk_archivo_borrar("nuevo");
+    if (nxk_archivo_agregar("nuevo",d,255) || nxk_archivo_agregar("nuevo",d,1) ||
+        nxk_archivo_agregar("nuevo",d,(size_t)-1)!=-3 || nxk_archivo_leer("nuevo",b,256)!=256) return 7;
+    for (unsigned i=0;i<256;++i) if (b[i]!=d[i%255]) return 8;
+    if (nxk_archivo_renombrar("nuevo","b")!=-3 || nxk_archivo_renombrar("nuevo","renombrado") ||
+        nxk_archivo_leer("nuevo",b,256)!=-2 || nxk_archivo_leer("renombrado",b,256)!=256 ||
+        nxk_archivo_renombrar("renombrado","renombrado")) return 9;
+    nxk_archivo_borrar("renombrado");
     for (unsigned i=1;i<8;++i) { char s[2]={(char)('a'+i),0}; nxk_archivo_borrar(s); }
     return 0;
 }

@@ -19,3 +19,12 @@ memoria, interrupciones y sincronizacion. NXK mantiene limites por subsistema
 y validacion antes de modificar datos. No se copio codigo de Linux. Esta
 entrega no acredita superioridad ni porcentaje comparado con Linux/Windows.
 La licencia NXK definitiva sigue pendiente de elegir sus permisos.
+
+Extension: agregar contenido y renombrar sin sobrescribir otro nombre existente.
+Agregado limita con resta para evitar desbordamiento size_t y conserva contenido
+si se rechaza la operacion. Pruebas: llenar 255+1 bytes, rechazar SIZE_MAX,
+verificar bytes tras rechazo, colision de nombres, cambio de nombre y repeticion
+del mismo nombre. Matriz x86 y regresion x64 superadas.
+Comandos nuevos: agregar nombre texto; renombrar nombre nuevo.
+La maquina virtual ya abierta conserva su imagen anterior hasta reiniciar
+con la imagen reconstruida; sus archivos RAM no se transfieren.

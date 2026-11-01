@@ -264,7 +264,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | archivos | halt\nejecutar hola.nxe | ejecutar hola.exe\nescribir nombre texto | leer nombre | borrar nombre\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | archivos | halt\nejecutar hola.nxe | ejecutar hola.exe\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -272,14 +272,20 @@ void kernel_main(void) {
                 if (nxk_pe_demo() != 0) print("EXE no compatible. El puente inicial requiere NXK de 32 bits.\n");
             }
             else if (nxk_equal(line, "version")) print("NXK 0.1, nucleo propio " NXK_ARCH_TEXT "\n");
-            else if (prefijo(line,"escribir ")) {
-                char *nombre=line+9, *texto=nombre;
+            else if (prefijo(line,"escribir ") || prefijo(line,"agregar ")) {
+                char *nombre=line+(line[0]=='a' ? 8 : 9), *texto=nombre;
                 while (*texto && *texto!=' ') ++texto;
                 if (!*texto) print("Uso: escribir nombre texto\n");
                 else {
                     *texto++=0; size_t n=0; while (texto[n]) ++n;
-                    print(nxk_archivo_escribir(nombre,texto,n) ? "No se pudo escribir.\n" : "Archivo guardado en RAM.\n");
+                    print((line[0]=='a' ? nxk_archivo_agregar(nombre,texto,n) : nxk_archivo_escribir(nombre,texto,n)) ? "No se pudo escribir.\n" : "Archivo guardado en RAM.\n");
                 }
+            }
+            else if (prefijo(line,"renombrar ")) {
+                char *nombre=line+10,*nuevo=nombre;
+                while (*nuevo && *nuevo!=' ') ++nuevo;
+                if (!*nuevo) print("Uso: renombrar nombre nuevo\n");
+                else { *nuevo++=0; print(nxk_archivo_renombrar(nombre,nuevo) ? "No se pudo renombrar.\n" : "Archivo renombrado.\n"); }
             }
             else if (prefijo(line,"leer ")) {
                 char datos[256]; int n=nxk_archivo_leer(line+5,datos,sizeof(datos));

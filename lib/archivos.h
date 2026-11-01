@@ -4,6 +4,9 @@
 #include "nxk.h"
 int nxk_archivo_escribir(const char *nombre,const void *datos,size_t n);
 int nxk_archivo_leer(const char *nombre,void *datos,size_t capacidad);
+/* Agrega solo a archivos existentes; rechaza desbordamiento sin modificarlos. */
+int nxk_archivo_agregar(const char *nombre,const void *datos,size_t n);
+int nxk_archivo_renombrar(const char *nombre,const char *nuevo);
 int nxk_archivo_borrar(const char *nombre);
 const char *nxk_archivo_nombre(unsigned indice);
 int nxk_archivos_probar(void);
