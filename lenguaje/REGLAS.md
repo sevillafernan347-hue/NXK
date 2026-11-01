@@ -143,3 +143,9 @@ La versión inicial solo expone los archivos de ejemplo embebidos durante la con
 Esta sintaxis reduce conceptos para nuestras primeras tareas de kernel; que resulte más sencilla que Python depende de la tarea y de quien la use. La implementación actual cubre las reglas de este documento. Estructuras, arrays, parámetros, retorno de valores, módulos importables, gestión de memoria avanzada y compilación directa a código máquina quedan para versiones posteriores.
 
 El código generado conserva una pequeña base C y ensamblador para el arranque y el acceso al procesador. Las aplicaciones NXE actuales se ejecutan con privilegios del kernel, una a la vez, sin aislamiento de procesos. No constituyen todavía una plataforma para ejecutar programas externos desconocidos.
+
+## Control de bucles
+
+`romper` sale del bucle mas cercano. `continuar` salta a su siguiente vuelta.
+Solo se admiten dentro de `mientras` o `repetir`, incluso anidados en `si`.
+No atraviesan llamadas a funciones. Ejemplo: lenguaje/ejemplos/bucles.nxf.

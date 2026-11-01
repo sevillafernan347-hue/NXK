@@ -9,6 +9,7 @@ funcion bienvenida
 fin
 
 funcion inicio
+    llamar prueba_bucles
     llamar bienvenida
     constante objetivo = 3
     variable contador = 0
@@ -37,4 +38,20 @@ funcion inicio
 
     mostrar "Memoria del asignador usada, en bytes:"
     numero memoria_usada()
+fin
+
+funcion prueba_bucles
+    variable cuenta = 0
+    variable suma = 0
+    repetir 6 veces
+        cuenta = cuenta + 1
+        si cuenta == 2
+            continuar
+        fin
+        si cuenta == 5
+            romper
+        fin
+        suma = suma + cuenta
+    fin
+    afirmar suma == 8
 fin

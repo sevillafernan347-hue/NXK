@@ -1,0 +1,17 @@
+# Control de bucles: salta 2 y termina al llegar a 5.
+funcion inicio
+    variable cuenta = 0
+    variable suma = 0
+    mientras verdadero
+        cuenta = cuenta + 1
+        si cuenta == 2
+            continuar
+        fin
+        si cuenta == 5
+            romper
+        fin
+        suma = suma + cuenta
+    fin
+    afirmar suma == 8
+    numero suma
+fin

@@ -14,6 +14,15 @@ class Lenguaje(unittest.TestCase):
         with self.assertRaisesRegex(ErrorLenguaje, mensaje):
             compilar(texto)
 
+    def test_control_bucles(self):
+        for orden in ('romper', 'continuar'):
+            self.error(f'funcion inicio\n{orden}\nfin', 'dentro de un bucle')
+            self.error(f'funcion inicio\nsi verdadero\n{orden}\nfin\nfin', 'dentro de un bucle')
+        fuente=(Path(__file__).parent/'ejemplos/bucles.nxf').read_text()
+        c=compilar(fuente)
+        self.assertIn('break;',c)
+        self.assertIn('continue;',c)
+
     def test_bloques_tipos_y_operadores(self):
         c = compilar('''funcion inicio
 variable a = 2

@@ -31,7 +31,7 @@ class Token:
 PALABRAS = set('funcion fin variable constante si sino mientras repetir veces '
                'mostrar numero llamar volver detener afirmar leer_puerto '
                'escribir_puerto verdadero falso y o no y_bits o_bits xor_bits '
-               'memoria_usada'.split())
+               'memoria_usada romper continuar'.split())
 ALIAS = {'función': 'funcion', 'número': 'numero'}
 PATRON = re.compile(
     r'(?P<ESPACIO>[^\S\n]+)|(?P<COMENTARIO>\#[^\n]*)|(?P<NL>\n)|'
@@ -151,7 +151,7 @@ class Analizador:
                 salida.append(('asignar', t, self.expresion())); self.linea()
             elif k in ('mostrar', 'numero', 'afirmar'):
                 salida.append((k, t, self.expresion())); self.linea()
-            elif k in ('volver', 'detener'):
+            elif k in ('volver', 'detener', 'romper', 'continuar'):
                 salida.append((k, t)); self.linea()
             elif k == 'llamar':
                 salida.append((k, t, self.tomar('NOMBRE'))); self.linea()
@@ -196,6 +196,7 @@ class Generador:
         self.llamadas = {}
         self.funcion = ''
         self.serie = 0
+        self.bucles = 0
 
     def error(self, t, mensaje):
         raise ErrorLenguaje(mensaje, t.linea, t.columna)
@@ -275,6 +276,9 @@ class Generador:
                 poner(f'{self.nombres[n.texto]}();')
             elif k in ('volver', 'detener'):
                 poner('return;' if k == 'volver' else 'nxk_es_detener();')
+            elif k in ('romper', 'continuar'):
+                if not self.bucles: self.error(t, 'Esta orden requiere estar dentro de un bucle.')
+                poner('break;' if k == 'romper' else 'continue;')
             elif k == 'leer_puerto':
                 tipo, nombre, constante = self.buscar(s[2])
                 self.tipo(s[2], tipo, 'entero')
@@ -293,11 +297,15 @@ class Generador:
                     poner('{')
                     poner(f'    const uint32_t {n}_limite = {condicion};')
                     poner(f'    for (uint32_t {n} = 0; {n} < {n}_limite; ++{n}) {{')
+                    self.bucles += 1
                     salida += self.bloque(s[3], nivel + 2)
+                    self.bucles -= 1
                     poner('    }'); poner('}')
                 else:
                     poner(f'{"if" if k == "si" else "while"} (({condicion}) != 0) {{')
+                    if k == 'mientras': self.bucles += 1
                     salida += self.bloque(s[3], nivel + 1); poner('}')
+                    if k == 'mientras': self.bucles -= 1
                     if s[4]:
                         poner('else {'); salida += self.bloque(s[4], nivel + 1); poner('}')
         self.ambitos.pop()
