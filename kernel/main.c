@@ -364,7 +364,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | discos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | discos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -380,6 +380,12 @@ void kernel_main(void) {
                     *texto++=0; size_t n=0; while (texto[n]) ++n;
                     print((line[0]=='a' ? nxk_archivo_agregar(nombre,texto,n) : nxk_archivo_escribir(nombre,texto,n)) ? "No se pudo escribir.\n" : "Archivo guardado en RAM.\n");
                 }
+            }
+            else if (prefijo(line,"copiar ")) {
+                char *origen=line+7,*destino=origen;
+                while (*destino && *destino!=' ') ++destino;
+                if (!*destino) print("Uso: copiar origen destino\n");
+                else { *destino++=0; print(nxk_archivo_copiar(origen,destino) ? "No se pudo copiar.\n" : "Archivo copiado a RAM.\n"); }
             }
             else if (prefijo(line,"renombrar ")) {
                 char *nombre=line+10,*nuevo=nombre;

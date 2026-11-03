@@ -182,3 +182,9 @@ validacion de punteros, capacidad y colisiones. Enlace de apps elimina runtime
 no utilizado: ejemplo 726 bytes frente a 823 con los mismos objetos sin GC.
 21 pruebas de compilador, ocho fuentes negativas, 16 NXE2 y matrices previas
 superadas. Ver ENTREGA-ARCHIVOS-USUARIO-AMPLIADOS.md.
+
+Copias visibles a RAM: copiar origen destino permite editar una copia de un
+archivo NXFS sin alterar el disco, con limite de 256 bytes y sin reemplazar
+destinos existentes. Rechazos no publican entradas parciales. Matriz x86,
+nueve escenarios NXFS ampliados y regresion x64 superados. Puente C, sin nueva
+instruccion NEXTRY ni escrituras persistentes. Ver ENTREGA-COPIA-ARCHIVOS.md.

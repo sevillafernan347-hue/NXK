@@ -69,6 +69,19 @@ int nxk_archivo_leer_visible(const char *nombre,void *datos,size_t capacidad) {
     /* No esconder errores de capacidad o nombres invalidos tras otro backend. */
     return resultado==-2 ? nxk_volumen_leer(nombre,datos,capacidad) : resultado;
 }
+/* Copia visible a RAM sin reemplazar destinos, ni siquiera los del volumen.
+ * El buffer local completa lectura y verificacion antes de crear la entrada.
+ * Sin concurrencia: comprobacion y publicacion pertenecen a la misma llamada. */
+int nxk_archivo_copiar(const char *origen,const char *destino) {
+    unsigned char datos[256], comprobacion[256];
+    if (!valido(origen) || !valido(destino)) return -1;
+    int existente=nxk_archivo_leer_visible(destino,comprobacion,sizeof(comprobacion));
+    /* Solo ausencia permite publicar. Errores y destinos grandes se conservan. */
+    if (existente!=-2) return -3;
+    int n=nxk_archivo_leer_visible(origen,datos,sizeof(datos));
+    if (n<0) return n;
+    return nxk_archivo_escribir(destino,datos,(size_t)n);
+}
 int nxk_archivo_borrar(const char *s) {
     if (!valido(s)) return -1;
     int i=buscar(s); if (i<0) return -2;
@@ -89,6 +102,7 @@ int nxk_archivos_probar(void) {
         nxk_archivo_leer_parte("prueba",b,256,UINT32_MAX)!=-3) return 10;
     if (nxk_archivo_borrar("prueba") || nxk_archivo_leer("prueba",b,256)!=-2) return 3;
     for (unsigned i=0;i<8;++i) { char s[2]={(char)('a'+i),0}; if (nxk_archivo_escribir(s,d,1)) return 4; }
+    if (nxk_archivo_copiar("b","copia")!=-3 || nxk_archivo_leer("copia",b,256)!=-2) return 11;
     if (nxk_archivo_escribir("lleno",d,1)!=-3 || nxk_archivo_escribir("../x",d,1)!=-1) return 5;
     if (nxk_archivo_borrar("a") || nxk_archivo_escribir("nuevo",0,0) || nxk_archivo_leer("nuevo",b,256)!=0) return 6;
     if (nxk_archivo_agregar("nuevo",d,255) || nxk_archivo_agregar("nuevo",d,1) ||
@@ -99,5 +113,15 @@ int nxk_archivos_probar(void) {
         nxk_archivo_renombrar("renombrado","renombrado")) return 9;
     nxk_archivo_borrar("renombrado");
     for (unsigned i=1;i<8;++i) { char s[2]={(char)('a'+i),0}; nxk_archivo_borrar(s); }
+    if (nxk_archivo_escribir("original",d,256) || nxk_archivo_copiar("original","copia") ||
+        nxk_archivo_copiar("original","copia")!=-3 || nxk_archivo_copiar("original","original")!=-3 ||
+        nxk_archivo_copiar("ausente","nuevo")!=-2 || nxk_archivo_leer("nuevo",b,256)!=-2 ||
+        nxk_archivo_copiar("original","../x")!=-1 || nxk_archivo_leer("copia",b,256)!=256) return 12;
+    for (unsigned i=0;i<256;++i) if (b[i]!=d[i]) return 13;
+    if (nxk_archivo_borrar("original") || nxk_archivo_leer("copia",b,256)!=256) return 14;
+    nxk_archivo_borrar("copia");
+    if (nxk_archivo_escribir("vacio",0,0) || nxk_archivo_copiar("vacio","copia") ||
+        nxk_archivo_leer("copia",b,256)!=0) return 15;
+    nxk_archivo_borrar("vacio"); nxk_archivo_borrar("copia");
     return 0;
 }

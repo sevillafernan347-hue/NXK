@@ -32,6 +32,13 @@ independientemente del kernel. Tras montar el volumen, usa
 `ejecutar usuario disco.nxe`. Consulta [el formato y los pasos](lenguaje/FORMATO-NXE-USUARIO.md).
 NXE version 1 conserva su ruta anterior en ring0; no se cambia silenciosamente.
 
+## Copiar un archivo para editarlo
+
+Con NXFS montado, `copiar leeme.txt editable` crea una copia en RAM de hasta
+256 bytes. Puedes editarla con `agregar editable texto`. El destino debe ser
+nuevo; no se reemplazan archivos existentes. Las copias se pierden al apagar.
+Consulta [la entrega](ENTREGA-COPIA-ARCHIVOS.md).
+
 ## Construir en Windows
 
 Las dependencias externas no se incluyen en Git. Consulta [HERRAMIENTAS.md](HERRAMIENTAS.md)
