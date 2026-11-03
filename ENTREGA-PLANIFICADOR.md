@@ -48,7 +48,9 @@ bloquea: -2 significa lleno; recibir devuelve -2 si esta vacio y conserva la
 salida del llamador. Enviar desde kernel fuera de tarea identifica origen 0;
 desde una tarea registra su ID completo. Destinos terminados/cancelados se
 rechazan. Liberar y recrear limpian mensajes, sin entregarlos a otra generacion.
-No hay punteros de payload, esperas bloqueantes ni despertar anticipado de dormir.
+No hay punteros de payload ni despertar anticipado de dormir. La ampliacion
+[espera de mensajes](ENTREGA-ESPERA-MENSAJES.md) agrega espera con plazo y
+despertar por envio conservando la interfaz no bloqueante original.
 Las tareas cooperan con ceder si esperan espacio/datos. Estas operaciones solo
 son validas en la CPU kernel y fuera de IRQ, igual que el planificador.
 

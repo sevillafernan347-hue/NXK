@@ -50,6 +50,8 @@ Desde la consola: `tareas preparar`, `tareas listar`, `tareas paso`,
 `tareas ejecutar` y `tareas limpiar`. `tareas cancelar ID` cancela una tarea
 lista o dormida; `tareas ocho` ejecuta la demostracion completa.
 Consulta [el funcionamiento y sus limites](ENTREGA-PLANIFICADOR.md).
+`tareas mensajes` demuestra espera sin consultas continuas y despertar por
+envio o plazo; [detalle de la ampliacion](ENTREGA-ESPERA-MENSAJES.md).
 
 ## Construir en Windows
 

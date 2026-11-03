@@ -8,7 +8,7 @@
 #define NXK_BUZON_MAX 4u
 struct nxk_mensaje { uint32_t origen, valor; };
 enum nxk_tarea_estado { NXK_TAREA_LIBRE, NXK_TAREA_LISTA, NXK_TAREA_EJECUTANDO,
-    NXK_TAREA_DORMIDA, NXK_TAREA_TERMINADA, NXK_TAREA_CANCELADA };
+    NXK_TAREA_DORMIDA, NXK_TAREA_TERMINADA, NXK_TAREA_CANCELADA, NXK_TAREA_ESPERANDO };
 struct nxk_tarea_info { uint32_t id, estado, activaciones, despertar; };
 /* Cero indica exito. IDs cero, liberados o de una generacion vieja son invalidos. */
 int nxk_tarea_crear(void (*funcion)(void *),void *argumento,uint32_t *id);
@@ -23,12 +23,16 @@ int nxk_tarea_dormir(uint32_t ticks); /* 0 equivale a ceder; maximo 2^31-1. */
  * Un mensaje no acorta dormir(); cooperar con ceder para esperar mensajes. */
 int nxk_tarea_enviar(uint32_t destino,uint32_t valor);
 int nxk_tarea_recibir(struct nxk_mensaje *mensaje);
-int nxk_tarea_cancelar(uint32_t id); /* Solo lista/dormida; no mata la actual. */
+/* 0: mensaje; 1: plazo/vacio con cero ticks; -1: contrato invalido.
+ * No modifica salida al vencer. Primero atiende mensajes ya disponibles. */
+int nxk_tarea_esperar_mensaje(struct nxk_mensaje *mensaje,uint32_t ticks);
+int nxk_tarea_cancelar(uint32_t id); /* Lista/dormida/esperando; no mata la actual. */
 int nxk_tarea_liberar(uint32_t id); /* Solo terminada/cancelada. */
 /* 0: no quedan pendientes; 1: presupuesto agotado, se puede reanudar.
  * Negativos: contrato/IF/pila invalidos. El limite no interrumpe callbacks. */
 int nxk_tareas_ejecutar(uint32_t presupuesto_ticks);
 int nxk_tareas_demo(void);
+int nxk_tareas_mensajes_demo(void);
 int nxk_tareas_demo_cantidad(unsigned cantidad);
 int nxk_tareas_probar_limites(void);
 /* Lote persistente de demostracion controlado desde la consola. */

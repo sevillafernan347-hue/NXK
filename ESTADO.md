@@ -206,3 +206,10 @@ ejecutar/cancelar/limpiar, sin perder argumentos entre comandos. Matriz x86,
 regresion x64, consola interactiva/general y pruebas de lenguaje/ASM superadas.
 Puente C y cambio NEXTRY ASM; cooperativo, una CPU y ring0, sin preempcion ni
 procesos usuario concurrentes. Ver ENTREGA-PLANIFICADOR.md.
+
+Espera de mensajes kernel: nuevo estado ESPERANDO, plazo modular y despertar
+al enviar; cancelar admite tareas esperando. Timeout conserva salida; mensaje
+pendiente tiene prioridad al reanudar. Comando tareas mensajes con 16 envios.
+Matriz x86, consola interactiva/general y regresion x64 superadas. Cargador
+x86 ampliado a 56 KiB para la imagen de pruebas; reserva RAM sigue 64 KiB.
+Detalles y limites: ENTREGA-ESPERA-MENSAJES.md.
