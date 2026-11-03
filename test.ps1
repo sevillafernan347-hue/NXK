@@ -46,6 +46,7 @@ if (!$log.Contains('NXK: LLENADO OK') -or !$log.Contains('NXK: COPIA OK')) { thr
 if (!$log.Contains('NXK: MOVER OK')) { throw "Fallo en copia con solapamiento: $log" }
 if (!$log.Contains('NXK: HEAP LIMITES OK')) { throw "Fallo en limites del heap: $log" }
 if ($Architecture -eq 'x86') {
+    if (!$log.Contains('NXK: RESULTADOS TAREAS OK')) { throw 'Fallo de resultados y dependencias de tareas.' }
     if (!$log.Contains('NXK: ESPERA MENSAJES OK')) { throw 'Fallo de espera y despertar por mensajes.' }
     if (!$log.Contains('NXK: BUZONES FIFO OK')) { throw 'Fallo de comunicacion entre tareas.' }
     if (!$log.Contains('NXK: PLANIFICADOR OCHO TAREAS OK')) { throw 'Fallo del planificador reutilizable.' }

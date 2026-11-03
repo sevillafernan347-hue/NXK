@@ -53,6 +53,10 @@ Consulta [el funcionamiento y sus limites](ENTREGA-PLANIFICADOR.md).
 `tareas mensajes` demuestra espera sin consultas continuas y despertar por
 envio o plazo; [detalle de la ampliacion](ENTREGA-ESPERA-MENSAJES.md).
 
+`tareas resultados` demuestra dos tareas esperando el resultado de otra, con
+plazo, rechazo de ciclos y proteccion frente a liberacion anticipada.
+Consulta [la entrega](ENTREGA-RESULTADOS-TAREAS.md).
+
 ## Construir en Windows
 
 Las dependencias externas no se incluyen en Git. Consulta [HERRAMIENTAS.md](HERRAMIENTAS.md)

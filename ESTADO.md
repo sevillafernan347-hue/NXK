@@ -213,3 +213,13 @@ pendiente tiene prioridad al reanudar. Comando tareas mensajes con 16 envios.
 Matriz x86, consola interactiva/general y regresion x64 superadas. Cargador
 x86 ampliado a 56 KiB para la imagen de pruebas; reserva RAM sigue 64 KiB.
 Detalles y limites: ENTREGA-ESPERA-MENSAJES.md.
+
+Resultados de tareas: finalizar(codigo) y esperar_fin con plazo, varios
+observadores, referencias que impiden liberar un destino prematuramente y
+rechazo de ciclos. Cancelar despierta observadores y libera dependencias.
+Nuevo estado ESPERANDO_FIN; consola muestra resultado/dependencia y comando
+tareas resultados. Cadena de ocho tareas con propagacion 100..107 comprobada.
+Puente C, cooperativo ring0. Ver ENTREGA-RESULTADOS-TAREAS.md.
+Cierre de resultados: matriz x86 32/64/128/1024, regresion x64, consola del
+planificador/general y dieciseis escenarios NXE2 superados. Lotes repetidos
+mantienen heap y guardas; no cambia el formato de aplicaciones.
