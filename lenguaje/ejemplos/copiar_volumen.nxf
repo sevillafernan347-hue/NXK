@@ -1,0 +1,8 @@
+# Monta NXFS con "volumen montar" antes de ejecutar esta aplicacion.
+# leeme.txt debe tener hasta 256 bytes y editable no debe existir.
+# La copia queda disponible en RAM para editarla desde la consola.
+funcion inicio
+    copiar_archivo "leeme.txt", "editable"
+    mostrar_archivo "editable"
+    mostrar "COPIA_CPL3_COMPLETA"
+fin

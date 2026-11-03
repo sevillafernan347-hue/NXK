@@ -188,3 +188,11 @@ archivo NXFS sin alterar el disco, con limite de 256 bytes y sin reemplazar
 destinos existentes. Rechazos no publican entradas parciales. Matriz x86,
 nueve escenarios NXFS ampliados y regresion x64 superados. Puente C, sin nueva
 instruccion NEXTRY ni escrituras persistentes. Ver ENTREGA-COPIA-ARCHIVOS.md.
+
+La copia ya esta disponible como copiar_archivo en NEXTRY CPL3 y modulo kernel.
+Servicio 8 copia ambos nombres a memoria kernel, sin reemplazo ni disco escrito.
+Cinco casos de puente, diez escenarios de copia real, 22 pruebas de compilador
+y matriz x86/x64 superados. Ver ENTREGA-COPIA-NEXTRY.md.
+Cierre: once fuentes negativas y dieciseis escenarios NXE2 superados; ejemplo
+independiente copia/edita/borra desde disco y admite tres recargas sin crecer
+el heap. La consola general conserva sus pruebas.

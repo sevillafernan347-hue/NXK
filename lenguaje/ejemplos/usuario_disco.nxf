@@ -3,6 +3,10 @@ funcion inicio
     mostrar "Aplicacion NEXTRY cargada desde disco"
     entero total = 6 * 7
     afirmar total == 42
-    mostrar_archivo "leeme.txt"
+    # Copiar y editar sin escribir en el volumen original.
+    copiar_archivo "leeme.txt", "copia_disco"
+    agregar_archivo "copia_disco", "COPIA_NXE2_EDITADA"
+    mostrar_archivo "copia_disco"
+    borrar_archivo "copia_disco"
     numero total
 fin

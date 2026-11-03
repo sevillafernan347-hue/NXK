@@ -7,6 +7,7 @@
 #include <stdint.h>
 void nxk_es_inicio(void);
 void nxk_es_agregar_archivo(const char *nombre,const char *texto);
+void nxk_es_copiar_archivo(const char *origen,const char *destino);
 void nxk_es_renombrar_archivo(const char *nombre,const char *nuevo);
 void nxk_es_guardar_archivo(const char *nombre,const char *texto);
 void nxk_es_mostrar_archivo(const char *nombre);

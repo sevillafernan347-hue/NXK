@@ -8,8 +8,10 @@ funcion inicio
     guardar_archivo "nota", "Archivo creado desde NEXTRY protegido"
     agregar_archivo "nota", ". Texto agregado"
     renombrar_archivo "nota", "nota_final"
-    mostrar_archivo "nota_final"
+    copiar_archivo "nota_final", "copia"
     borrar_archivo "nota_final"
+    mostrar_archivo "copia"
+    borrar_archivo "copia"
     afirmar suma == 10
     numero suma
 fin

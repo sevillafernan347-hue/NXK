@@ -11,6 +11,9 @@ casos={
  'nombre_invalido':'funcion inicio\nguardar_archivo "../x", "dato"\nfin',
  'agregar_ausente':'funcion inicio\nagregar_archivo "ausente", "dato"\nfin',
  'agregar_lleno':'funcion inicio\nguardar_archivo "lleno", "'+'A'*255+'"\nagregar_archivo "lleno", "XX"\nfin',
+ 'copiar_ausente':'funcion inicio\ncopiar_archivo "ausente", "copia"\nfin',
+ 'copiar_duplicado':'funcion inicio\nguardar_archivo "a", "original"\nguardar_archivo "b", "destino"\ncopiar_archivo "a", "b"\nfin',
+ 'copiar_invalido':'funcion inicio\nguardar_archivo "a", "original"\ncopiar_archivo "a", "../x"\nfin',
  'renombrar_duplicado':'funcion inicio\nguardar_archivo "a", "original"\nguardar_archivo "b", "destino"\nrenombrar_archivo "a", "b"\nfin'}
 try:
     for nombre,fuente in casos.items():

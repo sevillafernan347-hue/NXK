@@ -201,3 +201,23 @@ archivo existente; el total no puede superar 256 bytes.
 `renombrar_archivo "nota", "nuevo"` cambia nombre sin reemplazar otro archivo.
 Ambas ordenes reciben textos, estan disponibles en CPL3 y modulo kernel, y
 no escriben NXFS. Un error termina la aplicacion protegida con codigo 1.
+
+## Copiar archivos desde NEXTRY
+
+`copiar_archivo "origen", "copia"` crea una entrada RAM nueva desde un archivo
+visible (RAM primero, NXFS montado si falta). Ambos argumentos son textos.
+El limite es 256 bytes, sin truncamiento; admite archivos vacios. No reemplaza
+un destino visible existente, ni siquiera uno que viva en disco. Tras copiar
+puedes usar `agregar_archivo`, `renombrar_archivo` y `borrar_archivo` sobre la
+copia. El original permanece independiente y el volumen sigue sin escrituras.
+Un error termina la app CPL3 con codigo 1. Disponible tambien en modulo kernel;
+el antiguo runtime NXE1 rechaza esta orden sin cambiar su tabla API.
+
+```text
+funcion inicio
+    guardar_archivo "nota", "Hola"
+    copiar_archivo "nota", "respaldo"
+    borrar_archivo "nota"
+    mostrar_archivo "respaldo"
+fin
+```

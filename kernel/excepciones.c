@@ -159,7 +159,7 @@ static void usuario_servicio(uint32_t *c) {
         if (n) { memcpy(datos,(void *)(uintptr_t)p,n); nxk_pe_salida(datos,n); }
         c[11]=n; return;
     }
-    if (servicio<2 || servicio>7) { c[11]=0xfffffffeu; return; }
+    if (servicio<2 || servicio>8) { c[11]=0xfffffffeu; return; }
     char nombre[24]; unsigned i;
     for (i=0;i<24;++i) {
         if (!usuario_rango(p+i,1,0) || p+i<p) return;
@@ -168,7 +168,7 @@ static void usuario_servicio(uint32_t *c) {
     }
     if (i==24) return;
     uint32_t buffer=c[10], cantidad=c[9];
-    if (servicio==7) {
+    if (servicio==7 || servicio==8) {
         char nuevo[24]; unsigned j;
         for (j=0;j<24;++j) {
             if (buffer+j<buffer || !usuario_rango(buffer+j,1,0)) return;
@@ -176,7 +176,9 @@ static void usuario_servicio(uint32_t *c) {
             if (!nuevo[j]) break;
         }
         if (j==24) return;
-        if (!nxk_archivo_renombrar(nombre,nuevo)) c[11]=0;
+        /* Ambos nombres ya son copias kernel: no se usan cadenas CPL3 dentro del FS. */
+        int r=servicio==8 ? nxk_archivo_copiar(nombre,nuevo) : nxk_archivo_renombrar(nombre,nuevo);
+        if (!r) c[11]=0;
         return;
     }
     if (servicio==4) { if (!nxk_archivo_borrar(nombre)) c[11]=0; return; }
@@ -222,7 +224,7 @@ void nxk_usuario_atender_fallo(const uint32_t *contexto) {
     nxk_usuario_abortar(0x80000000u|v);
 }
 static int usuario_ejecutar(unsigned modo) {
-    if (usuario_activo || modo>36) return -1;
+    if (usuario_activo || modo>41) return -1;
     uint32_t cr3_original; __asm__ volatile("mov %%cr3,%0":"=r"(cr3_original));
     if (cr3_original!=0x200000u) return -4;
     static uintptr_t codigo, pila_kernel, directorio_usuario, tabla_usuario, tabla_usuario_alta;
@@ -346,8 +348,16 @@ static int usuario_ejecutar(unsigned modo) {
             if (modo==34) esperado=0xffffffffu;
             if (modo==36) { memcpy(bytes+128,"usr_final",10); puntero=0x10000; esperado=0xffffffffu; }
         }
+        if (modo>=37) {
+            bytes[1]=8; cantidad=0;
+            memcpy(bytes+128,"usr_final",10); memcpy(bytes+200,"usr_copy",9);
+            if (modo==38) esperado=0xffffffffu; /* Destino creado por modo 37. */
+            if (modo==39) { puntero=0x10000; esperado=0xffffffffu; }
+            if (modo==40) { memset(bytes+200,'x',24); esperado=0xffffffffu; }
+            if (modo==41) esperado=0xffffffffu;
+        }
         for (unsigned i=0;i<4;++i) {
-            bytes[6+i]=(unsigned char)((codigo+128)>>(i*8));
+            bytes[6+i]=(unsigned char)((modo==41 ? 0x10000 : codigo+128)>>(i*8));
             bytes[11+i]=(unsigned char)(puntero>>(i*8));
             bytes[16+i]=(unsigned char)(cantidad>>(i*8));
             bytes[23+i]=(unsigned char)(esperado>>(i*8));
@@ -441,18 +451,20 @@ int nxk_usuario_probar_servicios(void) {
         if (usuario_ejecutar(modo) || nxk_heap_used()!=antes) return 2;
     char datos[4];
     if (nxk_archivo_leer("usr_test",datos,4)!=-2 || nxk_archivo_leer("usr_final",datos,4)!=-2 ||
-        nxk_archivo_leer("usr_taken",datos,4)!=-2 || nxk_archivo_escribir("usr_test","AB",2)) return 3;
+        nxk_archivo_leer("usr_taken",datos,4)!=-2 || nxk_archivo_leer("usr_copy",datos,4)!=-2 || nxk_archivo_escribir("usr_test","AB",2)) return 3;
     if (nxk_archivo_escribir("usr_taken",0,0)) { nxk_archivo_borrar("usr_test"); return 3; }
     antes=nxk_heap_used(); int fallo=0;
     for (unsigned modo=18;modo<=28;++modo)
         if (usuario_ejecutar(modo) || nxk_heap_used()!=antes) { fallo=4; break; }
-    if (!fallo) for (unsigned modo=30;modo<=36;++modo) {
+    if (!fallo) for (unsigned modo=30;modo<=41;++modo) {
         if (usuario_ejecutar(modo) || nxk_heap_used()!=antes ||
             nxk_archivo_leer(modo>=35 ? "usr_final" : "usr_test",datos,4)!=4 ||
             datos[0]!='A' || datos[1]!='B' || datos[2]!='C' || datos[3]!='D') { fallo=6; break; }
+        if (modo>=37 && (nxk_archivo_leer("usr_copy",datos,4)!=4 ||
+            datos[0]!='A' || datos[1]!='B' || datos[2]!='C' || datos[3]!='D')) { fallo=8; break; }
         if (nxk_archivo_leer("usr_taken",datos,4)!=0) { fallo=7; break; }
     }
-    nxk_archivo_borrar("usr_test"); nxk_archivo_borrar("usr_final"); nxk_archivo_borrar("usr_taken");
+    nxk_archivo_borrar("usr_test"); nxk_archivo_borrar("usr_final"); nxk_archivo_borrar("usr_taken"); nxk_archivo_borrar("usr_copy");
     return fallo;
 }
 int nxk_usuario_caso_bucle(void) { return usuario_ejecutar(9)==32 ? 0 : -1; }

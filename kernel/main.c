@@ -127,6 +127,9 @@ void nxk_es_agregar_archivo(const char *nombre,const char *texto) {
     size_t n=0; while (n<256 && texto[n]) ++n;
     if (n==256 || nxk_archivo_agregar(nombre,texto,n)) nxk_es_fallo(0);
 }
+void nxk_es_copiar_archivo(const char *origen,const char *destino) {
+    if (nxk_archivo_copiar(origen,destino)) nxk_es_fallo(0);
+}
 void nxk_es_renombrar_archivo(const char *nombre,const char *nuevo) {
     if (nxk_archivo_renombrar(nombre,nuevo)) nxk_es_fallo(0);
 }

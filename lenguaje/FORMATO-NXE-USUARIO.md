@@ -60,3 +60,7 @@ verifican que compilar con -Salida conserve el binario integrado. VS Code
 incluye tarea NXK: Compilar aplicacion NXE2 actual. La imagen de demostracion
 generada por pruebas queda en build/x86/nxe-disco-pruebas/correcto.img, con
 disco.nxe y leeme.txt; se puede conectar mediante run.ps1 -Volumen esa_ruta.
+
+El ejemplo de disco tambien copia leeme.txt a RAM, agrega un marcador y borra
+la copia al finalizar. Tres recargas comprueban que la orden copiar_archivo
+funciona desde un NXE2 independiente sin conservar destinos ni consumir heap.

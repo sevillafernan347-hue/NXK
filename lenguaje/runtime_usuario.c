@@ -35,6 +35,9 @@ void nxk_es_agregar_archivo(const char *nombre,const char *texto) {
     uint32_t n=0; while (n<256 && texto[n]) ++n;
     if (n==256 || archivo(6,nombre,(void *)texto,n)) nxk_es_fallo(0);
 }
+void nxk_es_copiar_archivo(const char *origen,const char *destino) {
+    if (archivo(8,origen,(void *)destino,0)) nxk_es_fallo(0);
+}
 void nxk_es_renombrar_archivo(const char *nombre,const char *nuevo) {
     if (archivo(7,nombre,(void *)nuevo,0)) nxk_es_fallo(0);
 }

@@ -38,6 +38,9 @@ Con NXFS montado, `copiar leeme.txt editable` crea una copia en RAM de hasta
 256 bytes. Puedes editarla con `agregar editable texto`. El destino debe ser
 nuevo; no se reemplazan archivos existentes. Las copias se pierden al apagar.
 Consulta [la entrega](ENTREGA-COPIA-ARCHIVOS.md).
+Desde una app NEXTRY usa `copiar_archivo "leeme.txt", "editable"`; hay un
+[ejemplo completo](lenguaje/ejemplos/copiar_volumen.nxf) y
+[pruebas del servicio protegido](ENTREGA-COPIA-NEXTRY.md).
 
 ## Construir en Windows
 

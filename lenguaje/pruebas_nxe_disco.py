@@ -47,6 +47,7 @@ try:
                     if tipo=='correcto':
                         esperar(b'Aplicacion NEXTRY cargada desde disco')
                         esperar(b'Datos leidos por aplicacion NXE2 desde NXFS')
+                        esperar(b'COPIA_NXE2_EDITADA')
                     esperar(b'Aplicacion NXE2 termino; consola recuperada.')
                 else:esperar(b'No se pudo cargar o ejecutar NXE2.')
                 enviar(b'usuario estado\n')
@@ -59,6 +60,7 @@ try:
                     enviar(b'ejecutar usuario malo.nxe\n');esperar(b'No se pudo cargar o ejecutar NXE2.')
                     enviar(b'ejecutar usuario disco.nxe\n');esperar(b'Aplicacion NXE2 termino; consola recuperada.',2)
                     enviar(b'ejecutar usuario disco.nxe\n');esperar(b'Aplicacion NXE2 termino; consola recuperada.',3)
+                    if tipo=='correcto':esperar(b'COPIA_NXE2_EDITADA',3)
                     enviar(b'mem\n');esperar(b'Heap disponible:',2)
                     import re
                     usos=re.findall(rb'Heap fijo usado: (\d+)',log.read_bytes())

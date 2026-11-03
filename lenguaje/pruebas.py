@@ -35,6 +35,12 @@ class Lenguaje(unittest.TestCase):
         self.error('funcion inicio\nagregar_archivo "a", 3\nfin','texto')
         self.error('funcion inicio\nrenombrar_archivo 1, "b"\nfin','texto')
 
+    def test_copiar_archivo(self):
+        self.assertIn('nxk_es_copiar_archivo(',compilar('funcion inicio\ncopiar_archivo "a", "b"\nfin'))
+        self.error('funcion inicio\ncopiar_archivo 1, "b"\nfin','texto')
+        self.error('funcion inicio\ncopiar_archivo "a", falso\nfin','texto')
+        self.error('funcion inicio\ncopiar_archivo "a"\nfin',',')
+
     def test_control_bucles(self):
         for orden in ('romper', 'continuar'):
             self.error(f'funcion inicio\n{orden}\nfin', 'dentro de un bucle')
