@@ -196,3 +196,13 @@ y matriz x86/x64 superados. Ver ENTREGA-COPIA-NEXTRY.md.
 Cierre: once fuentes negativas y dieciseis escenarios NXE2 superados; ejemplo
 independiente copia/edita/borra desde disco y admite tres recargas sin crecer
 el heap. La consola general conserva sus pruebas.
+
+Planificador reutilizable x86: ocho tareas kernel con callback/argumento, IDs
+con generacion, consulta, ceder/dormir, cancelar/liberar y presupuesto reanudable.
+Rondas circulares; pilas con guarda limpiadas al reutilizar; ocho slots reservan
+96 KiB una sola vez. Buzones FIFO de cuatro mensajes con origen/valor, prueba
+productor-consumidor de 32 mensajes. Consola permite preparar/listar/paso/
+ejecutar/cancelar/limpiar, sin perder argumentos entre comandos. Matriz x86,
+regresion x64, consola interactiva/general y pruebas de lenguaje/ASM superadas.
+Puente C y cambio NEXTRY ASM; cooperativo, una CPU y ring0, sin preempcion ni
+procesos usuario concurrentes. Ver ENTREGA-PLANIFICADOR.md.

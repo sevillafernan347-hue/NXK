@@ -95,6 +95,7 @@ if ($Architecture -eq 'x64') { $flags += '-mno-red-zone' }
 if ($Test) { $flags += '-DNXK_TEST' }
 if ($ExceptionTest) { $flags += '-DNXK_EXCEPTION_TEST' }
 if ($ExceptionTest) { $flags += "-DNXK_EXCEPTION_VECTOR=$ExceptionVector" }
+Invoke-Zig cc @flags -c kernel/planificador.c -o "$buildDir/planificador.o"
 Invoke-Zig cc @flags -c kernel/tareas.c -o "$buildDir/tareas.o"
 Invoke-Zig cc @flags -c kernel/volumen.c -o "$buildDir/volumen.o"
 Invoke-Zig cc @flags -c kernel/ata.c -o "$buildDir/ata.o"
@@ -112,6 +113,7 @@ Invoke-Zig cc -target $target -c "$buildDir/app_embebida.S" -o "$buildDir/app_em
 $objects=@("$buildDir/entry.o","$buildDir/main.o","$buildDir/memory.o","$buildDir/inicio_nxe.o","$buildDir/nxe.o","$buildDir/pe.o","$buildDir/app_embebida.o")
 $objects += "$buildDir/excepciones.o"
 $objects += "$buildDir/tareas.o"
+$objects += "$buildDir/planificador.o"
 $objects += "$buildDir/archivos.o"
 $objects += "$buildDir/ata.o"
 $objects += "$buildDir/volumen.o"

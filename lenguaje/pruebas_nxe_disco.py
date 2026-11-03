@@ -41,7 +41,10 @@ try:
             def enviar(texto):
                 for v in texto:p.stdin.write(bytes([v]));p.stdin.flush();time.sleep(.003)
             try:
-                esperar(b'nxk> ');enviar(b'volumen montar\n');esperar(b'Volumen NXFS montado')
+                esperar(b'nxk> ')
+                if tipo=='correcto':
+                    enviar(b'tareas ocho\n');esperar(b'Ocho tareas: argumentos, pilas, esperas y finalizacion verificadas.')
+                enviar(b'volumen montar\n');esperar(b'Volumen NXFS montado')
                 enviar(b'ejecutar usuario disco.nxe\n')
                 if tipo in ('correcto','registros'):
                     if tipo=='correcto':

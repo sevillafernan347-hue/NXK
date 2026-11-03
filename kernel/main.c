@@ -12,6 +12,7 @@
 #include "usuario.h"
 #include "ata.h"
 #include "volumen.h"
+#include "tareas.h"
 #if defined(__i386__)
 #define NXK_ARCH_TEXT "x86 de 32 bits"
 #define NXK_MODE_MARKER "NXK: PROTECTED MODE 32 OK\n"
@@ -27,7 +28,6 @@ static inline uint8_t in8(uint16_t port) {
     __asm__ volatile("inb %1, %0" : "=a"(value) : "Nd"(port));
     return value;
 }
-extern int nxk_tareas_demo(void);
 extern int nxk_usuario_demo(void);
 extern int nxk_usuario_comprobar_fallos(void);
 extern void nxk_usuario_atender_fallo(const uint32_t *contexto);
@@ -273,7 +273,7 @@ void kernel_main(void) {
     print("NXK: TAREAS COOPERATIVAS OK\n");
     extern int nxk_tareas_probar_limites(void);
     if (nxk_tareas_probar_limites()) { print("NXK: PILAS FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
-    print("NXK: PILAS Y REUTILIZACION OK\n");
+    print("NXK: PILAS Y REUTILIZACION OK\nNXK: PLANIFICADOR OCHO TAREAS OK\nNXK: BUZONES FIFO OK\n");
 #endif
 #ifdef NXK_TEST
     if (nxk_archivos_probar()) { print("NXK: ARCHIVOS FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
@@ -367,7 +367,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | discos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | discos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\ntareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -454,6 +454,40 @@ void kernel_main(void) {
             }
             else if (nxk_equal(line, "usuario")) {
                 print(nxk_usuario_demo() ? "Modo usuario no disponible o fallo.\n" : "Programa ring3 termino con 42; control devuelto al kernel.\n");
+            }
+            else if (nxk_equal(line,"tareas preparar")) {
+                print(nxk_tareas_preparar_demo() ? "No se pudo preparar; limpia el lote anterior.\n" : "Ocho tareas preparadas; usa tareas listar y tareas ejecutar.\n");
+            }
+            else if (nxk_equal(line,"tareas listar")) {
+                static const char *nombres[]={"libre","lista","ejecutando","dormida","terminada","cancelada"};
+                unsigned cantidad=0;
+                for (unsigned i=0;i<NXK_TAREAS_MAX;++i) {
+                    struct nxk_tarea_info info;
+                    if (nxk_tarea_enumerar(i,&info)) continue;
+                    ++cantidad; print("Tarea "); number(info.id); print(": ");
+                    print(info.estado<=NXK_TAREA_CANCELADA ? nombres[info.estado] : "invalida");
+                    print("; activaciones "); number(info.activaciones); put('\n');
+                }
+                if (!cantidad) print("Sin tareas registradas.\n");
+            }
+            else if (nxk_equal(line,"tareas ejecutar") || nxk_equal(line,"tareas paso")) {
+                int r=nxk_tareas_ejecutar(nxk_equal(line,"tareas paso") ? 1 : 100);
+                print(r==0 ? "Tareas pendientes completadas.\n" : r==1 ? "Presupuesto cumplido; tareas pendientes conservadas.\n" : "No se pudo ejecutar el planificador.\n");
+            }
+            else if (nxk_equal(line,"tareas limpiar")) {
+                print(nxk_tareas_limpiar_demo() ? "No se pudo limpiar el lote.\n" : "Lote de tareas liberado.\n");
+            }
+            else if (prefijo(line,"tareas cancelar ")) {
+                const char *p=line+16; uint32_t id=0; int valido=*p!=0;
+                /* Decimal acotado: rechazar vacio, signos y desbordamiento. */
+                for (;*p;++p) {
+                    if (*p<'0' || *p>'9' || id>(UINT32_MAX-(unsigned)(*p-'0'))/10) { valido=0; break; }
+                    id=id*10+(unsigned)(*p-'0');
+                }
+                print(!valido || nxk_tarea_cancelar(id) ? "No se pudo cancelar la tarea.\n" : "Tarea cancelada.\n");
+            }
+            else if (nxk_equal(line, "tareas ocho")) {
+                print(nxk_tareas_demo_cantidad(8) ? "Planificador no disponible o fallo.\n" : "Ocho tareas: argumentos, pilas, esperas y finalizacion verificadas.\n");
             }
             else if (nxk_equal(line, "tareas")) {
                 print(nxk_tareas_demo() ? "Tareas no disponibles o fallo.\n" : "Dos tareas: pilas propias, esperas PIT y finalizacion verificadas.\n");

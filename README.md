@@ -42,6 +42,15 @@ Desde una app NEXTRY usa `copiar_archivo "leeme.txt", "editable"`; hay un
 [ejemplo completo](lenguaje/ejemplos/copiar_volumen.nxf) y
 [pruebas del servicio protegido](ENTREGA-COPIA-NEXTRY.md).
 
+## Tareas reutilizables del kernel
+
+El planificador x86 admite ocho tareas cooperativas con argumentos, IDs que
+cambian al reutilizar el slot, pilas con guarda y buzones de cuatro mensajes.
+Desde la consola: `tareas preparar`, `tareas listar`, `tareas paso`,
+`tareas ejecutar` y `tareas limpiar`. `tareas cancelar ID` cancela una tarea
+lista o dormida; `tareas ocho` ejecuta la demostracion completa.
+Consulta [el funcionamiento y sus limites](ENTREGA-PLANIFICADOR.md).
+
 ## Construir en Windows
 
 Las dependencias externas no se incluyen en Git. Consulta [HERRAMIENTAS.md](HERRAMIENTAS.md)
@@ -58,8 +67,8 @@ El mapa BIOS E820 se recoge en NEXTRY ASM y se consulta mediante un puente C.
 La consola informa RAM descrita por BIOS y espacio del heap por separado.
 El gestor x86 ya reserva y libera paginas fisicas de 4 KiB hasta 1 GiB.
 Cada pagina se pone en cero antes de entregarla a un nuevo usuario.
-Ya hay paginacion inicial y archivos RAM. Faltan espacios por proceso,
-archivos persistentes y aislamiento.
+Ya hay paginacion inicial, contexto CPL3 reutilizable y archivos RAM. Faltan
+procesos CPL3 simultaneos, archivos persistentes y aislamiento completo.
 El compilador genera C; el kernel aun no esta escrito completamente en NEXTRY.
 El EXE de demostracion usa solo tres funciones Win32: no hay compatibilidad general.
 

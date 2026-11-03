@@ -46,6 +46,8 @@ if (!$log.Contains('NXK: LLENADO OK') -or !$log.Contains('NXK: COPIA OK')) { thr
 if (!$log.Contains('NXK: MOVER OK')) { throw "Fallo en copia con solapamiento: $log" }
 if (!$log.Contains('NXK: HEAP LIMITES OK')) { throw "Fallo en limites del heap: $log" }
 if ($Architecture -eq 'x86') {
+    if (!$log.Contains('NXK: BUZONES FIFO OK')) { throw 'Fallo de comunicacion entre tareas.' }
+    if (!$log.Contains('NXK: PLANIFICADOR OCHO TAREAS OK')) { throw 'Fallo del planificador reutilizable.' }
     if (!$log.Contains('NXK: ATA LECTURA OK')) { throw 'Fallo de lectura ATA.' }
     if (!$log.Contains('NXK: NEXTRY USUARIO OK')) { throw 'Fallo de NEXTRY en modo usuario.' }
     if (!$log.Contains('NXK: SERVICIOS USUARIO OK')) { throw 'Fallo de servicios de usuario.' }

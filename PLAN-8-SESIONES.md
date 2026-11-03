@@ -48,3 +48,11 @@ limpia antes de entregarla. El siguiente hito es diagnostico de excepciones.
 
 Vector, error CPU, EIP y registros visibles. Pruebas provocadas para vectores
 3, 6 y 13. Pendiente integrar por revision; siguiente hito: temporizador e IRQ.
+
+## Ampliacion posterior: planificador reutilizable
+
+La demo fija de dos tareas se apoya ahora en una API x86 de ocho slots, con
+argumentos, IDs con generacion, estados, cancelacion, reanudacion y buzones FIFO.
+Pilas y mensajes se limpian al reutilizar sin crecer heap. Se conserva el cambio
+NEXTRY ASM. La organizacion es un puente C cooperativo; preempcion y procesos
+CPL3 simultaneos siguen pendientes. Evidencias: ENTREGA-PLANIFICADOR.md.

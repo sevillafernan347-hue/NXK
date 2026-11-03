@@ -18,6 +18,14 @@ El BIOS carga el arranque, este carga el kernel, la entrada limpia sus variables
 No edites `build` para cambiar el programa: su contenido se genera otra vez al compilar.
 `tools` contiene dependencias externas; `Biblioteca` contiene material de estudio.
 
+## Planificador y comunicacion entre tareas
+
+Lee [lib/tareas.h](lib/tareas.h) para conocer las llamadas, despues
+[kernel/planificador.c](kernel/planificador.c) para seguir el ciclo de vida y
+[kernel/tareas.c](kernel/tareas.c) para ver callbacks y pruebas. El cambio de
+pila permanece en [kernel/tareas32.nxa](kernel/tareas32.nxa). La guia de uso
+esta en [ENTREGA-PLANIFICADOR.md](ENTREGA-PLANIFICADOR.md).
+
 ## Mapa de los archivos propios
 
 - [kernel/paginas.c](kernel/paginas.c): gestor de paginas fisicas x86, con comentarios sobre las reservas y los mapas de bits.
