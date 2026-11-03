@@ -57,6 +57,9 @@ envio o plazo; [detalle de la ampliacion](ENTREGA-ESPERA-MENSAJES.md).
 plazo, rechazo de ciclos y proteccion frente a liberacion anticipada.
 Consulta [la entrega](ENTREGA-RESULTADOS-TAREAS.md).
 
+`tareas flujo` prueba envio y recepcion con plazo: un buzon lleno puede
+bloquear al emisor hasta tener espacio. [Detalle y limites](ENTREGA-ENVIO-CON-PLAZO.md).
+
 ## Construir en Windows
 
 Las dependencias externas no se incluyen en Git. Consulta [HERRAMIENTAS.md](HERRAMIENTAS.md)

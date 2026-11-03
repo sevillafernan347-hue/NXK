@@ -7,7 +7,7 @@ extern void nxk_cambiar_tarea(uint32_t **anterior,uint32_t *siguiente);
 extern uint32_t nxk_reloj_ticks(void);
 struct tarea {
     uint32_t generacion, id, estado, activaciones, despertar;
-    uint32_t resultado, espera_fin;
+    uint32_t resultado, espera_fin, espera_envio;
     uint32_t *pila;
     struct nxk_mensaje buzon[NXK_BUZON_MAX];
     unsigned lectura, cantidad;
@@ -33,9 +33,10 @@ static struct tarea *buscar(uint32_t id) {
 /* Publicar resultado antes de despertar a observadores. Sus referencias
  * se mantienen hasta reanudar o cancelar, para impedir reutilizar el destino. */
 static void terminar(struct tarea *t,uint32_t estado,uint32_t codigo) {
-    t->resultado=codigo; t->espera_fin=0; t->estado=estado;
+    t->resultado=codigo; t->espera_fin=t->espera_envio=0; t->estado=estado;
     for (unsigned i=0;i<NXK_TAREAS_MAX;++i)
-        if (tareas[i].estado==NXK_TAREA_ESPERANDO_FIN && tareas[i].espera_fin==t->id)
+        if ((tareas[i].estado==NXK_TAREA_ESPERANDO_FIN && tareas[i].espera_fin==t->id) ||
+            (tareas[i].estado==NXK_TAREA_ESPERANDO_ENVIO && tareas[i].espera_envio==t->id))
             tareas[i].estado=NXK_TAREA_LISTA;
 }
 static int pila_valida(struct tarea *t) {
@@ -70,7 +71,7 @@ int nxk_tarea_crear(void (*funcion)(void *),void *argumento,uint32_t *id) {
     *(uint32_t *)t->memoria=SELLO_PILA; t->pila=p;
     ++t->generacion; t->id=(t->generacion<<8)|(i+1);
     t->funcion=funcion; t->argumento=argumento; t->activaciones=0; t->despertar=0;
-    t->resultado=t->espera_fin=0;
+    t->resultado=t->espera_fin=t->espera_envio=0;
     t->lectura=t->cantidad=0; memset(t->buzon,0,sizeof(t->buzon));
     t->estado=NXK_TAREA_LISTA; *id=t->id; return 0;
 }
@@ -78,7 +79,7 @@ int nxk_tarea_consultar(uint32_t id,struct nxk_tarea_info *info) {
     struct tarea *t=buscar(id); if (!t || !info) return -1;
     info->id=t->id; info->estado=t->estado; info->activaciones=t->activaciones;
     info->despertar=t->despertar; info->resultado=t->resultado;
-    info->esperando=t->espera_fin; return 0;
+    info->esperando=t->espera_fin ? t->espera_fin : t->espera_envio; return 0;
 }
 int nxk_tarea_enumerar(unsigned slot,struct nxk_tarea_info *info) {
     if (slot>=NXK_TAREAS_MAX || !info) return -1;
@@ -111,11 +112,28 @@ int nxk_tarea_enviar(uint32_t destino,uint32_t valor) {
     if (t->estado==NXK_TAREA_ESPERANDO) t->estado=NXK_TAREA_LISTA;
     return 0;
 }
+int nxk_tarea_enviar_esperando(uint32_t destino,uint32_t valor,uint32_t ticks) {
+    if (ticks>0x7fffffffu || actual>=NXK_TAREAS_MAX || !interrupciones()) return -1;
+    struct tarea *t=&tareas[actual]; uint32_t inicio=nxk_reloj_ticks();
+    for (;;) {
+        /* Buscar por ID completo en cada intento: nunca usar un slot reciclado. */
+        int r=nxk_tarea_enviar(destino,valor); if (r!=-2) return r;
+        if (!ticks || (uint32_t)(nxk_reloj_ticks()-inicio)>=ticks) return 1;
+        t->espera_envio=destino; t->despertar=inicio+ticks; t->estado=NXK_TAREA_ESPERANDO_ENVIO;
+        nxk_cambiar_tarea(&t->pila,principal); t->espera_envio=0;
+        /* Reintentar con el mismo plazo: competir no alarga indefinidamente la espera. */
+    }
+}
 int nxk_tarea_recibir(struct nxk_mensaje *mensaje) {
     if (!mensaje || actual>=NXK_TAREAS_MAX) return -1;
     struct tarea *t=&tareas[actual]; if (!t->cantidad) return -2;
     *mensaje=t->buzon[t->lectura]; memset(&t->buzon[t->lectura],0,sizeof(*mensaje));
-    t->lectura=(t->lectura+1)%NXK_BUZON_MAX; --t->cantidad; return 0;
+    t->lectura=(t->lectura+1)%NXK_BUZON_MAX; --t->cantidad;
+    /* Despertar emisores tras publicar el hueco. La ronda decide quien encola. */
+    for (unsigned i=0;i<NXK_TAREAS_MAX;++i)
+        if (tareas[i].estado==NXK_TAREA_ESPERANDO_ENVIO && tareas[i].espera_envio==t->id)
+            tareas[i].estado=NXK_TAREA_LISTA;
+    return 0;
 }
 int nxk_tarea_esperar_mensaje(struct nxk_mensaje *mensaje,uint32_t ticks) {
     if (!mensaje || ticks>0x7fffffffu || actual>=NXK_TAREAS_MAX || !interrupciones()) return -1;
@@ -159,7 +177,8 @@ int nxk_tarea_esperar_fin(uint32_t id,struct nxk_tarea_resultado *salida,uint32_
 int nxk_tarea_cancelar(uint32_t id) {
     struct tarea *t=buscar(id); if (!t) return -1;
     if (t->estado!=NXK_TAREA_LISTA && t->estado!=NXK_TAREA_DORMIDA &&
-        t->estado!=NXK_TAREA_ESPERANDO && t->estado!=NXK_TAREA_ESPERANDO_FIN) return -2;
+        t->estado!=NXK_TAREA_ESPERANDO && t->estado!=NXK_TAREA_ESPERANDO_FIN &&
+        t->estado!=NXK_TAREA_ESPERANDO_ENVIO) return -2;
     terminar(t,NXK_TAREA_CANCELADA,UINT32_MAX); return 0;
 }
 int nxk_tarea_liberar(uint32_t id) {
@@ -179,9 +198,11 @@ int nxk_tareas_ejecutar(uint32_t presupuesto) {
         /* Buscar a partir del siguiente slot evita favorecer siempre al primero. */
         for (unsigned n=0;n<NXK_TAREAS_MAX;++n) {
             unsigned i=(cursor+n)%NXK_TAREAS_MAX; struct tarea *t=&tareas[i];
-            if ((t->estado==NXK_TAREA_DORMIDA || t->estado==NXK_TAREA_ESPERANDO || t->estado==NXK_TAREA_ESPERANDO_FIN) && vencido(ahora,t->despertar)) t->estado=NXK_TAREA_LISTA;
+            if ((t->estado==NXK_TAREA_DORMIDA || t->estado==NXK_TAREA_ESPERANDO || t->estado==NXK_TAREA_ESPERANDO_FIN ||
+                t->estado==NXK_TAREA_ESPERANDO_ENVIO) && vencido(ahora,t->despertar)) t->estado=NXK_TAREA_LISTA;
             if (t->estado==NXK_TAREA_LISTA || t->estado==NXK_TAREA_DORMIDA ||
-                t->estado==NXK_TAREA_ESPERANDO || t->estado==NXK_TAREA_ESPERANDO_FIN) ++pendientes;
+                t->estado==NXK_TAREA_ESPERANDO || t->estado==NXK_TAREA_ESPERANDO_FIN ||
+                t->estado==NXK_TAREA_ESPERANDO_ENVIO) ++pendientes;
             if (elegida==NXK_TAREAS_MAX && t->estado==NXK_TAREA_LISTA) elegida=i;
         }
         if (!pendientes) break;
@@ -224,6 +245,7 @@ uint32_t nxk_tarea_actual(void) { return 0; }
 int nxk_tarea_ceder(void) { return -64; }
 int nxk_tarea_dormir(uint32_t n) { (void)n;return -64; }
 int nxk_tarea_enviar(uint32_t id,uint32_t v) { (void)id;(void)v;return -64; }
+int nxk_tarea_enviar_esperando(uint32_t id,uint32_t v,uint32_t n) { (void)id;(void)v;(void)n;return -64; }
 int nxk_tarea_recibir(struct nxk_mensaje *m) { (void)m;return -64; }
 int nxk_tarea_esperar_mensaje(struct nxk_mensaje *m,uint32_t n) { (void)m;(void)n;return -64; }
 int nxk_tarea_finalizar(uint32_t c) { (void)c;return -64; }

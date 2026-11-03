@@ -223,3 +223,13 @@ Puente C, cooperativo ring0. Ver ENTREGA-RESULTADOS-TAREAS.md.
 Cierre de resultados: matriz x86 32/64/128/1024, regresion x64, consola del
 planificador/general y dieciseis escenarios NXE2 superados. Lotes repetidos
 mantienen heap y guardas; no cambia el formato de aplicaciones.
+
+Envio con espera de espacio: enviar_esperando conserva el plazo original y
+duerme emisores con buzon lleno. Recibir despierta emisores; finalizar/cancelar
+el destino tambien los despierta con error. ID completo protege contra envio
+a un slot reutilizado. Nuevo estado ESPERANDO_ENVIO y comando tareas flujo.
+Pruebas de timeout sin insercion, cancelacion, reutilizacion y dos productores
+con 32 valores. Puente C cooperativo ring0. Ver ENTREGA-ENVIO-CON-PLAZO.md.
+Cierre envio con plazo: matriz x86 32/64/128/1024, regresion x64 64 MiB,
+consola general/planificador y dieciseis escenarios NXE2 superados. Repetir
+flujo mantiene heap y guardas; las aplicaciones existentes siguen funcionando.

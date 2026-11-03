@@ -68,6 +68,7 @@ with log.open('wb',buffering=0) as salida:
         for _ in range(2):comando('tareas ocho',b'Ocho tareas: argumentos, pilas, esperas y finalizacion verificadas.')
         for _ in range(2):comando('tareas mensajes',b'Dieciseis mensajes: espera y despertar verificados.')
         for _ in range(2):comando('tareas resultados',b'Resultado 42 recibido por dos tareas; referencias verificadas.')
+        for _ in range(2):comando('tareas flujo',b'Envio y recepcion con plazo verificados: 16 mensajes.')
         if heap()!=usado:raise RuntimeError('La reutilizacion aumenta el heap')
         comando('usuario nextry',b'Aplicacion NEXTRY protegida termino.')
         comando('help',b'tareas cancelar ID')

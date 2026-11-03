@@ -8,7 +8,7 @@
 #define NXK_BUZON_MAX 4u
 struct nxk_mensaje { uint32_t origen, valor; };
 enum nxk_tarea_estado { NXK_TAREA_LIBRE, NXK_TAREA_LISTA, NXK_TAREA_EJECUTANDO,
-    NXK_TAREA_DORMIDA, NXK_TAREA_TERMINADA, NXK_TAREA_CANCELADA, NXK_TAREA_ESPERANDO, NXK_TAREA_ESPERANDO_FIN };
+    NXK_TAREA_DORMIDA, NXK_TAREA_TERMINADA, NXK_TAREA_CANCELADA, NXK_TAREA_ESPERANDO, NXK_TAREA_ESPERANDO_FIN, NXK_TAREA_ESPERANDO_ENVIO };
 struct nxk_tarea_info { uint32_t id, estado, activaciones, despertar, resultado, esperando; };
 struct nxk_tarea_resultado { uint32_t estado, codigo; };
 /* Cero indica exito. IDs cero, liberados o de una generacion vieja son invalidos. */
@@ -21,8 +21,11 @@ int nxk_tarea_ceder(void);
 int nxk_tarea_dormir(uint32_t ticks); /* 0 equivale a ceder; maximo 2^31-1. */
 /* Buzon FIFO no bloqueante: -2 lleno/vacio; -3 destino finalizado.
  * Enviar desde consola kernel usa origen 0. Recibir exige tarea actual.
- * Un mensaje no acorta dormir(); cooperar con ceder para esperar mensajes. */
+ * Las variantes con espera evitan sondeo; dormir conserva su plazo. */
 int nxk_tarea_enviar(uint32_t destino,uint32_t valor);
+/* Solo desde tarea: 0 encolado, 1 plazo/lleno con cero ticks.
+ * Conserva valor en su pila hasta tener espacio; no reserva un lugar. */
+int nxk_tarea_enviar_esperando(uint32_t destino,uint32_t valor,uint32_t ticks);
 int nxk_tarea_recibir(struct nxk_mensaje *mensaje);
 /* 0: mensaje; 1: plazo/vacio con cero ticks; -1: contrato invalido.
  * No modifica salida al vencer. Primero atiende mensajes ya disponibles. */

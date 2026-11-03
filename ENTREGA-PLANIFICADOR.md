@@ -51,7 +51,8 @@ rechazan. Liberar y recrear limpian mensajes, sin entregarlos a otra generacion.
 No hay punteros de payload ni despertar anticipado de dormir. La ampliacion
 [espera de mensajes](ENTREGA-ESPERA-MENSAJES.md) agrega espera con plazo y
 despertar por envio conservando la interfaz no bloqueante original.
-Las tareas cooperan con ceder si esperan espacio/datos. Estas operaciones solo
+Las tareas pueden usar las variantes con espera de mensaje/espacio descritas
+en ENTREGA-ESPERA-MENSAJES.md y ENTREGA-ENVIO-CON-PLAZO.md. Estas operaciones solo
 son validas en la CPU kernel y fuera de IRQ, igual que el planificador.
 
 ## Ver y probar desde NXK

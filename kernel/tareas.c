@@ -79,8 +79,7 @@ static void enviar_dialogo(void *argumento) {
         nxk_tarea_ceder();
     }
     for (unsigned i=0;i<16;++i) {
-        int r;
-        while ((r=nxk_tarea_enviar(d->receptor,70+i))==-2) nxk_tarea_ceder();
+        int r=nxk_tarea_enviar_esperando(d->receptor,70+i,50);
         if (r) { ++d->fallos; return; }
         if (!i && (nxk_tarea_consultar(d->receptor,&info) || info.estado!=NXK_TAREA_LISTA)) ++d->fallos;
     }
@@ -314,6 +313,89 @@ static int probar_resultados(void) {
         nxk_tarea_liberar(ciclo.ids[0]) || nxk_tarea_liberar(ciclo.ids[1])) return 7;
     return 0;
 }
+struct envio_prueba { uint32_t destino, emisor, fase, retorno, plazo, fallos; };
+static void emitir_esperando(void *argumento) {
+    struct envio_prueba *p=argumento; p->fase=1;
+    p->retorno=(uint32_t)nxk_tarea_enviar_esperando(p->destino,999,p->plazo); p->fase=2;
+}
+static void vaciar_despues(void *argumento) {
+    struct envio_prueba *p=argumento; nxk_tarea_dormir(3);
+    struct nxk_tarea_info info; struct nxk_mensaje m;
+    if (nxk_tarea_consultar(p->emisor,&info) || info.estado!=NXK_TAREA_ESPERANDO_ENVIO ||
+        info.esperando!=p->destino) ++p->fallos;
+    for (unsigned i=0;i<4;++i)
+        if (nxk_tarea_recibir(&m) || m.origen || m.valor!=i) ++p->fallos;
+    if (nxk_tarea_esperar_mensaje(&m,20) || m.origen!=p->emisor || m.valor!=999) ++p->fallos;
+}
+static void revisar_sin_envio(void *argumento) {
+    struct envio_prueba *p=argumento; nxk_tarea_dormir(10); struct nxk_mensaje m;
+    for (unsigned i=0;i<4;++i)
+        if (nxk_tarea_recibir(&m) || m.origen || m.valor!=i) ++p->fallos;
+    if (nxk_tarea_recibir(&m)!=-2) ++p->fallos;
+}
+static void contrato_envio(void *argumento) {
+    struct envio_prueba *p=argumento;
+    if (nxk_tarea_enviar_esperando(0,1,1)!=-1 ||
+        nxk_tarea_enviar_esperando(p->destino,999,0x80000000u)!=-1 ||
+        nxk_tarea_enviar_esperando(p->destino,999,0)!=1) ++p->fallos;
+    uint32_t antes=nxk_reloj_ticks();
+    if (nxk_tarea_enviar_esperando(p->destino,999,2)!=1 || nxk_reloj_ticks()-antes<2) ++p->fallos;
+}
+static int preparar_envio(struct envio_prueba *p,void (*receptor)(void *),void (*emisor)(void *)) {
+    memset(p,0,sizeof(*p)); p->plazo=20;
+    if (nxk_tarea_crear(receptor,p,&p->destino) || nxk_tarea_crear(emisor,p,&p->emisor)) return 1;
+    for (unsigned i=0;i<4;++i) if (nxk_tarea_enviar(p->destino,i)) return 2;
+    return 0;
+}
+struct flujo_multiple { uint32_t emisores[2], receptor, enviados[2], recibidos[2], fallos; };
+static void producir_flujo(void *argumento) {
+    struct flujo_multiple *p=argumento; unsigned cual=nxk_tarea_actual()==p->emisores[0] ? 0 : 1;
+    for (unsigned i=0;i<16;++i) {
+        if (nxk_tarea_enviar_esperando(p->receptor,1000*cual+i,50)) { ++p->fallos; return; }
+        ++p->enviados[cual];
+    }
+}
+static void consumir_flujo(void *argumento) {
+    struct flujo_multiple *p=argumento;
+    for (unsigned i=0;i<32;++i) {
+        struct nxk_mensaje m;
+        if (nxk_tarea_esperar_mensaje(&m,50)) { ++p->fallos; return; }
+        unsigned cual=m.origen==p->emisores[0] ? 0 : 1;
+        if (m.origen!=p->emisores[cual] || m.valor!=1000*cual+p->recibidos[cual]) { ++p->fallos; return; }
+        ++p->recibidos[cual];
+    }
+}
+static int probar_flujo_multiple(void) {
+    struct flujo_multiple p; memset(&p,0,sizeof(p));
+    if (nxk_tarea_crear(consumir_flujo,&p,&p.receptor)) return 1;
+    for (unsigned i=0;i<2;++i) if (nxk_tarea_crear(producir_flujo,&p,&p.emisores[i])) return 1;
+    if (nxk_tareas_ejecutar(100) || p.fallos || p.enviados[0]!=16 || p.enviados[1]!=16 ||
+        p.recibidos[0]!=16 || p.recibidos[1]!=16) return 2;
+    return nxk_tarea_liberar(p.receptor) || nxk_tarea_liberar(p.emisores[0]) || nxk_tarea_liberar(p.emisores[1]);
+}
+static int probar_envio_esperando(void) {
+    struct envio_prueba p; struct nxk_tarea_info info;
+    if (nxk_tarea_enviar_esperando(0,1,1)!=-1 || preparar_envio(&p,vaciar_despues,emitir_esperando) ||
+        nxk_tareas_ejecutar(100) || p.fallos || p.retorno || p.fase!=2 ||
+        nxk_tarea_liberar(p.destino) || nxk_tarea_liberar(p.emisor)) return 1;
+    if (preparar_envio(&p,revisar_sin_envio,contrato_envio) || nxk_tareas_ejecutar(100) ||
+        p.fallos || nxk_tarea_liberar(p.destino) || nxk_tarea_liberar(p.emisor)) return 2;
+    if (preparar_envio(&p,dormir_largo,emitir_esperando) || nxk_tareas_ejecutar(1)!=1 ||
+        p.fase!=1 || nxk_tarea_consultar(p.emisor,&info) || info.estado!=NXK_TAREA_ESPERANDO_ENVIO ||
+        nxk_tarea_cancelar(p.destino) || nxk_tareas_ejecutar(100) || p.fase!=2 ||
+        p.retorno!=(uint32_t)-3 || nxk_tarea_liberar(p.destino) || nxk_tarea_liberar(p.emisor)) return 3;
+    if (preparar_envio(&p,dormir_largo,emitir_esperando) || nxk_tareas_ejecutar(1)!=1 || p.fase!=1 ||
+        nxk_tarea_cancelar(p.destino) || nxk_tarea_liberar(p.destino)) return 4;
+    uint32_t antiguo=p.destino, nuevo;
+    /* Reutilizar el slot no debe entregar el mensaje al nuevo destinatario. */
+    if (nxk_tarea_crear(comprobar_vacio,0,&nuevo) || nuevo==antiguo || nxk_tareas_ejecutar(100) ||
+        p.fase!=2 || p.retorno!=(uint32_t)-1 || errores || nxk_tarea_liberar(nuevo) ||
+        nxk_tarea_liberar(p.emisor)) return 5;
+    if (preparar_envio(&p,revisar_sin_envio,emitir_esperando) || nxk_tareas_ejecutar(1)!=1 ||
+        p.fase!=1 || nxk_tarea_cancelar(p.emisor) || nxk_tareas_ejecutar(100) || p.fase!=1 ||
+        p.fallos || nxk_tarea_liberar(p.destino) || nxk_tarea_liberar(p.emisor)) return 6;
+    return 0;
+}
 int nxk_tareas_probar_limites(void) {
     struct nxk_tarea_info info; uint32_t salida=0xdeadbeefu;
     if (nxk_tarea_enumerar(NXK_TAREAS_MAX,&info)!=-1 || nxk_tarea_enumerar(0,0)!=-1 ||
@@ -396,6 +478,7 @@ int nxk_tareas_probar_limites(void) {
         nxk_tarea_liberar(intercambio.consumidor)) return 17;
     if (probar_esperas()) return 19;
     if (probar_resultados() || probar_cadena()) return 20;
+    if (probar_envio_esperando() || probar_flujo_multiple()) return 21;
     if (nxk_tareas_demo_cantidad(8) || nxk_tareas_demo_cantidad(8) ||
         nxk_heap_used()!=usado || nxk_paginacion_guardas()!=guardas ||
         nxk_tarea_actual() || nxk_tareas_ejecutar(10)) return 12;
