@@ -60,6 +60,9 @@ Consulta [la entrega](ENTREGA-RESULTADOS-TAREAS.md).
 `tareas flujo` prueba envio y recepcion con plazo: un buzon lleno puede
 bloquear al emisor hasta tener espacio. [Detalle y limites](ENTREGA-ENVIO-CON-PLAZO.md).
 
+`tareas bloqueos` comprueba el rechazo de ciclos entre envio y espera de
+finalizacion, incluidos anillos de ocho tareas. [Detalle](ENTREGA-CICLOS-CRUZADOS.md).
+
 ## Construir en Windows
 
 Las dependencias externas no se incluyen en Git. Consulta [HERRAMIENTAS.md](HERRAMIENTAS.md)

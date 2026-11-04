@@ -233,3 +233,12 @@ con 32 valores. Puente C cooperativo ring0. Ver ENTREGA-ENVIO-CON-PLAZO.md.
 Cierre envio con plazo: matriz x86 32/64/128/1024, regresion x64 64 MiB,
 consola general/planificador y dieciseis escenarios NXE2 superados. Repetir
 flujo mantiene heap y guardas; las aplicaciones existentes siguen funcionando.
+
+Detector compartido de ciclos entre esperar_fin y enviar_esperando: rechaza
+anillos de envio y dependencias mixtas antes del plazo. Envio agrega -4 por
+ciclo; esperar_fin conserva -2. Sin nuevas reservas ni cambios en estados/ABI
+CPL3. Comando tareas bloqueos; anillos de dos/ocho y caso mixto con buzones
+intactos. Ver ENTREGA-CICLOS-CRUZADOS.md.
+Cierre ciclos cruzados: matriz x86 32/64/128/1024, regresion x64, consola
+general/planificador y dieciseis escenarios NXE2 superados. Detector sin
+asignaciones nuevas; heap y guardas estables al repetir demostraciones.

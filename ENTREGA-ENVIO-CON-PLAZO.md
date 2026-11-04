@@ -30,8 +30,9 @@ fuera de tarea. Dormir no despierta anticipadamente por estos eventos.
 La consulta de tarea muestra el ID del destinatario en esperando; la consola
 reconoce el estado esperando_envio. No se cambia el orden FIFO de mensajes ya
 encolados. No hay reserva de hueco ni FIFO estricto de emisores bloqueados.
-Tampoco se detectan ciclos arbitrarios de protocolos de envio/recepcion; la
-deteccion de ciclos de esperar_fin conserva su alcance anterior.
+La ampliacion ENTREGA-CICLOS-CRUZADOS.md detecta ciclos entre envio bloqueado
+y espera de finalizacion. Los protocolos arbitrarios de envio/recepcion siguen
+fuera del alcance del detector.
 
 ## Demostracion y pruebas
 

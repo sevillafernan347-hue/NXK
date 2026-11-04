@@ -273,7 +273,7 @@ void kernel_main(void) {
     print("NXK: TAREAS COOPERATIVAS OK\n");
     extern int nxk_tareas_probar_limites(void);
     if (nxk_tareas_probar_limites()) { print("NXK: PILAS FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
-    print("NXK: PILAS Y REUTILIZACION OK\nNXK: PLANIFICADOR OCHO TAREAS OK\nNXK: BUZONES FIFO OK\nNXK: ESPERA MENSAJES OK\nNXK: RESULTADOS TAREAS OK\nNXK: ENVIO CON PLAZO OK\n");
+    print("NXK: PILAS Y REUTILIZACION OK\nNXK: PLANIFICADOR OCHO TAREAS OK\nNXK: BUZONES FIFO OK\nNXK: ESPERA MENSAJES OK\nNXK: RESULTADOS TAREAS OK\nNXK: ENVIO CON PLAZO OK\nNXK: CICLOS CRUZADOS OK\n");
 #endif
 #ifdef NXK_TEST
     if (nxk_archivos_probar()) { print("NXK: ARCHIVOS FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
@@ -367,7 +367,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | discos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\ntareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | discos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\ntareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -454,6 +454,9 @@ void kernel_main(void) {
             }
             else if (nxk_equal(line, "usuario")) {
                 print(nxk_usuario_demo() ? "Modo usuario no disponible o fallo.\n" : "Programa ring3 termino con 42; control devuelto al kernel.\n");
+            }
+            else if (nxk_equal(line,"tareas bloqueos")) {
+                print(nxk_tareas_bloqueos_demo() ? "No se pudo verificar dependencias.\n" : "Ciclos de envio y finalizacion rechazados; buzones intactos.\n");
             }
             else if (nxk_equal(line,"tareas resultados")) {
                 print(nxk_tareas_resultados_demo() ? "No se pudo verificar resultados.\n" : "Resultado 42 recibido por dos tareas; referencias verificadas.\n");

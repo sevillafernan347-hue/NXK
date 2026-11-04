@@ -30,6 +30,22 @@ static struct tarea *buscar(uint32_t id) {
     if (i>=NXK_TAREAS_MAX || tareas[i].estado==NXK_TAREA_LIBRE || tareas[i].id!=id) return 0;
     return &tareas[i];
 }
+/* Una dependencia representa una espera realmente bloqueada. Las tareas
+ * ya listas por timeout/evento no prolongan una cadena aunque retengan un ID. */
+static int crea_ciclo(struct tarea *origen,struct tarea *destino) {
+    struct tarea *p=destino;
+    for (unsigned n=0;n<NXK_TAREAS_MAX && p;++n) {
+        if (p==origen) return 1;
+        uint32_t id;
+        if (p->estado==NXK_TAREA_ESPERANDO_FIN) id=p->espera_fin;
+        else if (p->estado==NXK_TAREA_ESPERANDO_ENVIO) id=p->espera_envio;
+        else return 0;
+        p=buscar(id);
+    }
+    /* Una referencia a una generacion ya liberada se resolvera como error;
+     * no forma una dependencia sobre el slot nuevo. */
+    return p!=0;
+}
 /* Publicar resultado antes de despertar a observadores. Sus referencias
  * se mantienen hasta reanudar o cancelar, para impedir reutilizar el destino. */
 static void terminar(struct tarea *t,uint32_t estado,uint32_t codigo) {
@@ -119,6 +135,7 @@ int nxk_tarea_enviar_esperando(uint32_t destino,uint32_t valor,uint32_t ticks) {
         /* Buscar por ID completo en cada intento: nunca usar un slot reciclado. */
         int r=nxk_tarea_enviar(destino,valor); if (r!=-2) return r;
         if (!ticks || (uint32_t)(nxk_reloj_ticks()-inicio)>=ticks) return 1;
+        if (crea_ciclo(t,buscar(destino))) return -4;
         t->espera_envio=destino; t->despertar=inicio+ticks; t->estado=NXK_TAREA_ESPERANDO_ENVIO;
         nxk_cambiar_tarea(&t->pila,principal); t->espera_envio=0;
         /* Reintentar con el mismo plazo: competir no alarga indefinidamente la espera. */
@@ -155,14 +172,7 @@ int nxk_tarea_finalizar(uint32_t codigo) {
 int nxk_tarea_esperar_fin(uint32_t id,struct nxk_tarea_resultado *salida,uint32_t ticks) {
     if (!salida || ticks>0x7fffffffu || actual>=NXK_TAREAS_MAX || !interrupciones()) return -1;
     struct tarea *destino=buscar(id), *t=&tareas[actual]; if (!destino) return -1;
-    /* Revisar la cadena bloqueada evita autoespera y ciclos entre tareas. */
-    struct tarea *p=destino;
-    for (unsigned n=0;n<NXK_TAREAS_MAX;++n) {
-        if (p==t) return -2;
-        if (p->estado!=NXK_TAREA_ESPERANDO_FIN) break;
-        p=buscar(p->espera_fin); if (!p) return -1;
-        if (n+1==NXK_TAREAS_MAX) return -2;
-    }
+    if (crea_ciclo(t,destino)) return -2;
     if (destino->estado!=NXK_TAREA_TERMINADA && destino->estado!=NXK_TAREA_CANCELADA) {
         if (!ticks) return 1;
         t->espera_fin=id; t->despertar=nxk_reloj_ticks()+ticks; t->estado=NXK_TAREA_ESPERANDO_FIN;

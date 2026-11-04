@@ -127,6 +127,51 @@ int nxk_tareas_resultados_demo(void) {
     for (unsigned i=0;i<2;++i) nxk_tarea_liberar(d.observadores[i]);
     return fallo || d.fallos || d.vistos!=2 ? -1 : 0;
 }
+/* Buzones llenos y dependencias en anillo: rechazar sin esperar al timeout. */
+struct bloqueos_demo { uint32_t ids[NXK_TAREAS_MAX], cantidad, mixto, fallos; int retornos[NXK_TAREAS_MAX]; };
+static void esperar_en_anillo(void *argumento) {
+    struct bloqueos_demo *d=argumento; unsigned i=0;
+    while (i<d->cantidad && d->ids[i]!=nxk_tarea_actual()) ++i;
+    if (i==d->cantidad) { ++d->fallos; return; }
+    uint32_t destino=d->ids[(i+1)%d->cantidad];
+    if (d->mixto && !i) {
+        struct nxk_tarea_resultado r;
+        d->retornos[i]=nxk_tarea_esperar_fin(destino,&r,50);
+        if (!d->retornos[i] && (r.estado!=NXK_TAREA_TERMINADA || r.codigo)) ++d->fallos;
+    } else d->retornos[i]=nxk_tarea_enviar_esperando(destino,999,50);
+    /* Ningun ciclo rechazado puede haber cambiado el contenido del buzon. */
+    for (unsigned j=0;j<NXK_BUZON_MAX;++j) {
+        struct nxk_mensaje m;
+        if (nxk_tarea_recibir(&m) || m.origen || m.valor!=j) ++d->fallos;
+    }
+}
+static int caso_bloqueos(unsigned cantidad,unsigned mixto) {
+    struct bloqueos_demo d; memset(&d,0,sizeof(d)); d.cantidad=cantidad; d.mixto=mixto;
+    int fallo=0;
+    for (unsigned i=0;i<cantidad && !fallo;++i) {
+        d.retornos[i]=99;
+        if (nxk_tarea_crear(esperar_en_anillo,&d,&d.ids[i])) { fallo=1; break; }
+        for (unsigned j=0;j<NXK_BUZON_MAX;++j) if (nxk_tarea_enviar(d.ids[i],j)) fallo=1;
+    }
+    if (!fallo) fallo=nxk_tareas_ejecutar(100);
+    if (!fallo && mixto) {
+        if (!((d.retornos[0]==0 && d.retornos[1]==-4) ||
+              (d.retornos[0]==-2 && d.retornos[1]==-3))) fallo=1;
+    } else if (!fallo) {
+        unsigned rechazados=0;
+        for (unsigned i=0;i<cantidad;++i) {
+            if (d.retornos[i]==-4) ++rechazados;
+            else if (d.retornos[i]!=-3) fallo=1;
+        }
+        if (rechazados!=1) fallo=1;
+    }
+    for (unsigned i=0;i<cantidad;++i) nxk_tarea_cancelar(d.ids[i]);
+    for (unsigned i=0;i<cantidad;++i) if (d.ids[i] && nxk_tarea_liberar(d.ids[i])) fallo=1;
+    return fallo || d.fallos;
+}
+int nxk_tareas_bloqueos_demo(void) {
+    return caso_bloqueos(2,0) || caso_bloqueos(8,0) || caso_bloqueos(2,1);
+}
 #ifdef NXK_TEST
 extern int nxk_planificador_probar_pila(uint32_t id);
 extern int nxk_planificador_probar_rechazo(uint32_t id);
@@ -165,6 +210,11 @@ static void probar_buzon(void *argumento) {
         if (nxk_tarea_enviar(nxk_tarea_actual(),i) || nxk_tarea_recibir(&m) ||
             m.origen!=nxk_tarea_actual() || m.valor!=i) ++errores;
     }
+    for (unsigned i=0;i<NXK_BUZON_MAX;++i) if (nxk_tarea_enviar(nxk_tarea_actual(),i)) ++errores;
+    if (nxk_tarea_enviar_esperando(nxk_tarea_actual(),99,0)!=1 ||
+        nxk_tarea_enviar_esperando(nxk_tarea_actual(),99,10)!=-4) ++errores;
+    for (unsigned i=0;i<NXK_BUZON_MAX;++i)
+        if (nxk_tarea_recibir(&m) || m.origen!=nxk_tarea_actual() || m.valor!=i) ++errores;
 }
 struct intercambio { uint32_t productor, consumidor, enviados, recibidos; };
 static void producir(void *argumento) {
@@ -479,6 +529,7 @@ int nxk_tareas_probar_limites(void) {
     if (probar_esperas()) return 19;
     if (probar_resultados() || probar_cadena()) return 20;
     if (probar_envio_esperando() || probar_flujo_multiple()) return 21;
+    if (nxk_tareas_bloqueos_demo() || nxk_tareas_bloqueos_demo()) return 22;
     if (nxk_tareas_demo_cantidad(8) || nxk_tareas_demo_cantidad(8) ||
         nxk_heap_used()!=usado || nxk_paginacion_guardas()!=guardas ||
         nxk_tarea_actual() || nxk_tareas_ejecutar(10)) return 12;
@@ -489,6 +540,7 @@ int nxk_tareas_probar_limites(void) {
 int nxk_tareas_preparar_demo(void) { return -64; }
 int nxk_tareas_limpiar_demo(void) { return -64; }
 int nxk_tareas_demo_cantidad(unsigned n) { (void)n;return -64; }
+int nxk_tareas_bloqueos_demo(void) { return -64; }
 int nxk_tareas_resultados_demo(void) { return -64; }
 int nxk_tareas_mensajes_demo(void) { return -64; }
 int nxk_tareas_demo(void) { return -64; }

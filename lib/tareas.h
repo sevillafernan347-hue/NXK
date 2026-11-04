@@ -24,7 +24,8 @@ int nxk_tarea_dormir(uint32_t ticks); /* 0 equivale a ceder; maximo 2^31-1. */
  * Las variantes con espera evitan sondeo; dormir conserva su plazo. */
 int nxk_tarea_enviar(uint32_t destino,uint32_t valor);
 /* Solo desde tarea: 0 encolado, 1 plazo/lleno con cero ticks.
- * Conserva valor en su pila hasta tener espacio; no reserva un lugar. */
+ * Conserva valor en su pila hasta tener espacio; no reserva un lugar.
+ * -4 rechaza ciclos de dependencias de envio/finalizacion. */
 int nxk_tarea_enviar_esperando(uint32_t destino,uint32_t valor,uint32_t ticks);
 int nxk_tarea_recibir(struct nxk_mensaje *mensaje);
 /* 0: mensaje; 1: plazo/vacio con cero ticks; -1: contrato invalido.
@@ -43,6 +44,7 @@ int nxk_tareas_ejecutar(uint32_t presupuesto_ticks);
 int nxk_tareas_demo(void);
 int nxk_tareas_mensajes_demo(void);
 int nxk_tareas_resultados_demo(void);
+int nxk_tareas_bloqueos_demo(void);
 int nxk_tareas_demo_cantidad(unsigned cantidad);
 int nxk_tareas_probar_limites(void);
 /* Lote persistente de demostracion controlado desde la consola. */

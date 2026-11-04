@@ -30,7 +30,8 @@ que reanude y recoja el resultado o se cancele. Liberar el destino devuelve -3
 si todavia hay referencias. Cancelar un observador libera su dependencia y
 puede despertar a sus propios observadores. No se reutilizan slots bajo una
 espera pendiente. Se rechazan autoespera y cadenas que crearian un ciclo.
-Esto solo detecta ciclos de esperar_fin, no protocolos arbitrarios por mensajes.
+La ampliacion ENTREGA-CICLOS-CRUZADOS.md incluye dependencias de envio
+bloqueado; los protocolos arbitrarios por mensajes siguen fuera del alcance.
 
 ## Demostracion
 
