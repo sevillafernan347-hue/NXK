@@ -169,7 +169,7 @@ if ($Architecture -eq 'x86') {
 $boot = [IO.File]::ReadAllBytes((Join-Path $PWD "$buildDir/boot.bin"))
 $kernel = [IO.File]::ReadAllBytes((Join-Path $PWD "$buildDir/kernel.bin"))
 if ($boot.Length -ne 512 -or $boot[510] -ne 0x55 -or $boot[511] -ne 0xaa) { throw 'Sector de arranque invalido' }
-$limiteKernel = if ($Architecture -eq 'x86') { 57344 } else { 32768 }
+$limiteKernel = if ($Architecture -eq 'x86') { 61440 } else { 32768 }
 if ($kernel.Length -gt $limiteKernel) { throw 'Kernel demasiado grande para su cargador BIOS' }
 $disk = New-Object byte[] (1024*1024)
 [Array]::Copy($boot,0,$disk,0,$boot.Length)

@@ -63,6 +63,10 @@ bloquear al emisor hasta tener espacio. [Detalle y limites](ENTREGA-ENVIO-CON-PL
 `tareas bloqueos` comprueba el rechazo de ciclos entre envio y espera de
 finalizacion, incluidos anillos de ocho tareas. [Detalle](ENTREGA-CICLOS-CRUZADOS.md).
 
+`tareas estadisticas` muestra los turnos, mensajes, esperas y plazos de cada
+tarea registrada. Los contadores se conservan al terminar y empiezan en cero
+al crear otra tarea. [Uso y significado](ENTREGA-METRICAS-TAREAS.md).
+
 ## Construir en Windows
 
 Las dependencias externas no se incluyen en Git. Consulta [HERRAMIENTAS.md](HERRAMIENTAS.md)

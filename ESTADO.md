@@ -242,3 +242,13 @@ intactos. Ver ENTREGA-CICLOS-CRUZADOS.md.
 Cierre ciclos cruzados: matriz x86 32/64/128/1024, regresion x64, consola
 general/planificador y dieciseis escenarios NXE2 superados. Detector sin
 asignaciones nuevas; heap y guardas estables al repetir demostraciones.
+
+Metricas por tarea: consulta de turnos, cesiones, dormir, mensajes, bloqueos,
+plazos y ciclos. Contadores uint32 saturados, conservados en terminales y
+reiniciados por generacion. Comando tareas estadisticas; pruebas de valores
+exactos, consulta sin mutacion, ID liberado y saturacion. 320 bytes estaticos,
+sin reservas nuevas de heap. Cargador x86 lee ahora 60 KiB, con reserva total
+imagen+BSS aun acotada a 64 KiB. Ver ENTREGA-METRICAS-TAREAS.md.
+Cierre metricas: matriz x86 32/64/128/1024, regresion x64, consola general/
+planificador y dieciseis escenarios NXE2 superados. Contadores iniciales y
+terminales comprobados desde consola sin alterar el uso de heap/guardas.

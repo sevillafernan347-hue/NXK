@@ -11,6 +11,12 @@ enum nxk_tarea_estado { NXK_TAREA_LIBRE, NXK_TAREA_LISTA, NXK_TAREA_EJECUTANDO,
     NXK_TAREA_DORMIDA, NXK_TAREA_TERMINADA, NXK_TAREA_CANCELADA, NXK_TAREA_ESPERANDO, NXK_TAREA_ESPERANDO_FIN, NXK_TAREA_ESPERANDO_ENVIO };
 struct nxk_tarea_info { uint32_t id, estado, activaciones, despertar, resultado, esperando; };
 struct nxk_tarea_resultado { uint32_t estado, codigo; };
+/* Instantanea: contadores saturados, sin modificar ni reiniciar la tarea. */
+struct nxk_tarea_metricas {
+    uint32_t activaciones, cesiones, dormidas, esperas_mensaje, esperas_envio,
+        esperas_fin, enviados, recibidos, plazos, ciclos;
+};
+int nxk_tarea_metricas(uint32_t id,struct nxk_tarea_metricas *salida);
 /* Cero indica exito. IDs cero, liberados o de una generacion vieja son invalidos. */
 int nxk_tarea_crear(void (*funcion)(void *),void *argumento,uint32_t *id);
 int nxk_tarea_consultar(uint32_t id,struct nxk_tarea_info *info);

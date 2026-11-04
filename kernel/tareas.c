@@ -446,6 +446,40 @@ static int probar_envio_esperando(void) {
         p.fallos || nxk_tarea_liberar(p.destino) || nxk_tarea_liberar(p.emisor)) return 6;
     return 0;
 }
+extern int nxk_planificador_probar_saturacion(void);
+static int sin_eventos(const struct nxk_tarea_metricas *m) {
+    return !m->cesiones && !m->dormidas && !m->esperas_mensaje && !m->esperas_envio &&
+        !m->esperas_fin && !m->enviados && !m->recibidos && !m->plazos && !m->ciclos;
+}
+static void medir_eventos(void *argumento) {
+    unsigned *fallos=argumento; struct nxk_tarea_metricas m; struct nxk_mensaje mensaje;
+    uint32_t id=nxk_tarea_actual();
+    if (nxk_tarea_metricas(id,&m) || m.activaciones!=1 || !sin_eventos(&m)) ++*fallos;
+    nxk_tarea_ceder(); nxk_tarea_dormir(1);
+    if (nxk_tarea_enviar(id,7) || nxk_tarea_esperar_mensaje(&mensaje,0) || mensaje.valor!=7 ||
+        nxk_tarea_esperar_mensaje(&mensaje,1)!=1) ++*fallos;
+    for (unsigned i=0;i<NXK_BUZON_MAX;++i) if (nxk_tarea_enviar(id,i)) ++*fallos;
+    if (nxk_tarea_enviar_esperando(id,99,10)!=-4) ++*fallos;
+    for (unsigned i=0;i<NXK_BUZON_MAX;++i) if (nxk_tarea_recibir(&mensaje) || mensaje.valor!=i) ++*fallos;
+    if (nxk_tarea_metricas(id,&m) || m.activaciones!=4 || m.cesiones!=1 || m.dormidas!=1 ||
+        m.esperas_mensaje!=1 || m.esperas_envio || m.esperas_fin || m.enviados!=5 ||
+        m.recibidos!=5 || m.plazos!=1 || m.ciclos!=1) ++*fallos;
+}
+static int probar_metricas(void) {
+    struct nxk_tarea_metricas m; uint32_t id,nuevo; unsigned fallos=0;
+    if (nxk_planificador_probar_saturacion() || nxk_tarea_crear(medir_eventos,&fallos,&id) ||
+        nxk_tarea_metricas(id,&m) || m.activaciones || !sin_eventos(&m) ||
+        nxk_tarea_metricas(id,0)!=-1 || nxk_tareas_ejecutar(100) || fallos ||
+        nxk_tarea_metricas(id,&m) || m.enviados!=5 || m.recibidos!=5 || nxk_tarea_liberar(id)) return 1;
+    memset(&m,0xa5,sizeof(m));
+    if (nxk_tarea_metricas(id,&m)!=-1) return 2;
+    for (unsigned i=0;i<sizeof(m);++i) if (((unsigned char *)&m)[i]!=0xa5) return 2;
+    if (nxk_tarea_crear(sumar,&fallos,&nuevo) || nuevo==id || nxk_tarea_metricas(nuevo,&m) ||
+        m.activaciones || !sin_eventos(&m) || nxk_tarea_cancelar(nuevo) ||
+        nxk_tarea_metricas(nuevo,&m) || m.activaciones || !sin_eventos(&m) ||
+        nxk_tarea_liberar(nuevo)) return 3;
+    return 0;
+}
 int nxk_tareas_probar_limites(void) {
     struct nxk_tarea_info info; uint32_t salida=0xdeadbeefu;
     if (nxk_tarea_enumerar(NXK_TAREAS_MAX,&info)!=-1 || nxk_tarea_enumerar(0,0)!=-1 ||
@@ -530,6 +564,7 @@ int nxk_tareas_probar_limites(void) {
     if (probar_resultados() || probar_cadena()) return 20;
     if (probar_envio_esperando() || probar_flujo_multiple()) return 21;
     if (nxk_tareas_bloqueos_demo() || nxk_tareas_bloqueos_demo()) return 22;
+    if (probar_metricas()) return 23;
     if (nxk_tareas_demo_cantidad(8) || nxk_tareas_demo_cantidad(8) ||
         nxk_heap_used()!=usado || nxk_paginacion_guardas()!=guardas ||
         nxk_tarea_actual() || nxk_tareas_ejecutar(10)) return 12;

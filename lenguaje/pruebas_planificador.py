@@ -27,17 +27,26 @@ with log.open('wb',buffering=0) as salida:
         if len(filas)!=cantidad or (estado and any(e.decode()!=estado for _,e,_ in filas)):
             raise RuntimeError(datos.decode(errors='replace'))
         return filas
+    def metricas():
+        datos=comando('tareas estadisticas')
+        patron=(rb'Tarea (\d+): turnos (\d+); cesiones (\d+); dormir (\d+)\r?\n'
+                rb'  Envio (\d+); recepcion (\d+); espera msg/envio/fin (\d+)/(\d+)/(\d+); plazos (\d+); ciclos (\d+)')
+        filas=[tuple(map(int,r)) for r in re.findall(patron,datos)]
+        if len(filas)!=8:raise RuntimeError(datos.decode(errors='replace'))
+        return filas
     def heap():
         datos=comando('mem')
         return int(re.search(rb'Heap fijo usado: (\d+)',datos)[1])
     try:
         esperar(0)
         comando('tareas listar',b'Sin tareas registradas.')
+        comando('tareas estadisticas',b'Sin tareas registradas.')
         for id in ('','0','-1','1x','4294967296','4294967295'):
             comando('tareas cancelar '+id,b'No se pudo cancelar')
         comando('tareas preparar',b'Ocho tareas preparadas')
         primeras=listar('lista',8); ids=[int(i) for i,_,_ in primeras]
         if len(set(ids))!=8 or any(int(a) for _,_,a in primeras):raise RuntimeError('IDs o estado inicial incorrectos')
+        if any(any(r[1:]) for r in metricas()):raise RuntimeError('Contadores iniciales distintos de cero')
         usado=heap()
         comando('tareas preparar',b'No se pudo preparar')
         # El comando antiguo no debe sobrescribir un lote que ocupa los ocho slots.
@@ -51,11 +60,17 @@ with log.open('wb',buffering=0) as salida:
             if int(id)==ids[0]:
                 if estado!=b'cancelada' or activaciones!=b'0':raise RuntimeError('Tarea cancelada fue ejecutada')
             elif estado!=b'terminada' or activaciones!=b'5':raise RuntimeError('Finalizacion incorrecta')
+        contadores=metricas()
+        for r in contadores:
+            esperado=(0,0,0,0,0,0,0,0,0,0) if r[0]==ids[0] else (5,0,4,0,0,0,0,0,0,0)
+            if r[1:]!=esperado:raise RuntimeError('Contadores de tareas incorrectos: '+str(r))
+        if metricas()!=contadores:raise RuntimeError('Consultar altera contadores')
         comando('tareas cancelar '+str(ids[1]),b'No se pudo cancelar')
         comando('tareas limpiar',b'Lote de tareas liberado.')
         comando('tareas listar',b'Sin tareas registradas.')
         comando('tareas preparar',b'Ocho tareas preparadas')
         nuevas=listar('lista',8)
+        if any(any(r[1:]) for r in metricas()):raise RuntimeError('Nueva generacion conserva contadores')
         if set(ids)&{int(i) for i,_,_ in nuevas}:raise RuntimeError('Reaparecio un ID antiguo')
         comando('tareas cancelar '+str(ids[0]),b'No se pudo cancelar')
         comando('tareas ejecutar',b'Tareas pendientes completadas.')

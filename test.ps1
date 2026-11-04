@@ -46,6 +46,7 @@ if (!$log.Contains('NXK: LLENADO OK') -or !$log.Contains('NXK: COPIA OK')) { thr
 if (!$log.Contains('NXK: MOVER OK')) { throw "Fallo en copia con solapamiento: $log" }
 if (!$log.Contains('NXK: HEAP LIMITES OK')) { throw "Fallo en limites del heap: $log" }
 if ($Architecture -eq 'x86') {
+    if (!$log.Contains('NXK: METRICAS TAREAS OK')) { throw 'Fallo de contadores del planificador.' }
     if (!$log.Contains('NXK: CICLOS CRUZADOS OK')) { throw 'Fallo de deteccion de dependencias cruzadas.' }
     if (!$log.Contains('NXK: ENVIO CON PLAZO OK')) { throw 'Fallo de envio con espera de espacio.' }
     if (!$log.Contains('NXK: RESULTADOS TAREAS OK')) { throw 'Fallo de resultados y dependencias de tareas.' }

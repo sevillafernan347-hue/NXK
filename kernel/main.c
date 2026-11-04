@@ -273,7 +273,7 @@ void kernel_main(void) {
     print("NXK: TAREAS COOPERATIVAS OK\n");
     extern int nxk_tareas_probar_limites(void);
     if (nxk_tareas_probar_limites()) { print("NXK: PILAS FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
-    print("NXK: PILAS Y REUTILIZACION OK\nNXK: PLANIFICADOR OCHO TAREAS OK\nNXK: BUZONES FIFO OK\nNXK: ESPERA MENSAJES OK\nNXK: RESULTADOS TAREAS OK\nNXK: ENVIO CON PLAZO OK\nNXK: CICLOS CRUZADOS OK\n");
+    print("NXK: PILAS Y REUTILIZACION OK\nNXK: PLANIFICADOR OCHO TAREAS OK\nNXK: BUZONES FIFO OK\nNXK: ESPERA MENSAJES OK\nNXK: RESULTADOS TAREAS OK\nNXK: ENVIO CON PLAZO OK\nNXK: CICLOS CRUZADOS OK\nNXK: METRICAS TAREAS OK\n");
 #endif
 #ifdef NXK_TEST
     if (nxk_archivos_probar()) { print("NXK: ARCHIVOS FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
@@ -367,7 +367,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | discos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\ntareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | discos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\ntareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -467,6 +467,19 @@ void kernel_main(void) {
             }
             else if (nxk_equal(line,"tareas preparar")) {
                 print(nxk_tareas_preparar_demo() ? "No se pudo preparar; limpia el lote anterior.\n" : "Ocho tareas preparadas; usa tareas listar y tareas ejecutar.\n");
+            }
+            else if (nxk_equal(line,"tareas estadisticas")) {
+                unsigned cantidad=0;
+                for (unsigned i=0;i<NXK_TAREAS_MAX;++i) {
+                    struct nxk_tarea_info info; struct nxk_tarea_metricas m;
+                    if (nxk_tarea_enumerar(i,&info) || nxk_tarea_metricas(info.id,&m)) continue;
+                    ++cantidad; print("Tarea "); number(info.id); print(": turnos "); number(m.activaciones);
+                    print("; cesiones "); number(m.cesiones); print("; dormir "); number(m.dormidas); put('\n');
+                    print("  Envio "); number(m.enviados); print("; recepcion "); number(m.recibidos);
+                    print("; espera msg/envio/fin "); number(m.esperas_mensaje); put('/'); number(m.esperas_envio); put('/'); number(m.esperas_fin);
+                    print("; plazos "); number(m.plazos); print("; ciclos "); number(m.ciclos); put('\n');
+                }
+                if (!cantidad) print("Sin tareas registradas.\n");
             }
             else if (nxk_equal(line,"tareas listar")) {
                 static const char *nombres[]={"libre","lista","ejecutando","dormida","terminada","cancelada","esperando","esperando_fin","esperando_envio"};
