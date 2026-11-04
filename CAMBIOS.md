@@ -3,6 +3,18 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.3
+
+- Ocho semaforos contadores kernel: crear, consultar, adquirir con plazo,
+  publicar sin desbordar y destruir con proteccion de esperadores.
+- IDs con generacion, cancelacion de esperas y nuevo estado/contador de diagnostico.
+- Comando semaforos: ocho tareas y 32 operaciones sobre un recurso compartido.
+- Arranque NEXTRY ASM por bloques de 32/32/56 KiB: capacidad de imagen 120 KiB,
+  reserva total 128 KiB, unidad BIOS preservada entre transferencias.
+- Prueba de carga completa con cinco marcadores y corrupciones controladas.
+- Matriz x86, regresion x64, consola, 16 NXE2, diez excepciones/privilegios
+  y siete pruebas del ensamblador superados.
+
 ## v0.0.2
 
 - Numero del kernel unificado en lib/version.h, mostrado al arrancar y con version.

@@ -2,12 +2,13 @@
  * No es seguro para callbacks no confiables: todos ejecutan en ring0. */
 #include "tareas.h"
 #include "paginacion.h"
+#include "semaforos.h"
 #if defined(__i386__)
 extern void nxk_cambiar_tarea(uint32_t **anterior,uint32_t *siguiente);
 extern uint32_t nxk_reloj_ticks(void);
 struct tarea {
     uint32_t generacion, id, estado, activaciones, despertar;
-    uint32_t resultado, espera_fin, espera_envio;
+    uint32_t resultado, espera_fin, espera_envio, espera_semaforo;
     struct nxk_tarea_metricas metricas;
     uint32_t *pila;
     struct nxk_mensaje buzon[NXK_BUZON_MAX];
@@ -52,7 +53,7 @@ static int crea_ciclo(struct tarea *origen,struct tarea *destino) {
 /* Publicar resultado antes de despertar a observadores. Sus referencias
  * se mantienen hasta reanudar o cancelar, para impedir reutilizar el destino. */
 static void terminar(struct tarea *t,uint32_t estado,uint32_t codigo) {
-    t->resultado=codigo; t->espera_fin=t->espera_envio=0; t->estado=estado;
+    t->resultado=codigo; t->espera_fin=t->espera_envio=t->espera_semaforo=0; t->estado=estado;
     for (unsigned i=0;i<NXK_TAREAS_MAX;++i)
         if ((tareas[i].estado==NXK_TAREA_ESPERANDO_FIN && tareas[i].espera_fin==t->id) ||
             (tareas[i].estado==NXK_TAREA_ESPERANDO_ENVIO && tareas[i].espera_envio==t->id))
@@ -90,7 +91,7 @@ int nxk_tarea_crear(void (*funcion)(void *),void *argumento,uint32_t *id) {
     *(uint32_t *)t->memoria=SELLO_PILA; t->pila=p;
     ++t->generacion; t->id=(t->generacion<<8)|(i+1);
     t->funcion=funcion; t->argumento=argumento; t->activaciones=0; t->despertar=0;
-    t->resultado=t->espera_fin=t->espera_envio=0;
+    t->resultado=t->espera_fin=t->espera_envio=t->espera_semaforo=0;
     memset(&t->metricas,0,sizeof(t->metricas));
     t->lectura=t->cantidad=0; memset(t->buzon,0,sizeof(t->buzon));
     t->estado=NXK_TAREA_LISTA; *id=t->id; return 0;
@@ -99,7 +100,7 @@ int nxk_tarea_consultar(uint32_t id,struct nxk_tarea_info *info) {
     struct tarea *t=buscar(id); if (!t || !info) return -1;
     info->id=t->id; info->estado=t->estado; info->activaciones=t->activaciones;
     info->despertar=t->despertar; info->resultado=t->resultado;
-    info->esperando=t->espera_fin ? t->espera_fin : t->espera_envio; return 0;
+    info->esperando=t->espera_fin ? t->espera_fin : t->espera_envio ? t->espera_envio : t->espera_semaforo; return 0;
 }
 int nxk_tarea_metricas(uint32_t id,struct nxk_tarea_metricas *salida) {
     struct tarea *t=buscar(id); if (!t || !salida) return -1;
@@ -221,7 +222,7 @@ int nxk_tarea_cancelar(uint32_t id) {
     struct tarea *t=buscar(id); if (!t) return -1;
     if (t->estado!=NXK_TAREA_LISTA && t->estado!=NXK_TAREA_DORMIDA &&
         t->estado!=NXK_TAREA_ESPERANDO && t->estado!=NXK_TAREA_ESPERANDO_FIN &&
-        t->estado!=NXK_TAREA_ESPERANDO_ENVIO) return -2;
+        t->estado!=NXK_TAREA_ESPERANDO_ENVIO && t->estado!=NXK_TAREA_ESPERANDO_SEMAFORO) return -2;
     terminar(t,NXK_TAREA_CANCELADA,UINT32_MAX); return 0;
 }
 int nxk_tarea_liberar(uint32_t id) {
@@ -230,6 +231,60 @@ int nxk_tarea_liberar(uint32_t id) {
     for (unsigned i=0;i<NXK_TAREAS_MAX;++i) if (tareas[i].espera_fin==id) return -3;
     t->funcion=0; t->argumento=0; t->cantidad=t->lectura=0;
     memset(t->buzon,0,sizeof(t->buzon)); t->estado=NXK_TAREA_LIBRE; return 0;
+}
+/* Objetos estaticos: no consumen heap al crear ni al esperar. */
+struct semaforo { uint32_t generacion, id, valor, maximo, activo; };
+static struct semaforo semaforos[NXK_SEMAFOROS_MAX];
+static struct semaforo *buscar_semaforo(uint32_t id) {
+    unsigned i=(id&255u)-1u;
+    return i<NXK_SEMAFOROS_MAX && semaforos[i].activo && semaforos[i].id==id ? &semaforos[i] : 0;
+}
+static unsigned referencias_semaforo(uint32_t id) {
+    unsigned n=0;
+    for (unsigned i=0;i<NXK_TAREAS_MAX;++i) if (tareas[i].espera_semaforo==id) ++n;
+    return n;
+}
+int nxk_semaforo_crear(uint32_t inicial,uint32_t maximo,uint32_t *id) {
+    if (!id || !maximo || inicial>maximo) return -1;
+    for (unsigned i=0;i<NXK_SEMAFOROS_MAX;++i) {
+        struct semaforo *s=&semaforos[i];
+        if (s->activo || s->generacion==0xffffffu) continue;
+        ++s->generacion; s->id=(s->generacion<<8)|(i+1);
+        s->valor=inicial; s->maximo=maximo; s->activo=1; *id=s->id; return 0;
+    }
+    return -2;
+}
+int nxk_semaforo_consultar(uint32_t id,struct nxk_semaforo_info *salida) {
+    struct semaforo *s=buscar_semaforo(id); if (!s || !salida) return -1;
+    salida->id=s->id; salida->disponibles=s->valor; salida->maximo=s->maximo;
+    salida->esperadores=referencias_semaforo(id); return 0;
+}
+int nxk_semaforo_publicar(uint32_t id) {
+    struct semaforo *s=buscar_semaforo(id); if (!s) return -1;
+    if (s->valor==s->maximo) return -2;
+    ++s->valor;
+    for (unsigned i=0;i<NXK_TAREAS_MAX;++i)
+        if (tareas[i].estado==NXK_TAREA_ESPERANDO_SEMAFORO && tareas[i].espera_semaforo==id)
+            tareas[i].estado=NXK_TAREA_LISTA;
+    return 0;
+}
+int nxk_semaforo_adquirir(uint32_t id,uint32_t ticks) {
+    if (actual>=NXK_TAREAS_MAX || ticks>0x7fffffffu || !interrupciones()) return -1;
+    struct tarea *t=&tareas[actual]; uint32_t inicio=nxk_reloj_ticks();
+    for (;;) {
+        struct semaforo *s=buscar_semaforo(id); if (!s) return -1;
+        if (s->valor) { --s->valor; return 0; }
+        if (!ticks) return 1;
+        if ((uint32_t)(nxk_reloj_ticks()-inicio)>=ticks) { incrementar(&t->metricas.plazos); return 1; }
+        incrementar(&t->metricas.esperas_semaforo); t->espera_semaforo=id;
+        t->despertar=inicio+ticks; t->estado=NXK_TAREA_ESPERANDO_SEMAFORO;
+        nxk_cambiar_tarea(&t->pila,principal); t->espera_semaforo=0;
+    }
+}
+int nxk_semaforo_destruir(uint32_t id) {
+    struct semaforo *s=buscar_semaforo(id); if (!s) return -1;
+    if (referencias_semaforo(id)) return -3;
+    s->activo=0; s->valor=s->maximo=0; return 0;
 }
 int nxk_tareas_ejecutar(uint32_t presupuesto) {
     if (organizando || !presupuesto || presupuesto>0x7fffffffu) return -1;
@@ -242,10 +297,10 @@ int nxk_tareas_ejecutar(uint32_t presupuesto) {
         for (unsigned n=0;n<NXK_TAREAS_MAX;++n) {
             unsigned i=(cursor+n)%NXK_TAREAS_MAX; struct tarea *t=&tareas[i];
             if ((t->estado==NXK_TAREA_DORMIDA || t->estado==NXK_TAREA_ESPERANDO || t->estado==NXK_TAREA_ESPERANDO_FIN ||
-                t->estado==NXK_TAREA_ESPERANDO_ENVIO) && vencido(ahora,t->despertar)) t->estado=NXK_TAREA_LISTA;
+                t->estado==NXK_TAREA_ESPERANDO_ENVIO || t->estado==NXK_TAREA_ESPERANDO_SEMAFORO) && vencido(ahora,t->despertar)) t->estado=NXK_TAREA_LISTA;
             if (t->estado==NXK_TAREA_LISTA || t->estado==NXK_TAREA_DORMIDA ||
                 t->estado==NXK_TAREA_ESPERANDO || t->estado==NXK_TAREA_ESPERANDO_FIN ||
-                t->estado==NXK_TAREA_ESPERANDO_ENVIO) ++pendientes;
+                t->estado==NXK_TAREA_ESPERANDO_ENVIO || t->estado==NXK_TAREA_ESPERANDO_SEMAFORO) ++pendientes;
             if (elegida==NXK_TAREAS_MAX && t->estado==NXK_TAREA_LISTA) elegida=i;
         }
         if (!pendientes) break;
@@ -293,6 +348,11 @@ int nxk_planificador_probar_pila(uint32_t id) {
 #endif
 #else
 /* x64 conserva arranque; esta API requiere el cambio de contexto x86. */
+int nxk_semaforo_crear(uint32_t i,uint32_t m,uint32_t *id) { (void)i;(void)m;(void)id;return -64; }
+int nxk_semaforo_consultar(uint32_t id,struct nxk_semaforo_info *s) { (void)id;(void)s;return -64; }
+int nxk_semaforo_publicar(uint32_t id) { (void)id;return -64; }
+int nxk_semaforo_adquirir(uint32_t id,uint32_t n) { (void)id;(void)n;return -64; }
+int nxk_semaforo_destruir(uint32_t id) { (void)id;return -64; }
 int nxk_tarea_crear(void (*f)(void *),void *a,uint32_t *id) { (void)f;(void)a;(void)id;return -64; }
 int nxk_tarea_consultar(uint32_t id,struct nxk_tarea_info *i) { (void)id;(void)i;return -64; }
 int nxk_tarea_metricas(uint32_t id,struct nxk_tarea_metricas *s) { (void)id;(void)s;return -64; }

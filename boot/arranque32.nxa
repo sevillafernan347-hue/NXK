@@ -14,11 +14,57 @@ segmento ss, ax
 cargar16 sp, 0x7c00
 direccion_adelante
 activar_interrupciones
+# Tres transferencias: 32 + 32 + 56 KiB, sin cruzar frontera fisica de 64 KiB.
+# Conservar la unidad BIOS en DX entre las llamadas.
 cargar16 si, paquete
-# El BIOS lee 120 sectores del disco a partir del sector 1, segun el paquete.
+guardar16 dx
 cargar8 ah, 0x42
 interrupcion 0x13
+recuperar16 dx
 si_error error_disco
+cero ax
+segmento ds, ax
+segmento es, ax
+# Segundo bloque: disco LBA 65, destino fisico 0x18000.
+cargar16 ax, 64
+escribir_memoria16 paquete+2, ax
+cargar16 ax, 0x1800
+escribir_memoria16 paquete+6, ax
+cargar16 ax, 65
+escribir_memoria16 paquete+8, ax
+cero ax
+escribir_memoria16 paquete+10, ax
+escribir_memoria16 paquete+12, ax
+escribir_memoria16 paquete+14, ax
+cargar16 si, paquete
+guardar16 dx
+cargar8 ah, 0x42
+interrupcion 0x13
+recuperar16 dx
+si_error error_disco
+cero ax
+segmento ds, ax
+segmento es, ax
+# Tercer bloque: disco LBA 129, destino fisico 0x20000, hasta 0x2e000.
+cargar16 ax, 112
+escribir_memoria16 paquete+2, ax
+cargar16 ax, 0x2000
+escribir_memoria16 paquete+6, ax
+cargar16 ax, 129
+escribir_memoria16 paquete+8, ax
+cero ax
+escribir_memoria16 paquete+10, ax
+escribir_memoria16 paquete+12, ax
+escribir_memoria16 paquete+14, ax
+cargar16 si, paquete
+guardar16 dx
+cargar8 ah, 0x42
+interrupcion 0x13
+recuperar16 dx
+si_error error_disco
+cero ax
+segmento ds, ax
+segmento es, ax
 # Mapa BIOS E820: cabecera en 0x5000, hasta 32 registros de 20 bytes en 0x5010.
 # Se recoge antes de pasar a modo protegido, mientras existe el servicio BIOS.
 cargar16 bp, 0
@@ -77,7 +123,7 @@ alinear 8
 paquete:
 # Paquete de lectura BIOS: tamano, sectores, destino 1000:0000 y sector inicial.
 bytes 16, 0
-palabra 120, 0, 0x1000
+palabra 64, 0, 0x1000
 cuadruple 1
 gdt:
 cuadruple 0, 0x00cf9a000000ffff, 0x00cf92000000ffff

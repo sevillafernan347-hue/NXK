@@ -262,3 +262,17 @@ VERSIONES.md y CAMBIOS.md. Se conserva todo el historial de commits anterior.
 Cierre v0.0.2: matriz x86 32/64/128/1024, regresion x64, consola general/
 planificador y dieciseis escenarios NXE2 superados. Version y resumen verificados
 sin alteracion de las tareas ni del uso de heap/guardas.
+
+NXK v0.0.3: semaforos contadores kernel (ocho objetos) con generacion, plazo,
+destruccion protegida y cancelacion de esperadores. Nuevo estado y contador
+esperas_semaforo, demo de ocho tareas/32 operaciones. Modulo de pruebas y demo
+en kernel/semaforos.c; API lib/semaforos.h. Sin asignaciones nuevas de heap.
+Arranque NXA x86 ahora lee 32/32/56 KiB en tres transferencias sin cruzar
+frontera fisica de 64 KiB. Imagen maxima 120 KiB y reserva imagen+BSS 128 KiB;
+se conservan heap, primeras reservas fisicas y ABI de aplicaciones. Seis casos
+de lectura/corrupcion comprueban toda la carga. Ver ENTREGA-SEMAFOROS.md.
+Cierre v0.0.3: matriz x86 32/64/128/1024, regresion x64, siete pruebas NXA,
+seis casos de lectura completa/corrupcion, consola y 16 NXE2 superados. Diez
+escenarios de excepciones/privilegios, incluido doble fallo, superados con el
+cargador final. Diez intentos de demo sin slots y posteriores lotes confirman
+limpieza de semaforos; heap/guardas estables. Imagen normal 45068 bytes.

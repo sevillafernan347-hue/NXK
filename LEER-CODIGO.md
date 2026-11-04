@@ -26,6 +26,15 @@ Lee [lib/tareas.h](lib/tareas.h) para conocer las llamadas, despues
 pila permanece en [kernel/tareas32.nxa](kernel/tareas32.nxa). La guia de uso
 esta en [ENTREGA-PLANIFICADOR.md](ENTREGA-PLANIFICADOR.md).
 
+## Sincronizacion y carga por bloques
+
+[lib/semaforos.h](lib/semaforos.h) declara la API. La espera se integra en
+[kernel/planificador.c](kernel/planificador.c); [kernel/semaforos.c](kernel/semaforos.c)
+contiene la demostracion de exclusion y pruebas de limites/ciclo de vida.
+[boot/arranque32.nxa](boot/arranque32.nxa) carga los tres bloques del kernel;
+[lenguaje/pruebas_arranque_bloques.py](lenguaje/pruebas_arranque_bloques.py)
+verifica principio/final de las transferencias con un programa NEXTRY ASM.
+
 ## Mapa de los archivos propios
 
 - [kernel/paginas.c](kernel/paginas.c): gestor de paginas fisicas x86, con comentarios sobre las reservas y los mapas de bits.

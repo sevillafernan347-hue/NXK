@@ -41,6 +41,7 @@ with log.open('wb',buffering=0) as salida:
         grupos=re.findall(rb'(?:Listas/ejecutando/dormidas|Esperas mensaje/fin/envio|Terminadas/canceladas/libres) (\d+)/(\d+)/(\d+)',datos)
         if not filas or not memoria or tuple(map(int,filas.groups()+memoria.groups()))!=esperado or tuple(int(v) for g in grupos for v in g)!=estados:
             raise RuntimeError(datos.decode(errors='replace'))
+        if b'Esperas semaforo 0' not in datos:raise RuntimeError('Espera de semaforo inesperada')
         if comando('tareas resumen')!=datos:raise RuntimeError('Consultar resumen altera estado')
     def heap():
         datos=comando('mem')
@@ -63,6 +64,9 @@ with log.open('wb',buffering=0) as salida:
         comando('tareas preparar',b'No se pudo preparar')
         # El comando antiguo no debe sobrescribir un lote que ocupa los ocho slots.
         comando('tareas',b'Tareas no disponibles o fallo.')
+        # Rechazar lotes sin slots tampoco debe filtrar objetos semaforo.
+        for _ in range(10):comando('semaforos',b'No se pudo verificar sincronizacion.')
+        resumen((8,8,0,8,98304,0),(8,0,0,0,0,0,0,0,0))
         comando('tareas cancelar '+str(ids[0]),b'Tarea cancelada.')
         paso=comando('tareas paso')
         if b'Presupuesto cumplido' not in paso and b'pendientes completadas' not in paso:raise RuntimeError('Paso invalido')
@@ -100,6 +104,7 @@ with log.open('wb',buffering=0) as salida:
         for _ in range(2):comando('tareas flujo',b'Envio y recepcion con plazo verificados: 16 mensajes.')
         for _ in range(2):comando('tareas bloqueos',b'Ciclos de envio y finalizacion rechazados; buzones intactos.')
         resumen((0,0,0,8,98304,0),(0,0,0,0,0,0,0,0,8))
+        for _ in range(3):comando('semaforos',b'Ocho tareas compartieron un recurso; 32 operaciones verificadas.')
         if heap()!=usado:raise RuntimeError('La reutilizacion aumenta el heap')
         comando('usuario nextry',b'Aplicacion NEXTRY protegida termino.')
         comando('help',b'tareas cancelar ID')

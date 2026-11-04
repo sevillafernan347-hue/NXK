@@ -15,7 +15,7 @@ para no confundir referencias antiguas con otra generacion del slot.
 
 No se siguen dependencias retenidas por tareas ya listas tras un evento/plazo:
 pueden reanudar sin esperar al destino. Tampoco se atribuye un destino concreto
-a recibir mensajes, dormir o tareas listas. No detecta protocolos arbitrarios,
+a recibir mensajes, dormir, esperar semaforos sin propietario o tareas listas. No detecta protocolos arbitrarios,
 fallos de callbacks ring0 ni bloqueos externos a estas dos operaciones.
 
 Enviar sigue intentando encolar antes de revisar el ciclo. Con buzon disponible

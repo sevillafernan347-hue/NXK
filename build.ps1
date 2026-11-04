@@ -96,6 +96,7 @@ if ($Test) { $flags += '-DNXK_TEST' }
 if ($ExceptionTest) { $flags += '-DNXK_EXCEPTION_TEST' }
 if ($ExceptionTest) { $flags += "-DNXK_EXCEPTION_VECTOR=$ExceptionVector" }
 Invoke-Zig cc @flags -c kernel/planificador.c -o "$buildDir/planificador.o"
+Invoke-Zig cc @flags -c kernel/semaforos.c -o "$buildDir/semaforos.o"
 Invoke-Zig cc @flags -c kernel/tareas.c -o "$buildDir/tareas.o"
 Invoke-Zig cc @flags -c kernel/volumen.c -o "$buildDir/volumen.o"
 Invoke-Zig cc @flags -c kernel/ata.c -o "$buildDir/ata.o"
@@ -114,6 +115,7 @@ $objects=@("$buildDir/entry.o","$buildDir/main.o","$buildDir/memory.o","$buildDi
 $objects += "$buildDir/excepciones.o"
 $objects += "$buildDir/tareas.o"
 $objects += "$buildDir/planificador.o"
+$objects += "$buildDir/semaforos.o"
 $objects += "$buildDir/archivos.o"
 $objects += "$buildDir/ata.o"
 $objects += "$buildDir/volumen.o"
@@ -169,7 +171,7 @@ if ($Architecture -eq 'x86') {
 $boot = [IO.File]::ReadAllBytes((Join-Path $PWD "$buildDir/boot.bin"))
 $kernel = [IO.File]::ReadAllBytes((Join-Path $PWD "$buildDir/kernel.bin"))
 if ($boot.Length -ne 512 -or $boot[510] -ne 0x55 -or $boot[511] -ne 0xaa) { throw 'Sector de arranque invalido' }
-$limiteKernel = if ($Architecture -eq 'x86') { 61440 } else { 32768 }
+$limiteKernel = if ($Architecture -eq 'x86') { 122880 } else { 32768 }
 if ($kernel.Length -gt $limiteKernel) { throw 'Kernel demasiado grande para su cargador BIOS' }
 $disk = New-Object byte[] (1024*1024)
 [Array]::Copy($boot,0,$disk,0,$boot.Length)

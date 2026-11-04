@@ -1,6 +1,6 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.2**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.3**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
 
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
@@ -72,6 +72,17 @@ al crear otra tarea. [Uso y significado](ENTREGA-METRICAS-TAREAS.md).
 
 `tareas resumen` cuenta tareas pendientes/finalizadas por estado y muestra las
 reservas de pila y mensajes en buzones. `version` informa el numero del kernel.
+
+## Sincronizacion con semaforos
+
+`semaforos` ejecuta ocho tareas compartiendo un recurso y verifica 32 operaciones
+con cesiones dentro de la seccion protegida. La API kernel ofrece hasta ocho
+semaforos contadores con plazo, IDs de generacion y destruccion protegida frente
+a esperadores. Los diagnosticos incluyen esperas de semaforo.
+Consulta [la entrega y sus limites](ENTREGA-SEMAFOROS.md).
+
+El arranque NEXTRY ASM x86 admite imagenes de hasta 120 KiB en tres lecturas
+sin cruzar fronteras fisicas de 64 KiB; imagen y variables quedan bajo 128 KiB.
 
 ## Construir en Windows
 

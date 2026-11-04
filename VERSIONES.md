@@ -9,6 +9,7 @@ existiendo aunque no reciban una etiqueta propia.
 | --- | --- |
 | v0.0.1 | Snapshot 358156c: tareas, comunicacion, resultados, ciclos y metricas |
 | v0.0.2 | Version visible unificada y resumen global del planificador |
+| v0.0.3 | Semaforos kernel y arranque por bloques de hasta 120 KiB |
 
 La serie de etiquetas se inicia el 3 de noviembre de 2026. v0.0.1 identifica
 la entrega previa ya probada; no cambia sus archivos ni fecha del commit.
