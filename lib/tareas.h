@@ -8,16 +8,16 @@
 #define NXK_BUZON_MAX 4u
 struct nxk_mensaje { uint32_t origen, valor; };
 enum nxk_tarea_estado { NXK_TAREA_LIBRE, NXK_TAREA_LISTA, NXK_TAREA_EJECUTANDO,
-    NXK_TAREA_DORMIDA, NXK_TAREA_TERMINADA, NXK_TAREA_CANCELADA, NXK_TAREA_ESPERANDO, NXK_TAREA_ESPERANDO_FIN, NXK_TAREA_ESPERANDO_ENVIO, NXK_TAREA_ESPERANDO_SEMAFORO };
+    NXK_TAREA_DORMIDA, NXK_TAREA_TERMINADA, NXK_TAREA_CANCELADA, NXK_TAREA_ESPERANDO, NXK_TAREA_ESPERANDO_FIN, NXK_TAREA_ESPERANDO_ENVIO, NXK_TAREA_ESPERANDO_SEMAFORO, NXK_TAREA_ESPERANDO_MUTEX };
 struct nxk_tarea_info { uint32_t id, estado, activaciones, despertar, resultado, esperando; };
 struct nxk_tarea_resultado { uint32_t estado, codigo; };
 /* Instantanea: contadores saturados, sin modificar ni reiniciar la tarea. */
 struct nxk_tarea_metricas {
     uint32_t activaciones, cesiones, dormidas, esperas_mensaje, esperas_envio,
-        esperas_fin, enviados, recibidos, plazos, ciclos, esperas_semaforo;
+        esperas_fin, enviados, recibidos, plazos, ciclos, esperas_semaforo, esperas_mutex;
 };
 int nxk_tarea_metricas(uint32_t id,struct nxk_tarea_metricas *salida);
-#define NXK_TAREA_ESTADOS (NXK_TAREA_ESPERANDO_SEMAFORO+1u)
+#define NXK_TAREA_ESTADOS (NXK_TAREA_ESPERANDO_MUTEX+1u)
 struct nxk_planificador_resumen {
     uint32_t registradas, pendientes, finalizadas, estados[NXK_TAREA_ESTADOS],
         pilas_reservadas, mensajes;

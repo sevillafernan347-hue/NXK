@@ -3,6 +3,17 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.4
+
+- Ocho mutex con propietario, IDs de generacion, plazos y destruccion protegida.
+- Deteccion de abandono al terminar/cancelar propietarios; recuperacion explicita
+  y estado irrecuperable si se libera sin reparar.
+- Detector de ciclos ampliado a propietarios de mutex, envio y finalizacion.
+- Comandos mutex y mutex recuperar, con nuevo estado y contador de diagnostico.
+- Modulo kernel/mutex.c con pruebas de exclusion, propiedad, cancelacion y ciclos.
+- Matriz x86, regresion x64, seis controles de carga, consola, 16 NXE2
+  y diez escenarios de excepciones/privilegios superados.
+
 ## v0.0.3
 
 - Ocho semaforos contadores kernel: crear, consultar, adquirir con plazo,

@@ -1,6 +1,6 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.3**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.4**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
 
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
@@ -83,6 +83,14 @@ Consulta [la entrega y sus limites](ENTREGA-SEMAFOROS.md).
 
 El arranque NEXTRY ASM x86 admite imagenes de hasta 120 KiB en tres lecturas
 sin cruzar fronteras fisicas de 64 KiB; imagen y variables quedan bajo 128 KiB.
+
+## Mutex con propietario
+
+`mutex` verifica ocho tareas y 32 operaciones protegidas. `mutex recuperar`
+muestra como detectar un recurso abandonado y repararlo explicitamente antes
+de reutilizarlo. La API rechaza liberacion ajena, recursion y ciclos entre
+mutex y otras esperas; un recurso liberado sin reparar queda irrecuperable.
+Consulta [contrato, pruebas y limites](ENTREGA-MUTEX.md).
 
 ## Construir en Windows
 

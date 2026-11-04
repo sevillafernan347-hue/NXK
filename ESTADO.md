@@ -276,3 +276,14 @@ seis casos de lectura completa/corrupcion, consola y 16 NXE2 superados. Diez
 escenarios de excepciones/privilegios, incluido doble fallo, superados con el
 cargador final. Diez intentos de demo sin slots y posteriores lotes confirman
 limpieza de semaforos; heap/guardas estables. Imagen normal 45068 bytes.
+
+NXK v0.0.4: mutex kernel con propietario, plazo, generacion y recuperacion
+explicita. Terminar/cancelar abandona todos los mutex propios y despierta
+esperadores; adquirir devuelve 2 y exige reparar/consistente. Liberar sin
+reparar marca irrecuperable. Nuevo estado/contador de mutex y deteccion de
+ciclos con propietarios, envio y finalizacion. Demos mutex / mutex recuperar.
+Tabla estatica y sin reservas nuevas de heap. Ver ENTREGA-MUTEX.md.
+Cierre v0.0.4: matriz x86 32/64/128/1024, regresion x64, seis controles de
+cargador, consola, 16 NXE2 y diez excepciones/privilegios superados. Se verifican
+propietario con dos mutex cancelado, reparacion valida, objeto irrecuperable,
+espera cancelada y ciclos combinados. Demos repetidas mantienen heap/guardas.

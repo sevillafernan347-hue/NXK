@@ -14,6 +14,7 @@
 #include "volumen.h"
 #include "tareas.h"
 #include "semaforos.h"
+#include "mutex.h"
 #include "version.h"
 #if defined(__i386__)
 #define NXK_ARCH_TEXT "x86 de 32 bits"
@@ -275,6 +276,9 @@ void kernel_main(void) {
     print("NXK: TAREAS COOPERATIVAS OK\n");
     extern int nxk_tareas_probar_limites(void);
     if (nxk_tareas_probar_limites()) { print("NXK: PILAS FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
+    int resultado_mutex=nxk_mutex_probar();
+    if (resultado_mutex) { print("NXK: MUTEX FAIL "); number((unsigned)resultado_mutex); put('\n'); out8(0xf4,0x11); nxk_es_detener(); }
+    print("NXK: MUTEX ROBUSTOS OK\n");
     int resultado_semaforos=nxk_semaforos_probar();
     if (resultado_semaforos) { print("NXK: SEMAFOROS FAIL "); number((unsigned)resultado_semaforos); put('\n'); out8(0xf4,0x11); nxk_es_detener(); }
     print("NXK: SEMAFOROS OK\n");
@@ -372,7 +376,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | tareas | usuario | usuario fallos | archivos | discos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\ntareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -460,6 +464,12 @@ void kernel_main(void) {
             else if (nxk_equal(line, "usuario")) {
                 print(nxk_usuario_demo() ? "Modo usuario no disponible o fallo.\n" : "Programa ring3 termino con 42; control devuelto al kernel.\n");
             }
+            else if (nxk_equal(line,"mutex recuperar")) {
+                print(nxk_mutex_recuperacion_demo() ? "No se pudo recuperar el mutex.\n" : "Abandono detectado; datos reparados y mutex consistente.\n");
+            }
+            else if (nxk_equal(line,"mutex")) {
+                print(nxk_mutex_demo() ? "No se pudo verificar mutex.\n" : "Ocho tareas con propietario: 32 operaciones protegidas por mutex.\n");
+            }
             else if (nxk_equal(line,"semaforos")) {
                 print(nxk_semaforos_demo() ? "No se pudo verificar sincronizacion.\n" : "Ocho tareas compartieron un recurso; 32 operaciones verificadas.\n");
             }
@@ -485,6 +495,7 @@ void kernel_main(void) {
                     print("Listas/ejecutando/dormidas "); number(r.estados[NXK_TAREA_LISTA]); put('/'); number(r.estados[NXK_TAREA_EJECUTANDO]); put('/'); number(r.estados[NXK_TAREA_DORMIDA]); put('\n');
                     print("Esperas mensaje/fin/envio "); number(r.estados[NXK_TAREA_ESPERANDO]); put('/'); number(r.estados[NXK_TAREA_ESPERANDO_FIN]); put('/'); number(r.estados[NXK_TAREA_ESPERANDO_ENVIO]); put('\n');
                     print("Esperas semaforo "); number(r.estados[NXK_TAREA_ESPERANDO_SEMAFORO]); put('\n');
+                    print("Esperas mutex "); number(r.estados[NXK_TAREA_ESPERANDO_MUTEX]); put('\n');
                     print("Terminadas/canceladas/libres "); number(r.estados[NXK_TAREA_TERMINADA]); put('/'); number(r.estados[NXK_TAREA_CANCELADA]); put('/'); number(r.estados[NXK_TAREA_LIBRE]); put('\n');
                 }
             }
@@ -497,18 +508,18 @@ void kernel_main(void) {
                     print("; cesiones "); number(m.cesiones); print("; dormir "); number(m.dormidas); put('\n');
                     print("  Envio "); number(m.enviados); print("; recepcion "); number(m.recibidos);
                     print("; espera msg/envio/fin "); number(m.esperas_mensaje); put('/'); number(m.esperas_envio); put('/'); number(m.esperas_fin);
-                    print("; plazos "); number(m.plazos); print("; ciclos "); number(m.ciclos); print("; semaforo "); number(m.esperas_semaforo); put('\n');
+                    print("; plazos "); number(m.plazos); print("; ciclos "); number(m.ciclos); print("; semaforo "); number(m.esperas_semaforo); print("; mutex "); number(m.esperas_mutex); put('\n');
                 }
                 if (!cantidad) print("Sin tareas registradas.\n");
             }
             else if (nxk_equal(line,"tareas listar")) {
-                static const char *nombres[]={"libre","lista","ejecutando","dormida","terminada","cancelada","esperando","esperando_fin","esperando_envio","esperando_semaforo"};
+                static const char *nombres[]={"libre","lista","ejecutando","dormida","terminada","cancelada","esperando","esperando_fin","esperando_envio","esperando_semaforo","esperando_mutex"};
                 unsigned cantidad=0;
                 for (unsigned i=0;i<NXK_TAREAS_MAX;++i) {
                     struct nxk_tarea_info info;
                     if (nxk_tarea_enumerar(i,&info)) continue;
                     ++cantidad; print("Tarea "); number(info.id); print(": ");
-                    print(info.estado<=NXK_TAREA_ESPERANDO_SEMAFORO ? nombres[info.estado] : "invalida");
+                    print(info.estado<=NXK_TAREA_ESPERANDO_MUTEX ? nombres[info.estado] : "invalida");
                     print("; activaciones "); number(info.activaciones);
                     if (info.estado==NXK_TAREA_TERMINADA || info.estado==NXK_TAREA_CANCELADA) { print("; resultado "); number(info.resultado); }
                     if (info.esperando) { print("; espera a "); number(info.esperando); }

@@ -3,12 +3,13 @@
 #include "tareas.h"
 #include "paginacion.h"
 #include "semaforos.h"
+#include "mutex.h"
 #if defined(__i386__)
 extern void nxk_cambiar_tarea(uint32_t **anterior,uint32_t *siguiente);
 extern uint32_t nxk_reloj_ticks(void);
 struct tarea {
     uint32_t generacion, id, estado, activaciones, despertar;
-    uint32_t resultado, espera_fin, espera_envio, espera_semaforo;
+    uint32_t resultado, espera_fin, espera_envio, espera_semaforo, espera_mutex;
     struct nxk_tarea_metricas metricas;
     uint32_t *pila;
     struct nxk_mensaje buzon[NXK_BUZON_MAX];
@@ -34,6 +35,25 @@ static struct tarea *buscar(uint32_t id) {
     if (i>=NXK_TAREAS_MAX || tareas[i].estado==NXK_TAREA_LIBRE || tareas[i].id!=id) return 0;
     return &tareas[i];
 }
+struct mutex_kernel { uint32_t generacion, id, propietario, abandonado, irrecuperable, activo; };
+static struct mutex_kernel mutexes[NXK_MUTEX_MAX];
+static struct mutex_kernel *buscar_mutex(uint32_t id) {
+    unsigned i=(id&255u)-1u;
+    return i<NXK_MUTEX_MAX && mutexes[i].activo && mutexes[i].id==id ? &mutexes[i] : 0;
+}
+static void despertar_mutex(uint32_t id) {
+    for (unsigned i=0;i<NXK_TAREAS_MAX;++i)
+        if (tareas[i].estado==NXK_TAREA_ESPERANDO_MUTEX && tareas[i].espera_mutex==id)
+            tareas[i].estado=NXK_TAREA_LISTA;
+}
+static void abandonar_mutexes(uint32_t propietario) {
+    for (unsigned i=0;i<NXK_MUTEX_MAX;++i) {
+        struct mutex_kernel *m=&mutexes[i];
+        if (m->activo && m->propietario==propietario) {
+            m->propietario=0; m->abandonado=1; despertar_mutex(m->id);
+        }
+    }
+}
 /* Una dependencia representa una espera realmente bloqueada. Las tareas
  * ya listas por timeout/evento no prolongan una cadena aunque retengan un ID. */
 static int crea_ciclo(struct tarea *origen,struct tarea *destino) {
@@ -43,6 +63,10 @@ static int crea_ciclo(struct tarea *origen,struct tarea *destino) {
         uint32_t id;
         if (p->estado==NXK_TAREA_ESPERANDO_FIN) id=p->espera_fin;
         else if (p->estado==NXK_TAREA_ESPERANDO_ENVIO) id=p->espera_envio;
+        else if (p->estado==NXK_TAREA_ESPERANDO_MUTEX) {
+            struct mutex_kernel *m=buscar_mutex(p->espera_mutex); if (!m) return 0;
+            id=m->propietario;
+        }
         else return 0;
         p=buscar(id);
     }
@@ -53,7 +77,8 @@ static int crea_ciclo(struct tarea *origen,struct tarea *destino) {
 /* Publicar resultado antes de despertar a observadores. Sus referencias
  * se mantienen hasta reanudar o cancelar, para impedir reutilizar el destino. */
 static void terminar(struct tarea *t,uint32_t estado,uint32_t codigo) {
-    t->resultado=codigo; t->espera_fin=t->espera_envio=t->espera_semaforo=0; t->estado=estado;
+    t->resultado=codigo; t->espera_fin=t->espera_envio=t->espera_semaforo=t->espera_mutex=0; t->estado=estado;
+    abandonar_mutexes(t->id);
     for (unsigned i=0;i<NXK_TAREAS_MAX;++i)
         if ((tareas[i].estado==NXK_TAREA_ESPERANDO_FIN && tareas[i].espera_fin==t->id) ||
             (tareas[i].estado==NXK_TAREA_ESPERANDO_ENVIO && tareas[i].espera_envio==t->id))
@@ -91,7 +116,7 @@ int nxk_tarea_crear(void (*funcion)(void *),void *argumento,uint32_t *id) {
     *(uint32_t *)t->memoria=SELLO_PILA; t->pila=p;
     ++t->generacion; t->id=(t->generacion<<8)|(i+1);
     t->funcion=funcion; t->argumento=argumento; t->activaciones=0; t->despertar=0;
-    t->resultado=t->espera_fin=t->espera_envio=t->espera_semaforo=0;
+    t->resultado=t->espera_fin=t->espera_envio=t->espera_semaforo=t->espera_mutex=0;
     memset(&t->metricas,0,sizeof(t->metricas));
     t->lectura=t->cantidad=0; memset(t->buzon,0,sizeof(t->buzon));
     t->estado=NXK_TAREA_LISTA; *id=t->id; return 0;
@@ -100,7 +125,7 @@ int nxk_tarea_consultar(uint32_t id,struct nxk_tarea_info *info) {
     struct tarea *t=buscar(id); if (!t || !info) return -1;
     info->id=t->id; info->estado=t->estado; info->activaciones=t->activaciones;
     info->despertar=t->despertar; info->resultado=t->resultado;
-    info->esperando=t->espera_fin ? t->espera_fin : t->espera_envio ? t->espera_envio : t->espera_semaforo; return 0;
+    info->esperando=t->espera_fin ? t->espera_fin : t->espera_envio ? t->espera_envio : t->espera_semaforo ? t->espera_semaforo : t->espera_mutex; return 0;
 }
 int nxk_tarea_metricas(uint32_t id,struct nxk_tarea_metricas *salida) {
     struct tarea *t=buscar(id); if (!t || !salida) return -1;
@@ -222,7 +247,7 @@ int nxk_tarea_cancelar(uint32_t id) {
     struct tarea *t=buscar(id); if (!t) return -1;
     if (t->estado!=NXK_TAREA_LISTA && t->estado!=NXK_TAREA_DORMIDA &&
         t->estado!=NXK_TAREA_ESPERANDO && t->estado!=NXK_TAREA_ESPERANDO_FIN &&
-        t->estado!=NXK_TAREA_ESPERANDO_ENVIO && t->estado!=NXK_TAREA_ESPERANDO_SEMAFORO) return -2;
+        t->estado!=NXK_TAREA_ESPERANDO_ENVIO && t->estado!=NXK_TAREA_ESPERANDO_SEMAFORO && t->estado!=NXK_TAREA_ESPERANDO_MUTEX) return -2;
     terminar(t,NXK_TAREA_CANCELADA,UINT32_MAX); return 0;
 }
 int nxk_tarea_liberar(uint32_t id) {
@@ -286,6 +311,58 @@ int nxk_semaforo_destruir(uint32_t id) {
     if (referencias_semaforo(id)) return -3;
     s->activo=0; s->valor=s->maximo=0; return 0;
 }
+static unsigned referencias_mutex(uint32_t id) {
+    unsigned n=0; for (unsigned i=0;i<NXK_TAREAS_MAX;++i) if (tareas[i].espera_mutex==id) ++n;
+    return n;
+}
+int nxk_mutex_crear(uint32_t *id) {
+    if (!id) return -1;
+    for (unsigned i=0;i<NXK_MUTEX_MAX;++i) {
+        struct mutex_kernel *m=&mutexes[i];
+        if (m->activo || m->generacion==0xffffffu) continue;
+        ++m->generacion; m->id=(m->generacion<<8)|(i+1);
+        m->propietario=m->abandonado=m->irrecuperable=0; m->activo=1; *id=m->id; return 0;
+    }
+    return -2;
+}
+int nxk_mutex_consultar(uint32_t id,struct nxk_mutex_info *salida) {
+    struct mutex_kernel *m=buscar_mutex(id); if (!m || !salida) return -1;
+    salida->id=m->id; salida->propietario=m->propietario; salida->abandonado=m->abandonado;
+    salida->irrecuperable=m->irrecuperable; salida->esperadores=referencias_mutex(id); return 0;
+}
+int nxk_mutex_adquirir(uint32_t id,uint32_t ticks) {
+    if (actual>=NXK_TAREAS_MAX || ticks>0x7fffffffu || !interrupciones()) return -1;
+    struct tarea *t=&tareas[actual]; uint32_t inicio=nxk_reloj_ticks();
+    for (;;) {
+        struct mutex_kernel *m=buscar_mutex(id); if (!m) return -1;
+        if (m->irrecuperable) return -5;
+        if (!m->propietario) { m->propietario=t->id; return m->abandonado ? 2 : 0; }
+        if (m->propietario==t->id) { incrementar(&t->metricas.ciclos); return -2; }
+        if (!ticks) return 1;
+        if ((uint32_t)(nxk_reloj_ticks()-inicio)>=ticks) { incrementar(&t->metricas.plazos); return 1; }
+        if (crea_ciclo(t,buscar(m->propietario))) { incrementar(&t->metricas.ciclos); return -4; }
+        incrementar(&t->metricas.esperas_mutex); t->espera_mutex=id;
+        t->despertar=inicio+ticks; t->estado=NXK_TAREA_ESPERANDO_MUTEX;
+        nxk_cambiar_tarea(&t->pila,principal); t->espera_mutex=0;
+    }
+}
+int nxk_mutex_consistente(uint32_t id) {
+    struct mutex_kernel *m=buscar_mutex(id); if (!m || actual>=NXK_TAREAS_MAX) return -1;
+    if (m->propietario!=tareas[actual].id) return -2;
+    if (!m->abandonado) return -3;
+    m->abandonado=0; return 0;
+}
+int nxk_mutex_liberar(uint32_t id) {
+    struct mutex_kernel *m=buscar_mutex(id); if (!m || actual>=NXK_TAREAS_MAX) return -1;
+    if (m->propietario!=tareas[actual].id) return -2;
+    if (m->abandonado) m->irrecuperable=1;
+    m->propietario=0; despertar_mutex(id); return 0;
+}
+int nxk_mutex_destruir(uint32_t id) {
+    struct mutex_kernel *m=buscar_mutex(id); if (!m) return -1;
+    if (m->propietario || referencias_mutex(id)) return -3;
+    m->activo=0; m->abandonado=m->irrecuperable=0; return 0;
+}
 int nxk_tareas_ejecutar(uint32_t presupuesto) {
     if (organizando || !presupuesto || presupuesto>0x7fffffffu) return -1;
     if (!interrupciones()) return -4;
@@ -297,10 +374,10 @@ int nxk_tareas_ejecutar(uint32_t presupuesto) {
         for (unsigned n=0;n<NXK_TAREAS_MAX;++n) {
             unsigned i=(cursor+n)%NXK_TAREAS_MAX; struct tarea *t=&tareas[i];
             if ((t->estado==NXK_TAREA_DORMIDA || t->estado==NXK_TAREA_ESPERANDO || t->estado==NXK_TAREA_ESPERANDO_FIN ||
-                t->estado==NXK_TAREA_ESPERANDO_ENVIO || t->estado==NXK_TAREA_ESPERANDO_SEMAFORO) && vencido(ahora,t->despertar)) t->estado=NXK_TAREA_LISTA;
+                t->estado==NXK_TAREA_ESPERANDO_ENVIO || t->estado==NXK_TAREA_ESPERANDO_SEMAFORO || t->estado==NXK_TAREA_ESPERANDO_MUTEX) && vencido(ahora,t->despertar)) t->estado=NXK_TAREA_LISTA;
             if (t->estado==NXK_TAREA_LISTA || t->estado==NXK_TAREA_DORMIDA ||
                 t->estado==NXK_TAREA_ESPERANDO || t->estado==NXK_TAREA_ESPERANDO_FIN ||
-                t->estado==NXK_TAREA_ESPERANDO_ENVIO || t->estado==NXK_TAREA_ESPERANDO_SEMAFORO) ++pendientes;
+                t->estado==NXK_TAREA_ESPERANDO_ENVIO || t->estado==NXK_TAREA_ESPERANDO_SEMAFORO || t->estado==NXK_TAREA_ESPERANDO_MUTEX) ++pendientes;
             if (elegida==NXK_TAREAS_MAX && t->estado==NXK_TAREA_LISTA) elegida=i;
         }
         if (!pendientes) break;
@@ -348,6 +425,12 @@ int nxk_planificador_probar_pila(uint32_t id) {
 #endif
 #else
 /* x64 conserva arranque; esta API requiere el cambio de contexto x86. */
+int nxk_mutex_crear(uint32_t *id) { (void)id;return -64; }
+int nxk_mutex_consultar(uint32_t id,struct nxk_mutex_info *s) { (void)id;(void)s;return -64; }
+int nxk_mutex_adquirir(uint32_t id,uint32_t n) { (void)id;(void)n;return -64; }
+int nxk_mutex_liberar(uint32_t id) { (void)id;return -64; }
+int nxk_mutex_consistente(uint32_t id) { (void)id;return -64; }
+int nxk_mutex_destruir(uint32_t id) { (void)id;return -64; }
 int nxk_semaforo_crear(uint32_t i,uint32_t m,uint32_t *id) { (void)i;(void)m;(void)id;return -64; }
 int nxk_semaforo_consultar(uint32_t id,struct nxk_semaforo_info *s) { (void)id;(void)s;return -64; }
 int nxk_semaforo_publicar(uint32_t id) { (void)id;return -64; }

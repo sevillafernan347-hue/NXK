@@ -10,7 +10,8 @@ No cambian formatos NXE, servicios CPL3, estados ni NEXTRY ASM.
 Se recorre una cadena acotada a ocho tareas, mirando dependencias realmente
 bloqueadas: ESPERANDO_FIN depende del resultado del destino y ESPERANDO_ENVIO
 depende de que el destinatario libere su buzon. Una nueva espera que regrese
-al origen se rechaza. El algoritmo comparte la validacion de IDs completos
+al origen se rechaza. La ampliacion ENTREGA-MUTEX.md incluye el propietario
+de mutex en estas cadenas. El algoritmo comparte la validacion de IDs completos
 para no confundir referencias antiguas con otra generacion del slot.
 
 No se siguen dependencias retenidas por tareas ya listas tras un evento/plazo:

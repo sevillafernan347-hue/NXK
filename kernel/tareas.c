@@ -450,7 +450,7 @@ extern int nxk_planificador_probar_saturacion(void);
 extern int nxk_planificador_probar_resumen(void);
 static int sin_eventos(const struct nxk_tarea_metricas *m) {
     return !m->cesiones && !m->dormidas && !m->esperas_mensaje && !m->esperas_envio &&
-        !m->esperas_fin && !m->enviados && !m->recibidos && !m->plazos && !m->ciclos && !m->esperas_semaforo;
+        !m->esperas_fin && !m->enviados && !m->recibidos && !m->plazos && !m->ciclos && !m->esperas_semaforo && !m->esperas_mutex;
 }
 static void medir_eventos(void *argumento) {
     unsigned *fallos=argumento; struct nxk_tarea_metricas m; struct nxk_mensaje mensaje;

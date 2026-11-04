@@ -35,6 +35,13 @@ contiene la demostracion de exclusion y pruebas de limites/ciclo de vida.
 [lenguaje/pruebas_arranque_bloques.py](lenguaje/pruebas_arranque_bloques.py)
 verifica principio/final de las transferencias con un programa NEXTRY ASM.
 
+## Mutex y recuperacion de recursos
+
+Lee [lib/mutex.h](lib/mutex.h) para la API y [kernel/mutex.c](kernel/mutex.c)
+para demos de propiedad, abandono y reparacion. El registro, espera y cierre
+al terminar tareas viven en [kernel/planificador.c](kernel/planificador.c).
+El contrato completo esta en [ENTREGA-MUTEX.md](ENTREGA-MUTEX.md).
+
 ## Mapa de los archivos propios
 
 - [kernel/paginas.c](kernel/paginas.c): gestor de paginas fisicas x86, con comentarios sobre las reservas y los mapas de bits.

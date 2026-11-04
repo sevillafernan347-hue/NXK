@@ -96,6 +96,7 @@ if ($Test) { $flags += '-DNXK_TEST' }
 if ($ExceptionTest) { $flags += '-DNXK_EXCEPTION_TEST' }
 if ($ExceptionTest) { $flags += "-DNXK_EXCEPTION_VECTOR=$ExceptionVector" }
 Invoke-Zig cc @flags -c kernel/planificador.c -o "$buildDir/planificador.o"
+Invoke-Zig cc @flags -c kernel/mutex.c -o "$buildDir/mutex.o"
 Invoke-Zig cc @flags -c kernel/semaforos.c -o "$buildDir/semaforos.o"
 Invoke-Zig cc @flags -c kernel/tareas.c -o "$buildDir/tareas.o"
 Invoke-Zig cc @flags -c kernel/volumen.c -o "$buildDir/volumen.o"
@@ -116,6 +117,7 @@ $objects += "$buildDir/excepciones.o"
 $objects += "$buildDir/tareas.o"
 $objects += "$buildDir/planificador.o"
 $objects += "$buildDir/semaforos.o"
+$objects += "$buildDir/mutex.o"
 $objects += "$buildDir/archivos.o"
 $objects += "$buildDir/ata.o"
 $objects += "$buildDir/volumen.o"
