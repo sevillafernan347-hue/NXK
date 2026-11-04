@@ -13,6 +13,7 @@
 #include "ata.h"
 #include "volumen.h"
 #include "tareas.h"
+#include "version.h"
 #if defined(__i386__)
 #define NXK_ARCH_TEXT "x86 de 32 bits"
 #define NXK_MODE_MARKER "NXK: PROTECTED MODE 32 OK\n"
@@ -231,7 +232,7 @@ void kernel_main(void) {
 #endif
     volatile uint16_t *vga = (volatile uint16_t *)0xb8000;
     for (unsigned i=0; i<2000; ++i) vga[i] = 0x0b20;
-    print("NXK 0.1 - kernel original " NXK_ARCH_TEXT "\n");
+    print("NXK " NXK_VERSION " - kernel original " NXK_ARCH_TEXT "\n");
     print("NXK: RAM BIOS KiB: "); number(nxk_ram_kib()); put('\n');
 #if defined(__i386__)
 #ifdef NXK_TEST
@@ -367,14 +368,14 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | discos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\ntareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | tareas | usuario | usuario fallos | archivos | discos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\ntareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
             else if (nxk_equal(line, "ejecutar hola.exe")) {
                 if (nxk_pe_demo() != 0) print("EXE no compatible. El puente inicial requiere NXK de 32 bits.\n");
             }
-            else if (nxk_equal(line, "version")) print("NXK 0.1, nucleo propio " NXK_ARCH_TEXT "\n");
+            else if (nxk_equal(line, "version")) print("NXK " NXK_VERSION ", nucleo propio " NXK_ARCH_TEXT "\n");
             else if (prefijo(line,"escribir ") || prefijo(line,"agregar ")) {
                 char *nombre=line+(line[0]=='a' ? 8 : 9), *texto=nombre;
                 while (*texto && *texto!=' ') ++texto;
@@ -467,6 +468,17 @@ void kernel_main(void) {
             }
             else if (nxk_equal(line,"tareas preparar")) {
                 print(nxk_tareas_preparar_demo() ? "No se pudo preparar; limpia el lote anterior.\n" : "Ocho tareas preparadas; usa tareas listar y tareas ejecutar.\n");
+            }
+            else if (nxk_equal(line,"tareas resumen")) {
+                struct nxk_planificador_resumen r;
+                if (nxk_planificador_consultar(&r)) print("Resumen del planificador no disponible.\n");
+                else {
+                    print("Planificador: registradas "); number(r.registradas); print("; pendientes "); number(r.pendientes); print("; finalizadas "); number(r.finalizadas); put('\n');
+                    print("Pilas reservadas "); number(r.pilas_reservadas); print("; bytes "); number(r.pilas_reservadas*3*4096); print("; mensajes en buzones "); number(r.mensajes); put('\n');
+                    print("Listas/ejecutando/dormidas "); number(r.estados[NXK_TAREA_LISTA]); put('/'); number(r.estados[NXK_TAREA_EJECUTANDO]); put('/'); number(r.estados[NXK_TAREA_DORMIDA]); put('\n');
+                    print("Esperas mensaje/fin/envio "); number(r.estados[NXK_TAREA_ESPERANDO]); put('/'); number(r.estados[NXK_TAREA_ESPERANDO_FIN]); put('/'); number(r.estados[NXK_TAREA_ESPERANDO_ENVIO]); put('\n');
+                    print("Terminadas/canceladas/libres "); number(r.estados[NXK_TAREA_TERMINADA]); put('/'); number(r.estados[NXK_TAREA_CANCELADA]); put('/'); number(r.estados[NXK_TAREA_LIBRE]); put('\n');
+                }
             }
             else if (nxk_equal(line,"tareas estadisticas")) {
                 unsigned cantidad=0;

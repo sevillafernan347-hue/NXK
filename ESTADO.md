@@ -252,3 +252,13 @@ imagen+BSS aun acotada a 64 KiB. Ver ENTREGA-METRICAS-TAREAS.md.
 Cierre metricas: matriz x86 32/64/128/1024, regresion x64, consola general/
 planificador y dieciseis escenarios NXE2 superados. Contadores iniciales y
 terminales comprobados desde consola sin alterar el uso de heap/guardas.
+
+Serie de versiones: v0.0.1 referencia la entrega anterior 358156c y v0.0.2
+incorpora version visible unificada (lib/version.h), historial documentado y
+resumen global del planificador. tareas resumen informa estados, pendientes,
+finalizadas, reservas de pila y mensajes sin asignar heap ni alterar tareas.
+Errores de metadatos preservan salida. Ver ENTREGA-RESUMEN-VERSIONES.md,
+VERSIONES.md y CAMBIOS.md. Se conserva todo el historial de commits anterior.
+Cierre v0.0.2: matriz x86 32/64/128/1024, regresion x64, consola general/
+planificador y dieciseis escenarios NXE2 superados. Version y resumen verificados
+sin alteracion de las tareas ni del uso de heap/guardas.

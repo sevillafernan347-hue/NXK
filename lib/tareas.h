@@ -17,6 +17,14 @@ struct nxk_tarea_metricas {
         esperas_fin, enviados, recibidos, plazos, ciclos;
 };
 int nxk_tarea_metricas(uint32_t id,struct nxk_tarea_metricas *salida);
+#define NXK_TAREA_ESTADOS (NXK_TAREA_ESPERANDO_ENVIO+1u)
+struct nxk_planificador_resumen {
+    uint32_t registradas, pendientes, finalizadas, estados[NXK_TAREA_ESTADOS],
+        pilas_reservadas, mensajes;
+};
+/* Instantanea sin asignar heap: null -1, metadatos invalidos -2.
+ * Errores conservan la salida. No llamar desde IRQ. */
+int nxk_planificador_consultar(struct nxk_planificador_resumen *salida);
 /* Cero indica exito. IDs cero, liberados o de una generacion vieja son invalidos. */
 int nxk_tarea_crear(void (*funcion)(void *),void *argumento,uint32_t *id);
 int nxk_tarea_consultar(uint32_t id,struct nxk_tarea_info *info);

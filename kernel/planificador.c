@@ -105,6 +105,23 @@ int nxk_tarea_metricas(uint32_t id,struct nxk_tarea_metricas *salida) {
     struct tarea *t=buscar(id); if (!t || !salida) return -1;
     *salida=t->metricas; salida->activaciones=t->activaciones; return 0;
 }
+int nxk_planificador_consultar(struct nxk_planificador_resumen *salida) {
+    if (!salida) return -1;
+    struct nxk_planificador_resumen r; memset(&r,0,sizeof(r));
+    for (unsigned i=0;i<NXK_TAREAS_MAX;++i) {
+        struct tarea *t=&tareas[i];
+        /* No convertir metadatos corruptos en un indice de escritura. */
+        if (t->estado>=NXK_TAREA_ESTADOS || t->cantidad>NXK_BUZON_MAX) return -2;
+        ++r.estados[t->estado];
+        if (t->reserva) ++r.pilas_reservadas;
+        r.mensajes+=t->cantidad;
+        if (t->estado==NXK_TAREA_LIBRE) continue;
+        ++r.registradas;
+        if (t->estado==NXK_TAREA_TERMINADA || t->estado==NXK_TAREA_CANCELADA) ++r.finalizadas;
+        else ++r.pendientes;
+    }
+    *salida=r; return 0;
+}
 int nxk_tarea_enumerar(unsigned slot,struct nxk_tarea_info *info) {
     if (slot>=NXK_TAREAS_MAX || !info) return -1;
     if (tareas[slot].estado==NXK_TAREA_LIBRE) return -2;
@@ -246,6 +263,14 @@ int nxk_tareas_ejecutar(uint32_t presupuesto) {
     actual=NXK_TAREAS_MAX; organizando=0; return resultado;
 }
 #ifdef NXK_TEST
+int nxk_planificador_probar_resumen(void) {
+    struct nxk_planificador_resumen r; memset(&r,0xa5,sizeof(r));
+    uint32_t estado=tareas[0].estado; tareas[0].estado=NXK_TAREA_ESTADOS;
+    int n=nxk_planificador_consultar(&r); tareas[0].estado=estado;
+    if (n!=-2 || nxk_planificador_consultar(0)!=-1) return 1;
+    for (unsigned i=0;i<sizeof(r);++i) if (((unsigned char *)&r)[i]!=0xa5) return 2;
+    return 0;
+}
 int nxk_planificador_probar_saturacion(void) {
     uint32_t n=UINT32_MAX-1; incrementar(&n); incrementar(&n);
     return n!=UINT32_MAX;
@@ -271,6 +296,7 @@ int nxk_planificador_probar_pila(uint32_t id) {
 int nxk_tarea_crear(void (*f)(void *),void *a,uint32_t *id) { (void)f;(void)a;(void)id;return -64; }
 int nxk_tarea_consultar(uint32_t id,struct nxk_tarea_info *i) { (void)id;(void)i;return -64; }
 int nxk_tarea_metricas(uint32_t id,struct nxk_tarea_metricas *s) { (void)id;(void)s;return -64; }
+int nxk_planificador_consultar(struct nxk_planificador_resumen *s) { (void)s;return -64; }
 int nxk_tarea_enumerar(unsigned s,struct nxk_tarea_info *i) { (void)s;(void)i;return -64; }
 uint32_t nxk_tarea_actual(void) { return 0; }
 int nxk_tarea_ceder(void) { return -64; }

@@ -447,6 +447,7 @@ static int probar_envio_esperando(void) {
     return 0;
 }
 extern int nxk_planificador_probar_saturacion(void);
+extern int nxk_planificador_probar_resumen(void);
 static int sin_eventos(const struct nxk_tarea_metricas *m) {
     return !m->cesiones && !m->dormidas && !m->esperas_mensaje && !m->esperas_envio &&
         !m->esperas_fin && !m->enviados && !m->recibidos && !m->plazos && !m->ciclos;
@@ -459,6 +460,9 @@ static void medir_eventos(void *argumento) {
     if (nxk_tarea_enviar(id,7) || nxk_tarea_esperar_mensaje(&mensaje,0) || mensaje.valor!=7 ||
         nxk_tarea_esperar_mensaje(&mensaje,1)!=1) ++*fallos;
     for (unsigned i=0;i<NXK_BUZON_MAX;++i) if (nxk_tarea_enviar(id,i)) ++*fallos;
+    struct nxk_planificador_resumen r;
+    if (nxk_planificador_consultar(&r) || r.registradas!=1 || r.pendientes!=1 ||
+        r.finalizadas || r.mensajes!=4 || r.estados[NXK_TAREA_EJECUTANDO]!=1) ++*fallos;
     if (nxk_tarea_enviar_esperando(id,99,10)!=-4) ++*fallos;
     for (unsigned i=0;i<NXK_BUZON_MAX;++i) if (nxk_tarea_recibir(&mensaje) || mensaje.valor!=i) ++*fallos;
     if (nxk_tarea_metricas(id,&m) || m.activaciones!=4 || m.cesiones!=1 || m.dormidas!=1 ||
@@ -467,7 +471,7 @@ static void medir_eventos(void *argumento) {
 }
 static int probar_metricas(void) {
     struct nxk_tarea_metricas m; uint32_t id,nuevo; unsigned fallos=0;
-    if (nxk_planificador_probar_saturacion() || nxk_tarea_crear(medir_eventos,&fallos,&id) ||
+    if (nxk_planificador_probar_resumen() || nxk_planificador_probar_saturacion() || nxk_tarea_crear(medir_eventos,&fallos,&id) ||
         nxk_tarea_metricas(id,&m) || m.activaciones || !sin_eventos(&m) ||
         nxk_tarea_metricas(id,0)!=-1 || nxk_tareas_ejecutar(100) || fallos ||
         nxk_tarea_metricas(id,&m) || m.enviados!=5 || m.recibidos!=5 || nxk_tarea_liberar(id)) return 1;

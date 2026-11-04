@@ -34,17 +34,29 @@ with log.open('wb',buffering=0) as salida:
         filas=[tuple(map(int,r)) for r in re.findall(patron,datos)]
         if len(filas)!=8:raise RuntimeError(datos.decode(errors='replace'))
         return filas
+    def resumen(esperado,estados):
+        datos=comando('tareas resumen')
+        filas=re.search(rb'Planificador: registradas (\d+); pendientes (\d+); finalizadas (\d+)',datos)
+        memoria=re.search(rb'Pilas reservadas (\d+); bytes (\d+); mensajes en buzones (\d+)',datos)
+        grupos=re.findall(rb'(?:Listas/ejecutando/dormidas|Esperas mensaje/fin/envio|Terminadas/canceladas/libres) (\d+)/(\d+)/(\d+)',datos)
+        if not filas or not memoria or tuple(map(int,filas.groups()+memoria.groups()))!=esperado or tuple(int(v) for g in grupos for v in g)!=estados:
+            raise RuntimeError(datos.decode(errors='replace'))
+        if comando('tareas resumen')!=datos:raise RuntimeError('Consultar resumen altera estado')
     def heap():
         datos=comando('mem')
         return int(re.search(rb'Heap fijo usado: (\d+)',datos)[1])
     try:
         esperar(0)
+        version=re.search(r'#define NXK_VERSION "([^"]+)"',(raiz/'lib/version.h').read_text(encoding='utf-8'))[1].encode()
+        comando('version',b'NXK '+version+b', nucleo propio x86 de 32 bits')
+        resumen((0,0,0,0,0,0),(0,0,0,0,0,0,0,0,8))
         comando('tareas listar',b'Sin tareas registradas.')
         comando('tareas estadisticas',b'Sin tareas registradas.')
         for id in ('','0','-1','1x','4294967296','4294967295'):
             comando('tareas cancelar '+id,b'No se pudo cancelar')
         comando('tareas preparar',b'Ocho tareas preparadas')
         primeras=listar('lista',8); ids=[int(i) for i,_,_ in primeras]
+        resumen((8,8,0,8,98304,0),(8,0,0,0,0,0,0,0,0))
         if len(set(ids))!=8 or any(int(a) for _,_,a in primeras):raise RuntimeError('IDs o estado inicial incorrectos')
         if any(any(r[1:]) for r in metricas()):raise RuntimeError('Contadores iniciales distintos de cero')
         usado=heap()
@@ -60,6 +72,7 @@ with log.open('wb',buffering=0) as salida:
             if int(id)==ids[0]:
                 if estado!=b'cancelada' or activaciones!=b'0':raise RuntimeError('Tarea cancelada fue ejecutada')
             elif estado!=b'terminada' or activaciones!=b'5':raise RuntimeError('Finalizacion incorrecta')
+        resumen((8,0,8,8,98304,0),(0,0,0,0,0,0,7,1,0))
         contadores=metricas()
         for r in contadores:
             esperado=(0,0,0,0,0,0,0,0,0,0) if r[0]==ids[0] else (5,0,4,0,0,0,0,0,0,0)
@@ -69,6 +82,7 @@ with log.open('wb',buffering=0) as salida:
         comando('tareas limpiar',b'Lote de tareas liberado.')
         comando('tareas listar',b'Sin tareas registradas.')
         comando('tareas preparar',b'Ocho tareas preparadas')
+        resumen((8,8,0,8,98304,0),(8,0,0,0,0,0,0,0,0))
         nuevas=listar('lista',8)
         if any(any(r[1:]) for r in metricas()):raise RuntimeError('Nueva generacion conserva contadores')
         if set(ids)&{int(i) for i,_,_ in nuevas}:raise RuntimeError('Reaparecio un ID antiguo')
@@ -85,6 +99,7 @@ with log.open('wb',buffering=0) as salida:
         for _ in range(2):comando('tareas resultados',b'Resultado 42 recibido por dos tareas; referencias verificadas.')
         for _ in range(2):comando('tareas flujo',b'Envio y recepcion con plazo verificados: 16 mensajes.')
         for _ in range(2):comando('tareas bloqueos',b'Ciclos de envio y finalizacion rechazados; buzones intactos.')
+        resumen((0,0,0,8,98304,0),(0,0,0,0,0,0,0,0,8))
         if heap()!=usado:raise RuntimeError('La reutilizacion aumenta el heap')
         comando('usuario nextry',b'Aplicacion NEXTRY protegida termino.')
         comando('help',b'tareas cancelar ID')

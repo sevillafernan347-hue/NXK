@@ -1,5 +1,8 @@
 # NXK y NEXTRY
 
+Version publicada: **0.0.2**. Consulta [versiones e historial](VERSIONES.md) y
+[los cambios por entrega](CAMBIOS.md).
+
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
 1 GB de RAM. Incluye lenguaje NEXTRY, ensamblador NEXTRY ASM y formato NXE.
 
@@ -66,6 +69,9 @@ finalizacion, incluidos anillos de ocho tareas. [Detalle](ENTREGA-CICLOS-CRUZADO
 `tareas estadisticas` muestra los turnos, mensajes, esperas y plazos de cada
 tarea registrada. Los contadores se conservan al terminar y empiezan en cero
 al crear otra tarea. [Uso y significado](ENTREGA-METRICAS-TAREAS.md).
+
+`tareas resumen` cuenta tareas pendientes/finalizadas por estado y muestra las
+reservas de pila y mensajes en buzones. `version` informa el numero del kernel.
 
 ## Construir en Windows
 
