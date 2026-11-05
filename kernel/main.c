@@ -238,6 +238,9 @@ void kernel_main(void) {
     print("NXK: RAM BIOS KiB: "); number(nxk_ram_kib()); put('\n');
 #if defined(__i386__)
 #ifdef NXK_TEST
+    extern int nxk_ram_probar(void);
+    if (nxk_ram_probar()) { print("NXK: RAM MAPA FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
+    print("NXK: RAM MAPA OK\n");
     if (nxk_pagina_reservar() || nxk_pagina_liberar((void *)0x800000)!=-3 ||
         nxk_paginas_reservar_region(0x800000,4096)!=-3) {
         print("NXK: PAGINAS PREINICIO FAIL\n"); out8(0xf4,0x11); nxk_es_detener();

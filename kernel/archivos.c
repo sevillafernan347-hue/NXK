@@ -45,6 +45,17 @@ int nxk_archivo_agregar(const char *s,const void *datos,size_t n) {
     if (n) memmove(tabla[i].datos+tabla[i].n,datos,n);
     tabla[i].n+=n; return 0;
 }
+/* Rechazar antes de tocar datos. Limpiar tanto el tramo recortado como el
+ * ampliado evita exponer contenido anterior al volver a extender un archivo. */
+int nxk_archivo_truncar(const char *s,size_t longitud) {
+    if (!valido(s)) return -1;
+    int i=buscar(s); if (i<0) return -2;
+    if (longitud>256) return -3;
+    size_t anterior=tabla[i].n;
+    if (longitud<anterior) memset(tabla[i].datos+longitud,0,anterior-longitud);
+    else if (longitud>anterior) memset(tabla[i].datos+anterior,0,longitud-anterior);
+    tabla[i].n=longitud; return 0;
+}
 int nxk_archivo_renombrar(const char *s,const char *nuevo) {
     if (!valido(s) || !valido(nuevo)) return -1;
     int i=buscar(s); if (i<0) return -2;
@@ -123,5 +134,16 @@ int nxk_archivos_probar(void) {
     if (nxk_archivo_escribir("vacio",0,0) || nxk_archivo_copiar("vacio","copia") ||
         nxk_archivo_leer("copia",b,256)!=0) return 15;
     nxk_archivo_borrar("vacio"); nxk_archivo_borrar("copia");
+    /* Recortar y ampliar preserva el prefijo y rellena lo nuevo con cero. */
+    if (nxk_archivo_truncar("no-existe",2)!=-2 || nxk_archivo_truncar("../x",2)!=-1 ||
+        nxk_archivo_escribir("tamano",d,256) || nxk_archivo_truncar("tamano",257)!=-3 ||
+        nxk_archivo_truncar("tamano",(size_t)-1)!=-3 || nxk_archivo_leer("tamano",b,256)!=256) return 16;
+    for (unsigned i=0;i<256;++i) if (b[i]!=d[i]) return 17;
+    if (nxk_archivo_truncar("tamano",7) || nxk_archivo_truncar("tamano",7) ||
+        nxk_archivo_truncar("tamano",256) || nxk_archivo_leer("tamano",b,256)!=256) return 18;
+    for (unsigned i=0;i<256;++i) if (b[i]!=(i<7 ? d[i] : 0)) return 19;
+    if (nxk_archivo_truncar("tamano",0) || nxk_archivo_leer("tamano",0,0)!=0 ||
+        nxk_archivo_truncar("tamano",4) || nxk_archivo_leer("tamano",b,256)!=4 ||
+        b[0] || b[1] || b[2] || b[3] || nxk_archivo_borrar("tamano")) return 20;
     return 0;
 }

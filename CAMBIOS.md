@@ -3,6 +3,15 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.6
+
+- El gestor une regiones de RAM contiguas o solapadas antes de identificar
+  paginas completas; conserva prioridad de reservas y valida los metadatos.
+- La memoria descrita por BIOS evita duplicar solapamientos y descuenta reservas.
+- Nueva API kernel para recortar y ampliar archivos RAM, con relleno de ceros.
+- Pruebas de mapas fragmentados/desordenados y limites de archivos en RAM.
+- Matriz x86, regresion x64, consola y 16 escenarios NXE2 superados.
+
 ## v0.0.5
 
 - Adquirir/publicar varios permisos de semaforo como una operacion indivisible.

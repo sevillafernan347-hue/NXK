@@ -297,3 +297,13 @@ ENTREGA-LOTES-SEMAFOROS.md. Matriz x86 32/64/128/1024 MiB, regresion x64 64 MiB
 y consola interactiva del planificador superadas. Cinco grupos de pruebas
 adicionales comprueban contratos, espera insuficiente, plazo, cancelacion,
 limites e invariantes de memoria. Imagen normal x86 45068 bytes.
+
+NXK v0.0.6: union de RAM BIOS contigua/solapada para paginas y cobertura de
+metadatos, con reservas prioritarias; indicador BIOS sin duplicados ni reservas.
+Archivos RAM permiten recortar/ampliar con ceros desde API kernel. Pruebas de
+mapas desordenados, hueco de un byte, reserva solapada, overflow y limites de
+archivos. Puentes C, una CPU; no implica persistencia ni compatibilidad ASUS.
+Ver ENTREGA-ROBUSTEZ-MEMORIA.md.
+Cierre v0.0.6: matriz x86 QEMU 32/64/128/1024 MiB, regresion x64 64 MiB,
+consola general y planificador, y 16 escenarios NXE2 superados. Imagen x86
+normal 49164 bytes. La prueba virtual no sustituye ensayos en hardware fisico.

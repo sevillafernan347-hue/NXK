@@ -1,6 +1,6 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.5**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.6**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
 
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
@@ -110,6 +110,9 @@ El mapa BIOS E820 se recoge en NEXTRY ASM y se consulta mediante un puente C.
 La consola informa RAM descrita por BIOS y espacio del heap por separado.
 El gestor x86 ya reserva y libera paginas fisicas de 4 KiB hasta 1 GiB.
 Cada pagina se pone en cero antes de entregarla a un nuevo usuario.
+El mapa BIOS se analiza uniendo regiones de RAM y respetando reservas solapadas;
+los archivos RAM se pueden recortar o ampliar con ceros desde la API kernel.
+Consulta [la entrega de robustez](ENTREGA-ROBUSTEZ-MEMORIA.md).
 Ya hay paginacion inicial, contexto CPL3 reutilizable y archivos RAM. Faltan
 procesos CPL3 simultaneos, archivos persistentes y aislamiento completo.
 El compilador genera C; el kernel aun no esta escrito completamente en NEXTRY.

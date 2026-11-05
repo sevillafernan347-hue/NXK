@@ -63,6 +63,17 @@ int nxk_probar_paginas(void) {
     if (nxk_paginas_liberar_bloque((void *)0x3ffff000,2)!=-1) return 33;
     /* Muchas paginas libres pero ninguna corrida de 1021 paginas. */
     if (nxk_paginas_reservar_bloque(1021,1) || nxk_paginas_libres()!=1023) return 34;
+    /* La union de fragmentos no alineados cubre una pagina completa, aunque
+       las entradas lleguen desordenadas y haya una reserva intercalada. */
+    struct nxk_region_ram partes[]={
+        {0x800800,0x3ff800,1}, {0x600000,0x123,1},
+        {0x801900,1,2}, {0x600123,0x2006dd,1}
+    };
+    if (nxk_paginas_iniciar(partes,4) || nxk_paginas_total()!=1023) return 35;
+    if ((uintptr_t)(a=nxk_pagina_reservar())!=0x800000 || nxk_pagina_liberar(a)) return 36;
+    /* Un hueco de un solo byte dentro de metadatos impide la inicializacion. */
+    partes[3].base++; partes[3].longitud--;
+    if (nxk_paginas_iniciar(partes,4)!=-4 || nxk_paginas_total()!=1023) return 37;
     /* Restaurar el mapa real; agotar y liberar todas sus paginas sin escribirlas. */
     if (nxk_paginas_bios() || !nxk_paginas_total()) return 10;
     uint32_t cantidad=nxk_paginas_total();

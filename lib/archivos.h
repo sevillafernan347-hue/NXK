@@ -9,6 +9,8 @@ int nxk_archivo_leer_parte(const char *nombre,void *datos,size_t capacidad,uint3
 int nxk_archivo_leer_visible(const char *nombre,void *datos,size_t capacidad);
 /* Agrega solo a archivos existentes; rechaza desbordamiento sin modificarlos. */
 int nxk_archivo_agregar(const char *nombre,const void *datos,size_t n);
+/* Cambia longitud RAM hasta 256: ampliacion rellena con ceros; no crea archivos. */
+int nxk_archivo_truncar(const char *nombre,size_t longitud);
 int nxk_archivo_renombrar(const char *nombre,const char *nuevo);
 /* Copia RAM/NXFS a una entrada RAM nueva de hasta 256 bytes. */
 int nxk_archivo_copiar(const char *origen,const char *destino);

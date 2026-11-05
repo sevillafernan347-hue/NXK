@@ -33,31 +33,49 @@ int nxk_paginas_iniciar(const struct nxk_region_ram *mapa, unsigned cantidad) {
         uint64_t b=a+n;
         if (n && copia[i].tipo!=1 && a<0x610000 && b>0x600000) return -3;
     }
-    /* El BIOS puede partir una region RAM justo en la zona de metadatos.
-       Exigimos que cada pagina de los 64 KiB este cubierta completamente
-       por alguna region utilizable; regiones reservadas ya fueron rechazadas. */
-    for (uint32_t m=0x600000;m<0x610000;m+=4096) {
-        int cubierta=0;
-        for (unsigned i=0;i<cantidad && !cubierta;++i) {
-            uint64_t base=copia[i].base, longitud=copia[i].longitud;
-            if (copia[i].tipo==1 && base<=m && base+longitud>=m+4096) cubierta=1;
-        }
-        if (!cubierta) return -4;
+    /* Ordenar copia local permite reunir fragmentos contiguos de RAM util.
+       Las reservas se aplicaran despues y siguen teniendo prioridad. */
+    for (unsigned i=1;i<cantidad;++i) {
+        struct nxk_region_ram actual=copia[i]; unsigned j=i;
+        while (j && copia[j-1].base>actual.base) { copia[j]=copia[j-1]; --j; }
+        copia[j]=actual;
     }
+    /* La union de regiones utilizables debe cubrir todos los metadatos,
+       incluso cuando el BIOS los parte en una direccion no alineada. */
+    uint64_t cubierto=0x600000;
+    for (unsigned i=0;i<cantidad && cubierto<0x610000;++i) {
+        uint64_t a=copia[i].base, b=a+copia[i].longitud;
+        if (copia[i].tipo!=1 || b<=cubierto) continue;
+        if (a>cubierto) break;
+        cubierto=b;
+    }
+    if (cubierto<0x610000) return -4;
     /* Solo ahora podemos escribir en la zona destinada a los mapas de bits. */
     memset(disponibles,0,BYTES); memset(entregadas,0,BYTES);
-    for (unsigned paso=0;paso<2;++paso) {
-        for (unsigned i=0;i<cantidad;++i) {
-            int util=copia[i].tipo==1;
-            if ((paso==0)!=util || !copia[i].longitud || copia[i].base>=LIMITE) continue;
-            uint64_t a=copia[i].base, b=a+copia[i].longitud;
-            if (b>LIMITE) b=LIMITE;
-            /* RAM: solo paginas completas. Reservas: cualquier pagina tocada. */
-            uint32_t primera=(uint32_t)((a+(util ? 4095 : 0))/4096);
-            uint32_t fin=(uint32_t)((b+(util ? 0 : 4095))/4096);
-            if (primera<PRIMERA) primera=PRIMERA;
-            for (uint32_t p=primera;p<fin;++p) marcar(disponibles,p,util);
+    uint64_t inicio=0, fin=0; int hay=0;
+    for (unsigned i=0;i<=cantidad;++i) {
+        int util=i<cantidad && copia[i].tipo==1 && copia[i].longitud;
+        uint64_t a=util ? copia[i].base : 0, b=util ? a+copia[i].longitud : 0;
+        if (util && hay && a<=fin) { if (b>fin) fin=b; continue; }
+        if (util && !hay) { inicio=a; fin=b; hay=1; continue; }
+        /* Una entrada reservada intercalada no termina la union de RAM. */
+        if (i<cantidad && !util) continue;
+        if (hay && inicio<LIMITE) {
+            uint64_t extremo=fin<LIMITE ? fin : LIMITE;
+            uint32_t primero=(uint32_t)((inicio+4095)/4096), despues=(uint32_t)(extremo/4096);
+            if (primero<PRIMERA) primero=PRIMERA;
+            for (uint32_t p=primero;p<despues;++p) marcar(disponibles,p,1);
         }
+        hay=util; if (util) { inicio=a; fin=b; }
+    }
+    /* Cada pagina tocada por una reserva queda excluida aun si habia RAM. */
+    for (unsigned i=0;i<cantidad;++i) {
+        if (copia[i].tipo==1 || !copia[i].longitud || copia[i].base>=LIMITE) continue;
+        uint64_t a=copia[i].base, b=a+copia[i].longitud;
+        if (b>LIMITE) b=LIMITE;
+        uint32_t primero=(uint32_t)(a/4096), despues=(uint32_t)((b+4095)/4096);
+        if (primero<PRIMERA) primero=PRIMERA;
+        for (uint32_t p=primero;p<despues;++p) marcar(disponibles,p,0);
     }
     total=0;
     for (uint32_t p=PRIMERA;p<CANTIDAD;++p) total+=bit(disponibles,p);

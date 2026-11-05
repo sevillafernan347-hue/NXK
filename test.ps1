@@ -60,6 +60,7 @@ if ($Architecture -eq 'x86') {
     if (!$log.Contains('NXK: SERVICIOS USUARIO OK')) { throw 'Fallo de servicios de usuario.' }
     if (!$log.Contains('NXK: USUARIO RECUPERACION OK')) { throw 'Fallo de recuperacion de usuario.' }
     if (!$log.Contains('NXK: PAGINACION Y WP OK')) { throw 'Falta inicio de paginacion.' }
+    if (!$log.Contains('NXK: RAM MAPA OK')) { throw 'Fallo del resumen del mapa BIOS.' }
     if (!$log.Contains('NXK: PAGINAS OK')) { throw "Fallo del gestor de paginas: $log" }
     if ($log -notmatch 'NXK: PAGINAS LIBRES: (\d+)' -or [int]$Matches[1] -lt (($size-10)*256)) { throw 'Cantidad de paginas inesperada.' }
     if ($log -notmatch 'NXK: RAM BIOS KiB: (\d+)') { throw 'Falta el mapa BIOS.' }
