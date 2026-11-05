@@ -284,21 +284,26 @@ int nxk_semaforo_consultar(uint32_t id,struct nxk_semaforo_info *salida) {
     salida->id=s->id; salida->disponibles=s->valor; salida->maximo=s->maximo;
     salida->esperadores=referencias_semaforo(id); return 0;
 }
-int nxk_semaforo_publicar(uint32_t id) {
+int nxk_semaforo_publicar(uint32_t id) { return nxk_semaforo_publicar_n(id,1); }
+int nxk_semaforo_publicar_n(uint32_t id,uint32_t cantidad) {
     struct semaforo *s=buscar_semaforo(id); if (!s) return -1;
-    if (s->valor==s->maximo) return -2;
-    ++s->valor;
+    if (!cantidad || cantidad>s->maximo) return -1;
+    /* Restar primero evita desbordar incluso con maximo UINT32_MAX. */
+    if (cantidad>s->maximo-s->valor) return -2;
+    s->valor+=cantidad;
     for (unsigned i=0;i<NXK_TAREAS_MAX;++i)
         if (tareas[i].estado==NXK_TAREA_ESPERANDO_SEMAFORO && tareas[i].espera_semaforo==id)
             tareas[i].estado=NXK_TAREA_LISTA;
     return 0;
 }
-int nxk_semaforo_adquirir(uint32_t id,uint32_t ticks) {
+int nxk_semaforo_adquirir(uint32_t id,uint32_t ticks) { return nxk_semaforo_adquirir_n(id,1,ticks); }
+int nxk_semaforo_adquirir_n(uint32_t id,uint32_t cantidad,uint32_t ticks) {
     if (actual>=NXK_TAREAS_MAX || ticks>0x7fffffffu || !interrupciones()) return -1;
     struct tarea *t=&tareas[actual]; uint32_t inicio=nxk_reloj_ticks();
     for (;;) {
         struct semaforo *s=buscar_semaforo(id); if (!s) return -1;
-        if (s->valor) { --s->valor; return 0; }
+        if (!cantidad || cantidad>s->maximo) return -1;
+        if (s->valor>=cantidad) { s->valor-=cantidad; return 0; }
         if (!ticks) return 1;
         if ((uint32_t)(nxk_reloj_ticks()-inicio)>=ticks) { incrementar(&t->metricas.plazos); return 1; }
         incrementar(&t->metricas.esperas_semaforo); t->espera_semaforo=id;
@@ -434,6 +439,8 @@ int nxk_mutex_destruir(uint32_t id) { (void)id;return -64; }
 int nxk_semaforo_crear(uint32_t i,uint32_t m,uint32_t *id) { (void)i;(void)m;(void)id;return -64; }
 int nxk_semaforo_consultar(uint32_t id,struct nxk_semaforo_info *s) { (void)id;(void)s;return -64; }
 int nxk_semaforo_publicar(uint32_t id) { (void)id;return -64; }
+int nxk_semaforo_publicar_n(uint32_t id,uint32_t n) { (void)id;(void)n;return -64; }
+int nxk_semaforo_adquirir_n(uint32_t id,uint32_t n,uint32_t t) { (void)id;(void)n;(void)t;return -64; }
 int nxk_semaforo_adquirir(uint32_t id,uint32_t n) { (void)id;(void)n;return -64; }
 int nxk_semaforo_destruir(uint32_t id) { (void)id;return -64; }
 int nxk_tarea_crear(void (*f)(void *),void *a,uint32_t *id) { (void)f;(void)a;(void)id;return -64; }

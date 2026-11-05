@@ -42,6 +42,56 @@ static void contar_permisos(void *argumento) {
         nxk_semaforo_publicar(p->semaforo) || nxk_semaforo_publicar(p->semaforo)!=-2 ||
         nxk_semaforo_adquirir(p->semaforo,0x80000000u)!=-1 || nxk_semaforo_adquirir(0,0)!=-1) ++p->fallos;
 }
+/* Reserva indivisible: dos disponibles no permiten tomar un lote de tres. */
+struct lote { uint32_t semaforo, fase, plazo; int retorno, fallos; };
+static void tomar_lote(void *argumento) {
+    struct lote *p=argumento; p->fase=1;
+    p->retorno=nxk_semaforo_adquirir_n(p->semaforo,3,p->plazo); p->fase=2;
+}
+static void limites_lote(void *argumento) {
+    struct lote *p=argumento; struct nxk_semaforo_info i;
+    if (nxk_semaforo_adquirir_n(p->semaforo,0,0)!=-1 ||
+        nxk_semaforo_adquirir_n(p->semaforo,4,0)!=-1 ||
+        nxk_semaforo_adquirir_n(p->semaforo,3,0)!=1 ||
+        nxk_semaforo_consultar(p->semaforo,&i) || i.disponibles!=2 ||
+        nxk_semaforo_adquirir_n(p->semaforo,2,0) ||
+        nxk_semaforo_publicar_n(p->semaforo,3) ||
+        nxk_semaforo_publicar_n(p->semaforo,1)!=-2) ++p->fallos;
+}
+static int probar_lotes(void) {
+    struct lote p={0}; uint32_t tarea; struct nxk_semaforo_info i;
+    if (nxk_semaforo_crear(2,3,&p.semaforo) ||
+        nxk_semaforo_publicar_n(p.semaforo,0)!=-1 ||
+        nxk_semaforo_publicar_n(p.semaforo,4)!=-1 ||
+        nxk_semaforo_publicar_n(p.semaforo,2)!=-2 ||
+        nxk_tarea_crear(limites_lote,&p,&tarea) || nxk_tareas_ejecutar(100) ||
+        p.fallos || nxk_tarea_liberar(tarea) || nxk_semaforo_destruir(p.semaforo)) return 1;
+    p.fase=0; p.plazo=100;
+    if (nxk_semaforo_crear(1,3,&p.semaforo) || nxk_tarea_crear(tomar_lote,&p,&tarea) ||
+        nxk_tareas_ejecutar(1)!=1 || p.fase!=1 ||
+        nxk_semaforo_publicar_n(p.semaforo,1) || nxk_tareas_ejecutar(1)!=1 || p.fase!=1 ||
+        nxk_semaforo_consultar(p.semaforo,&i) || i.disponibles!=2 || i.esperadores!=1 ||
+        nxk_semaforo_destruir(p.semaforo)!=-3 || nxk_semaforo_publicar_n(p.semaforo,1) ||
+        nxk_tareas_ejecutar(100) || p.fase!=2 || p.retorno ||
+        nxk_semaforo_consultar(p.semaforo,&i) || i.disponibles || i.esperadores ||
+        nxk_tarea_liberar(tarea) || nxk_semaforo_destruir(p.semaforo)) return 2;
+    p.fase=0; p.plazo=2;
+    if (nxk_semaforo_crear(2,3,&p.semaforo) || nxk_tarea_crear(tomar_lote,&p,&tarea) ||
+        nxk_tareas_ejecutar(100) || p.retorno!=1 ||
+        nxk_semaforo_consultar(p.semaforo,&i) || i.disponibles!=2 || i.esperadores ||
+        nxk_tarea_liberar(tarea) || nxk_semaforo_destruir(p.semaforo)) return 3;
+    p.fase=0; p.plazo=100;
+    if (nxk_semaforo_crear(2,3,&p.semaforo) || nxk_tarea_crear(tomar_lote,&p,&tarea) ||
+        nxk_tareas_ejecutar(1)!=1 || nxk_tarea_cancelar(tarea) ||
+        nxk_semaforo_consultar(p.semaforo,&i) || i.disponibles!=2 || i.esperadores ||
+        nxk_tarea_liberar(tarea) || nxk_semaforo_destruir(p.semaforo)) return 4;
+    if (nxk_semaforo_crear(UINT32_MAX-1,UINT32_MAX,&p.semaforo) ||
+        nxk_semaforo_publicar_n(p.semaforo,UINT32_MAX)!=-2 ||
+        nxk_semaforo_publicar_n(p.semaforo,1) ||
+        nxk_semaforo_consultar(p.semaforo,&i) || i.disponibles!=UINT32_MAX ||
+        nxk_semaforo_destruir(p.semaforo) || nxk_semaforo_publicar_n(p.semaforo,1)!=-1) return 5;
+    return 0;
+}
 int nxk_semaforos_probar(void) {
     uint32_t ids[NXK_SEMAFOROS_MAX], salida=0xdeadbeefu, tarea;
     struct nxk_semaforo_info info;
@@ -83,7 +133,9 @@ int nxk_semaforos_probar(void) {
     size_t usado=nxk_heap_used(); uint32_t guardas=nxk_paginacion_guardas();
     if (nxk_semaforos_demo() || nxk_semaforos_demo() || nxk_heap_used()!=usado ||
         nxk_paginacion_guardas()!=guardas) return 12;
-    return 0;
+    int lotes=probar_lotes();
+    if (lotes) return 12+lotes;
+    return nxk_heap_used()!=usado || nxk_paginacion_guardas()!=guardas ? 18 : 0;
 }
 #endif
 #else

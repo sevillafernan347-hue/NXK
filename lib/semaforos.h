@@ -11,6 +11,9 @@ int nxk_semaforo_consultar(uint32_t id,struct nxk_semaforo_info *salida);
 int nxk_semaforo_adquirir(uint32_t id,uint32_t ticks);
 /* Publicar: -1 ID invalido, -2 si ya esta al maximo; no desborda. */
 int nxk_semaforo_publicar(uint32_t id);
+/* Lotes atomicos: cantidad entre 1 y maximo. Nunca adquiere/publica parcialmente. */
+int nxk_semaforo_adquirir_n(uint32_t id,uint32_t cantidad,uint32_t ticks);
+int nxk_semaforo_publicar_n(uint32_t id,uint32_t cantidad);
 /* Destruir: -3 con esperadores, incluso despertados que aun no reanudaron. */
 int nxk_semaforo_destruir(uint32_t id);
 int nxk_semaforos_demo(void);

@@ -287,3 +287,13 @@ Cierre v0.0.4: matriz x86 32/64/128/1024, regresion x64, seis controles de
 cargador, consola, 16 NXE2 y diez excepciones/privilegios superados. Se verifican
 propietario con dos mutex cancelado, reparacion valida, objeto irrecuperable,
 espera cancelada y ciclos combinados. Demos repetidas mantienen heap/guardas.
+
+NXK v0.0.5: semaforos con adquirir_n/publicar_n, reservas indivisibles de varios
+permisos. Insuficiencia, plazo o cancelacion no consumen parcialmente; sumar
+comprueba capacidad sin overflow uint32. Funciones previas delegan un permiso.
+Sin nuevos estados, reservas de heap ni cambios en ABI NXE. Puente C cooperativo,
+una CPU, sin garantia FIFO ni devolucion automatica tras adquirir. Ver
+ENTREGA-LOTES-SEMAFOROS.md. Matriz x86 32/64/128/1024 MiB, regresion x64 64 MiB
+y consola interactiva del planificador superadas. Cinco grupos de pruebas
+adicionales comprueban contratos, espera insuficiente, plazo, cancelacion,
+limites e invariantes de memoria. Imagen normal x86 45068 bytes.

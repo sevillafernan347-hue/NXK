@@ -3,6 +3,16 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.5
+
+- Adquirir/publicar varios permisos de semaforo como una operacion indivisible.
+- Espera con plazo original, cancelacion sin consumo parcial y suma sin overflow.
+- API anterior conserva comportamiento delegando en lotes de una unidad.
+- Cinco grupos nuevos de pruebas: contratos, despertares insuficientes, plazo,
+  cancelacion y limites uint32; heap/guardas estables.
+- Matriz x86 32/64/128/1024 MiB, regresion x64 64 MiB y consola del planificador
+  superadas. Sin cambios de ABI NXE ni nuevos objetos dinamicos.
+
 ## v0.0.4
 
 - Ocho mutex con propietario, IDs de generacion, plazos y destruccion protegida.
