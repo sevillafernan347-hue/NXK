@@ -16,5 +16,12 @@ int nxk_archivo_renombrar(const char *nombre,const char *nuevo);
 int nxk_archivo_copiar(const char *origen,const char *destino);
 int nxk_archivo_borrar(const char *nombre);
 const char *nxk_archivo_nombre(unsigned indice);
+/* Instantaneas RAM completas de ocho entradas. Espacios sin usar en cero.
+ * Una CPU cooperativa, fuera de IRQ; buffers del llamador no deben superponerse
+ * con la tabla interna. Importar reemplaza TODO, solo tras validar la imagen.
+ * 0 exito, -1 null, -2 imagen invalida, -3 sin memoria para primera tabla. */
+struct nxk_archivo_imagen { char nombre[24]; unsigned char datos[256]; uint32_t longitud; };
+int nxk_archivos_exportar(struct nxk_archivo_imagen *salida);
+int nxk_archivos_importar(const struct nxk_archivo_imagen *entrada);
 int nxk_archivos_probar(void);
 #endif

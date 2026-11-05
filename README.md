@@ -1,6 +1,6 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.6**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.7**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
 
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
@@ -39,7 +39,7 @@ NXE version 1 conserva su ruta anterior en ring0; no se cambia silenciosamente.
 
 Con NXFS montado, `copiar leeme.txt editable` crea una copia en RAM de hasta
 256 bytes. Puedes editarla con `agregar editable texto`. El destino debe ser
-nuevo; no se reemplazan archivos existentes. Las copias se pierden al apagar.
+nuevo; no se reemplazan archivos existentes. Las copias permanecen en RAM; para conservarlas usa el guardado NXPD1 descrito abajo.
 Consulta [la entrega](ENTREGA-COPIA-ARCHIVOS.md).
 Desde una app NEXTRY usa `copiar_archivo "leeme.txt", "editable"`; hay un
 [ejemplo completo](lenguaje/ejemplos/copiar_volumen.nxf) y
@@ -94,6 +94,16 @@ de reutilizarlo. La API rechaza liberacion ajena, recursion y ciclos entre
 mutex y otras esperas; un recurso liberado sin reparar queda irrecuperable.
 Consulta [contrato, pruebas y limites](ENTREGA-MUTEX.md).
 
+## Guardar archivos entre reinicios
+
+`persistencia guardar` captura los archivos RAM en un disco virtual NXPD1;
+`persistencia cargar` los recupera y reemplaza la RAM actual. Dos bancos permiten
+recuperar la copia anterior cuando la nueva esta incompleta. Hasta ocho archivos
+de 256 bytes. Usa `run.ps1 -Persistencia build/x86/datos.img` con una imagen nueva
+creada por `lenguaje/crear_persistencia.py`.
+Consulta [pasos, formato y limites](ENTREGA-PERSISTENCIA.md) y
+[lo que sigue pendiente](PENDIENTES-KERNEL.md).
+
 ## Construir en Windows
 
 Las dependencias externas no se incluyen en Git. Consulta [HERRAMIENTAS.md](HERRAMIENTAS.md)
@@ -114,7 +124,7 @@ El mapa BIOS se analiza uniendo regiones de RAM y respetando reservas solapadas;
 los archivos RAM se pueden recortar o ampliar con ceros desde la API kernel.
 Consulta [la entrega de robustez](ENTREGA-ROBUSTEZ-MEMORIA.md).
 Ya hay paginacion inicial, contexto CPL3 reutilizable y archivos RAM. Faltan
-procesos CPL3 simultaneos, archivos persistentes y aislamiento completo.
+procesos CPL3 simultaneos, un sistema de archivos general e aislamiento completo.
 El compilador genera C; el kernel aun no esta escrito completamente en NEXTRY.
 El EXE de demostracion usa solo tres funciones Win32: no hay compatibilidad general.
 

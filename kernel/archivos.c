@@ -101,6 +101,94 @@ int nxk_archivo_borrar(const char *s) {
 const char *nxk_archivo_nombre(unsigned i) {
     return tabla && i<8 && tabla[i].nombre[0] ? tabla[i].nombre : 0;
 }
+/* La etapa estatica evita consumir mas de media pila de una tarea.
+ * No ceder ni usar desde IRQ: prepara una imagen completa antes de publicarla. */
+static struct nxk_archivo_imagen imagen_preparada[8];
+int nxk_archivos_exportar(struct nxk_archivo_imagen *salida) {
+    if (!salida) return -1;
+    memset(salida,0,8*sizeof(*salida));
+    if (tabla) for (unsigned i=0;i<8;++i) if (tabla[i].nombre[0]) {
+        unsigned j=0; do { salida[i].nombre[j]=tabla[i].nombre[j]; } while (tabla[i].nombre[j++]);
+        memcpy(salida[i].datos,tabla[i].datos,tabla[i].n);
+        salida[i].longitud=(uint32_t)tabla[i].n;
+    }
+    return 0;
+}
+int nxk_archivos_importar(const struct nxk_archivo_imagen *entrada) {
+    if (!entrada) return -1;
+    /* Copiar primero permite validar bytes estables, incluso si el origen
+     * proviene de la memoria que se reemplazara. No asignar antes de validar. */
+    memmove(imagen_preparada,entrada,sizeof(imagen_preparada));
+    unsigned usados=0;
+    for (unsigned i=0;i<8;++i) {
+        const struct nxk_archivo_imagen *a=&imagen_preparada[i];
+        if (!a->nombre[0]) {
+            const unsigned char *bytes=(const void *)a;
+            for (unsigned j=0;j<sizeof(*a);++j) if (bytes[j]) return -2;
+            continue;
+        }
+        if (!valido(a->nombre) || a->longitud>256) return -2;
+        unsigned fin=0; while (a->nombre[fin]) ++fin;
+        for (unsigned j=fin+1;j<24;++j) if (a->nombre[j]) return -2;
+        for (unsigned j=a->longitud;j<256;++j) if (a->datos[j]) return -2;
+        for (unsigned j=0;j<i;++j)
+            if (nxk_equal(a->nombre,imagen_preparada[j].nombre)) return -2;
+        ++usados;
+    }
+    /* Una imagen vacia no necesita crear la tabla. Ya no puede fallar
+     * ninguna operacion despues de reservarla o de empezar a reemplazarla. */
+    if (!tabla && usados) { tabla=nxk_alloc(8*sizeof(*tabla)); if (!tabla) return -3; }
+    if (tabla) {
+        memset(tabla,0,8*sizeof(*tabla));
+        for (unsigned i=0;i<8;++i) {
+            memcpy(tabla[i].nombre,imagen_preparada[i].nombre,24);
+            memcpy(tabla[i].datos,imagen_preparada[i].datos,256);
+            tabla[i].n=imagen_preparada[i].longitud;
+        }
+    }
+    return 0;
+}
+#ifdef NXK_TEST
+/* Buffers de prueba estaticos: no forzar las pilas pequenas del kernel. */
+static struct nxk_archivo_imagen prueba_imagen[8], prueba_salida[8];
+static int probar_imagen(void) {
+    size_t usado=nxk_heap_used();
+    memset(prueba_imagen,0,sizeof(prueba_imagen));
+    if (nxk_archivos_exportar(0)!=-1 || nxk_archivos_importar(0)!=-1 ||
+        nxk_archivos_importar(prueba_imagen) || nxk_archivos_exportar(prueba_salida)) return 1;
+    for (unsigned i=0;i<sizeof(prueba_salida);++i)
+        if (((unsigned char *)prueba_salida)[i]) return 2;
+    for (unsigned i=0;i<8;++i) {
+        prueba_imagen[i].nombre[0]=(char)('a'+i);
+        prueba_imagen[i].longitud=i ? 256 : 0;
+        if (i) for (unsigned j=0;j<256;++j) prueba_imagen[i].datos[j]=(unsigned char)(i+j);
+    }
+    if (nxk_archivos_importar(prueba_imagen) || nxk_archivo_escribir("noveno",0,0)!=-3 ||
+        nxk_archivos_exportar(prueba_salida)) return 3;
+    for (unsigned i=0;i<sizeof(prueba_salida);++i)
+        if (((unsigned char *)prueba_salida)[i]!=((unsigned char *)prueba_imagen)[i]) return 4;
+    /* Cada error debe conservar los ocho archivos y no reservar memoria. */
+    for (unsigned caso=0;caso<6;++caso) {
+        memcpy(prueba_imagen,prueba_salida,sizeof(prueba_imagen));
+        if (caso==0) prueba_imagen[7].nombre[0]='a'; /* Duplicado al final. */
+        if (caso==1) prueba_imagen[7].longitud=257;
+        if (caso==2) prueba_imagen[7].nombre[2]='x'; /* Nombre con relleno sucio. */
+        if (caso==3) prueba_imagen[0].datos[0]=1; /* Datos fuera de longitud. */
+        if (caso==4) prueba_imagen[7].nombre[0]=0; /* Entrada vacia sucia. */
+        if (caso==5) memset(prueba_imagen[7].nombre,'x',24); /* Sin NUL. */
+        if (nxk_archivos_importar(prueba_imagen)!=-2 || nxk_archivos_exportar(prueba_imagen)) return 5;
+        for (unsigned i=0;i<sizeof(prueba_salida);++i)
+            if (((unsigned char *)prueba_salida)[i]!=((unsigned char *)prueba_imagen)[i]) return 6;
+    }
+    for (unsigned i=0;i<3;++i)
+        if (nxk_archivos_importar(prueba_salida) || nxk_heap_used()!=usado) return 7;
+    memset(prueba_imagen,0,sizeof(prueba_imagen));
+    if (nxk_archivos_importar(prueba_imagen) || nxk_archivos_exportar(prueba_salida)) return 8;
+    for (unsigned i=0;i<sizeof(prueba_salida);++i)
+        if (((unsigned char *)prueba_salida)[i]) return 9;
+    return nxk_heap_used()!=usado ? 10 : 0;
+}
+#endif
 int nxk_archivos_probar(void) {
     unsigned char b[256],d[256];
     for (unsigned i=0;i<256;++i) d[i]=(unsigned char)i;
@@ -145,5 +233,8 @@ int nxk_archivos_probar(void) {
     if (nxk_archivo_truncar("tamano",0) || nxk_archivo_leer("tamano",0,0)!=0 ||
         nxk_archivo_truncar("tamano",4) || nxk_archivo_leer("tamano",b,256)!=4 ||
         b[0] || b[1] || b[2] || b[3] || nxk_archivo_borrar("tamano")) return 20;
+#ifdef NXK_TEST
+    int imagen=probar_imagen(); if (imagen) return 20+imagen;
+#endif
     return 0;
 }

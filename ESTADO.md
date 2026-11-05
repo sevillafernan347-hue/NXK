@@ -307,3 +307,15 @@ Ver ENTREGA-ROBUSTEZ-MEMORIA.md.
 Cierre v0.0.6: matriz x86 QEMU 32/64/128/1024 MiB, regresion x64 64 MiB,
 consola general y planificador, y 16 escenarios NXE2 superados. Imagen x86
 normal 49164 bytes. La prueba virtual no sustituye ensayos en hardware fisico.
+
+NXK v0.0.7: persistencia inicial NXPD1 para ocho archivos RAM de 256 bytes.
+ATA PIO escritura y FLUSH solo esclavo; dos bancos con checksum/generacion,
+confirmacion al final y recuperacion del anterior. Importacion RAM valida
+antes de reemplazar. Herramienta de imagen nueva y run.ps1 -Persistencia.
+Puentes C, snapshot explicito, sin FS general ni uso en disco fisico.
+Ver ENTREGA-PERSISTENCIA.md y PENDIENTES-KERNEL.md.
+Cierre v0.0.7: matriz x86 32/64/128/1024 MiB y regresion x64 64 MiB;
+reinicios, 18 cortes de datos simulados, cuatro cabeceras parciales, corrupciones,
+limites de generacion, binario256 y restauracion vacia superados. Consola general,
+planificador, nueve NXFS y dieciseis NXE2 superados. Generador rechaza reemplazos.
+Imagen x86 normal 53260 bytes; imagen de pruebas 73740. Disco de arranque intacto.

@@ -16,6 +16,7 @@
 #include "semaforos.h"
 #include "mutex.h"
 #include "version.h"
+#include "persistencia.h"
 #if defined(__i386__)
 #define NXK_ARCH_TEXT "x86 de 32 bits"
 #define NXK_MODE_MARKER "NXK: PROTECTED MODE 32 OK\n"
@@ -379,7 +380,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -418,6 +419,13 @@ void kernel_main(void) {
             }
             else if (prefijo(line,"ejecutar usuario ")) {
                 print(nxk_usuario_ejecutar_archivo(line+17) ? "No se pudo cargar o ejecutar NXE2.\n" : "Aplicacion NXE2 termino; consola recuperada.\n");
+            }
+            else if (nxk_equal(line,"persistencia guardar") || nxk_equal(line,"persistencia cargar")) {
+                int guardar=nxk_equal(line,"persistencia guardar");
+                int r=guardar ? nxk_persistencia_guardar() : nxk_persistencia_cargar();
+                if (!r) print(guardar ? "Instantanea guardada en disco.\n" : "Instantanea recuperada; RAM reemplazada.\n");
+                else if (r==1) print("Disco de datos sin instantanea.\n");
+                else { print("Persistencia fallo; codigo "); number((unsigned)(-r)); put('\n'); }
             }
             else if (nxk_equal(line, "volumen montar")) {
                 print(nxk_volumen_montar() ? "Volumen no disponible o invalido.\n" : "Volumen NXFS montado en solo lectura.\n");

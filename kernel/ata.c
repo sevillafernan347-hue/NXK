@@ -1,6 +1,6 @@
-/* Controlador original ATA de solo lectura. Puente C para x86 BIOS/QEMU.
+/* Controlador original ATA PIO de lectura y escritura acotada. Puente C para x86 BIOS/QEMU.
  * Un comando por vez, canal primario, unidades 0/1, sectores de 512 bytes.
- * Los sondeos siempre tienen limite; no usa interrupciones ATA ni DMA. */
+ * Escritura solo en esclavo; los sondeos tienen limite, sin IRQ ATA ni DMA. */
 #include "ata.h"
 #if defined(__i386__)
 static uint32_t capacidad[2];
@@ -14,6 +14,18 @@ static int esperar(int datos) {
         if (s&0x80) continue;
         if (s&0x21) return -3;
         if (!datos || (s&8)) return 0;
+    }
+    return -4;
+}
+/* Un comando de escritura/flush solo termina con BSY y DRQ despejados.
+ * No interpretar una solicitud de datos pendiente como operacion completada. */
+static int esperar_final(void) {
+    for (unsigned i=0;i<1000000;++i) {
+        uint8_t s=entrada(0x1f7);
+        if (!s || s==0xff) return -2;
+        if (s&0x80) continue;
+        if (s&0x21) return -3;
+        if (!(s&8)) return 0;
     }
     return -4;
 }
@@ -57,10 +69,37 @@ int nxk_ata_leer_sector(unsigned unidad,uint32_t lba,void *destino) {
     r=esperar(0); if (r) return r;
     memcpy(destino,datos,512); return 0;
 }
+/* Solo se permite el esclavo: nunca sobrescribir el disco de arranque maestro.
+ * El llamador valida formato y autorizacion del volumen antes de llegar aqui. */
+int nxk_ata_escribir_sector(unsigned unidad,uint32_t lba,const void *origen) {
+    if (unidad!=1 || !origen || !capacidad[1] || lba>=capacidad[1] || lba>=0x10000000u) return -1;
+    uint16_t datos[256]; memcpy(datos,origen,512);
+    salida(0x1f6,(uint8_t)(0xf0|(lba>>24))); pausa();
+    int r=esperar_final(); if (r) return r;
+    salida(0x1f2,1); salida(0x1f3,(uint8_t)lba);
+    salida(0x1f4,(uint8_t)(lba>>8)); salida(0x1f5,(uint8_t)(lba>>16));
+    salida(0x1f7,0x30); pausa(); /* WRITE SECTORS, exactamente 512 bytes. */
+    r=esperar(1); if (r) return r;
+    for (unsigned i=0;i<256;++i)
+        __asm__ volatile("outw %0,%1" :: "a"(datos[i]),"Nd"((uint16_t)0x1f0));
+    pausa(); return esperar_final();
+}
+int nxk_ata_sincronizar(unsigned unidad) {
+    if (unidad!=1 || !capacidad[1]) return -1;
+    salida(0x1f6,0xf0); pausa();
+    int r=esperar_final(); if (r) return r;
+    salida(0x1f7,0xe7); pausa(); /* FLUSH CACHE: persistir escrituras anteriores. */
+    return esperar_final();
+}
 int nxk_ata_probar(void) {
     struct nxk_ata_info info;
     unsigned char sector[514]; memset(sector,0xa5,sizeof(sector));
     if (nxk_ata_leer_sector(0,0,sector)!=-1) return 1;
+    /* Contratos negativos solamente: esta prueba nunca envia escrituras. */
+    if (nxk_ata_escribir_sector(0,0,sector)!=-1 || nxk_ata_escribir_sector(2,0,sector)!=-1 ||
+        nxk_ata_escribir_sector(1,0,0)!=-1 || nxk_ata_escribir_sector(1,0,sector)!=-1 ||
+        nxk_ata_escribir_sector(1,0x10000000u,sector)!=-1 ||
+        nxk_ata_sincronizar(0)!=-1 || nxk_ata_sincronizar(2)!=-1 || nxk_ata_sincronizar(1)!=-1) return 12;
     if (nxk_ata_identificar(0,&info) || info.sectores!=2048) return 2;
     if (nxk_ata_leer_sector(0,0,sector+1) || sector[0]!=0xa5 || sector[513]!=0xa5 ||
         sector[511]!=0x55 || sector[512]!=0xaa) return 3;
@@ -80,5 +119,7 @@ int nxk_ata_probar(void) {
 #else
 int nxk_ata_identificar(unsigned u,struct nxk_ata_info *i) { (void)u;(void)i;return -64; }
 int nxk_ata_leer_sector(unsigned u,uint32_t l,void *p) { (void)u;(void)l;(void)p;return -64; }
+int nxk_ata_escribir_sector(unsigned u,uint32_t l,const void *p) { (void)u;(void)l;(void)p;return -64; }
+int nxk_ata_sincronizar(unsigned u) { (void)u;return -64; }
 int nxk_ata_probar(void) { return 0; }
 #endif

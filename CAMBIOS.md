@@ -3,6 +3,17 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.7
+
+- Guardar y recuperar archivos RAM entre reinicios mediante instantaneas NXPD1.
+- Dos bancos con generacion/checksums y confirmacion despues de sincronizar datos.
+- ATA PIO escritura/FLUSH restringidos al esclavo identificado; arranque protegido.
+- Importacion RAM valida toda la imagen antes de publicar, con relleno canonico.
+- Generador de disco nuevo y opcion run.ps1 -Persistencia; comandos en consola.
+- Pruebas de reinicio, cortes simulados, corrupcion, vacio, binario y limites.
+- Guia de uso/formato y listado honesto de capacidades pendientes.
+- Matriz x86, regresion x64, consola, nueve NXFS y dieciseis NXE2 superados.
+
 ## v0.0.6
 
 - El gestor une regiones de RAM contiguas o solapadas antes de identificar
