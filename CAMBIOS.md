@@ -3,6 +3,15 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.10
+
+- Pool x86 de cuatro espacios privados con IDs de generacion y cinco paginas cada uno.
+- Codigo RO y pila RW en las mismas VA con respaldo fisico independiente.
+- Alternancia de CR3, retorno al mapa kernel y liberacion de paginas; comando espacios.
+- Refresco de guardas al activar y rechazo de modificar guardas desde CR3 privado.
+- Matriz x86, regresion x64, consola/planificador y 22 NXE2 superados.
+- Gestor de memoria preparatorio; procesos CPL3 simultaneos siguen pendientes.
+
 ## v0.0.9
 
 - Busqueda de dispositivos PCI por clase con salida intacta si no hay coincidencia.

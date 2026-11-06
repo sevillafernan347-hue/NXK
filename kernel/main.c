@@ -18,6 +18,7 @@
 #include "version.h"
 #include "persistencia.h"
 #include "pci.h"
+#include "espacios.h"
 #if defined(__i386__)
 #define NXK_ARCH_TEXT "x86 de 32 bits"
 #define NXK_MODE_MARKER "NXK: PROTECTED MODE 32 OK\n"
@@ -372,6 +373,11 @@ void kernel_main(void) {
         out8(0xf4,0x11); nxk_es_detener();
     }
     print("NXK: PAGINAS OK\n");
+#if defined(__i386__)
+    int fallo_espacios=nxk_espacios_probar();
+    if (fallo_espacios) { print("NXK: ESPACIOS FAIL "); number((unsigned)fallo_espacios); put('\n'); out8(0xf4,0x11); nxk_es_detener(); }
+    print("NXK: ESPACIOS PRIVADOS OK\n");
+#endif
     print("NXK: BOOT PASS\n");
     out8(0xf4, 0x10);
 #endif
@@ -385,7 +391,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | espacios | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -444,6 +450,9 @@ void kernel_main(void) {
                 int n=contenido ? nxk_volumen_leer(line+13,contenido,4096) : -1;
                 if (n<0) print("No se pudo leer o verificar el archivo.\n");
                 else { for (int i=0;i<n;++i) put((char)contenido[i]); put('\n'); }
+            }
+            else if (nxk_equal(line,"espacios")) {
+                print(nxk_espacios_demo() ? "Fallo al comprobar espacios.\n" : "Cuatro espacios privados verificados; paginas devueltas.\n");
             }
             else if (nxk_equal(line,"pci") || nxk_equal(line,"pci red") || nxk_equal(line,"pci almacenamiento")) {
                 unsigned filtro=nxk_equal(line,"pci red") ? 2u : nxk_equal(line,"pci almacenamiento") ? 1u : 256u;

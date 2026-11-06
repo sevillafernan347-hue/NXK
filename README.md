@@ -1,6 +1,6 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.9**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.10**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
 
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
@@ -112,6 +112,13 @@ identificar futuros controladores.
 El kernel tambien contiene fallos de aplicaciones que llegan con segmentos
 nulos y protege sus tablas de paginas ante un segundo inicio. Consulta
 [la entrega y sus pruebas](ENTREGA-ESTABILIDAD-PCI.md).
+
+## Memoria privada para futuros procesos
+
+`espacios` verifica cuatro espacios con codigo y pilas distintos en las mismas
+direcciones virtuales; vuelve al mapa kernel y devuelve las paginas usadas.
+Es la base de memoria virtual para futuros procesos, todavia independiente del
+runtime CPL3 y del planificador. Consulta [la entrega y sus limites](ENTREGA-ESPACIOS-PRIVADOS.md).
 
 ## Construir en Windows
 

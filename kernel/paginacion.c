@@ -62,8 +62,12 @@ static int pagina_heap(uintptr_t a) {
 }
 int nxk_paginacion_guarda(void *pagina) {
     uintptr_t a=(uintptr_t)pagina;
-    uint32_t cr0; __asm__ volatile("mov %%cr0,%0":"=r"(cr0));
-    if (!pagina_heap(a) || !(cr0&0x80000000u)) return -1;
+    uint32_t cr0,cr3;
+    __asm__ volatile("mov %%cr0,%0":"=r"(cr0));
+    __asm__ volatile("mov %%cr3,%0":"=r"(cr3));
+    /* Las tablas bajas privadas son copias: no anunciar una guarda que
+     * el directorio activo todavia no contiene. Crear guardas desde kernel. */
+    if (!pagina_heap(a) || !(cr0&0x80000000u) || cr3!=0x200000u) return -1;
     volatile uint32_t *tabla=(void *)0x201000;
     if (tabla[a/4096]&1) ++guardas;
     tabla[a/4096]&=~1u;

@@ -56,6 +56,7 @@ if ($Architecture -eq 'x86') {
     if (!$log.Contains('NXK: BUZONES FIFO OK')) { throw 'Fallo de comunicacion entre tareas.' }
     if (!$log.Contains('NXK: PLANIFICADOR OCHO TAREAS OK')) { throw 'Fallo del planificador reutilizable.' }
     if (!$log.Contains('NXK: PAGINACION ESTABLE OK')) { throw 'Fallo al preservar las tablas de paginas.' }
+    if (!$log.Contains('NXK: ESPACIOS PRIVADOS OK')) { throw 'Fallo de espacios privados.' }
     if (!$log.Contains('NXK: PCI INVENTARIO OK')) { throw 'Fallo del inventario PCI.' }
     if (!$log.Contains('NXK: ATA LECTURA OK')) { throw 'Fallo de lectura ATA.' }
     if (!$log.Contains('NXK: NEXTRY USUARIO OK')) { throw 'Fallo de NEXTRY en modo usuario.' }

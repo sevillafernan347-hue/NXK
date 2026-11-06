@@ -336,3 +336,12 @@ NXK v0.0.9: consulta PCI por clase con estado de salida intacto al fallar;
 comandos pci red y pci almacenamiento para identificar futuros controladores.
 Arranque QEMU x86 32MiB y filtros frente a QMP en dos topologias superados.
 Todavia es inventario, no controladores de red o almacenamiento PCI nuevos.
+
+NXK v0.0.10: pool de cuatro mapas privados x86, cinco paginas fisicas cada uno,
+codigo virtual400000RO y pila401000RW con respaldo separado. IDs de generacion,
+alternancia CR3 y liberacion total desde mapa kernel. Comando espacios verifica
+contenido distinto y paginas devueltas. Guardas se refrescan al activar y solo
+se crean desde CR3 kernel. Puente C independiente del runtime CPL3 anterior;
+no son procesos concurrentes. Ver ENTREGA-ESPACIOS-PRIVADOS.md.
+Matriz x86 32/64/128/1024MiB, regresion x64 64MiB, consola general/planificador
+con demos repetidas y22casos NXE2 superados. Imagen normal53260B/pruebas77836B.
