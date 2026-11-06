@@ -2,6 +2,11 @@
 #ifndef NXK_PAGINACION_H
 #define NXK_PAGINACION_H
 #include "nxk.h"
+/* Inicializacion unica: -1 mapa BIOS invalido, -2 si ya esta activa. */
+int nxk_paginacion_iniciar(void);
+#ifdef NXK_TEST
+int nxk_paginacion_probar(void);
+#endif
 /* Marca una pagina del heap como ausente. No libera su reserva fisica. */
 int nxk_paginacion_guarda(void *pagina);
 int nxk_paginacion_es_guarda(void *pagina);

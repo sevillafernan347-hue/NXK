@@ -21,6 +21,12 @@ try:
     casos['registros']=(empaquetar(elf,bytes.fromhex('09 d8 09 c8 09 d0 09 f0 09 f8 09 e8 85 c0 74 02 0f 0b 31 c0 cd 80')),'registros')
     codigo=bytearray(136);codigo[:10]=bytes.fromhex('31 c0 62 05 80 00 40 00 0f 0b');struct.pack_into('<II',codigo,128,1,2)
     casos['limites']=(empaquetar(elf,codigo),'limites')
+    # Un selector nulo en CPL3 es legal: ninguna entrada al kernel debe usarlo.
+    for nombre,segmentos in [('ds', '8e d8'), ('es', '8e c0'), ('todos', '8e d8 8e c0 8e e0 8e e8')]:
+        inicio=bytes.fromhex('31 c0 '+segmentos)
+        casos['segmentos_'+nombre+'_salida']=(empaquetar(elf,inicio+bytes.fromhex('cd 80')),'registros')
+        casos['segmentos_'+nombre+'_fallo']=(empaquetar(elf,inicio+bytes.fromhex('0f 0b')),'segmentos')
+
     for nombre,(app,tipo) in casos.items():
         disco=carpeta/f'{nombre}.img'
         archivos={'disco.nxe':app,'leeme.txt':b'Datos leidos por aplicacion NXE2 desde NXFS\n'}
@@ -57,6 +63,7 @@ try:
                 if tipo=='rechazo':esperar(b'Sin ejecuciones de usuario.')
                 elif tipo=='bucle':esperar(b'fallo, vector 32')
                 elif tipo=='limites':esperar(b'fallo, vector 5')
+                elif tipo=='segmentos':esperar(b'fallo, vector 6')
                 else:
                     esperar(b'normal, salida 0')
                     enviar(b'mem\n');esperar(b'Heap disponible:')

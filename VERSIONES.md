@@ -14,6 +14,7 @@ existiendo aunque no reciban una etiqueta propia.
 | v0.0.5 | Reservas atomicas de varios permisos de semaforo |
 | v0.0.6 | Mapas BIOS mas robustos y ajuste de archivos RAM |
 | v0.0.7 | Persistencia NXPD1 con dos bancos, ATA escritura y restauracion RAM |
+| v0.0.8 | Segmentos de usuario seguros, tablas estables e inventario PCI |
 
 La serie de etiquetas se inicia el 3 de noviembre de 2026. v0.0.1 identifica
 la entrega previa ya probada; no cambia sus archivos ni fecha del commit.

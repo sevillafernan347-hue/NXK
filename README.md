@@ -1,6 +1,6 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.7**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.8**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
 
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
@@ -103,6 +103,13 @@ de 256 bytes. Usa `run.ps1 -Persistencia build/x86/datos.img` con una imagen nue
 creada por `lenguaje/crear_persistencia.py`.
 Consulta [pasos, formato y limites](ENTREGA-PERSISTENCIA.md) y
 [lo que sigue pendiente](PENDIENTES-KERNEL.md).
+
+## Deteccion de dispositivos y estabilidad
+
+`pci` muestra los dispositivos de los buses PCI que el firmware configuro.
+El kernel tambien contiene fallos de aplicaciones que llegan con segmentos
+nulos y protege sus tablas de paginas ante un segundo inicio. Consulta
+[la entrega y sus pruebas](ENTREGA-ESTABILIDAD-PCI.md).
 
 ## Construir en Windows
 

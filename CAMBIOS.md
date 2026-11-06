@@ -3,6 +3,15 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.8
+
+- NEXTRY ASM normaliza segmentos al entrar por excepcion y antes de salida INT80.
+- Paginacion acepta mapa RAM contiguo fragmentado y rechaza reinicializacion.
+- Inventario PCI de solo lectura, con funcion multiple, puentes y limite seguro.
+- Seis nuevos casos NXE2 de segmentos nulos y pruebas PCI contra QMP.
+- Matriz x86 32/64/128/1024 MiB, regresion x64 64 MiB, 22 NXE2,
+  consola, planificador y persistencia superados.
+
 ## v0.0.7
 
 - Guardar y recuperar archivos RAM entre reinicios mediante instantaneas NXPD1.

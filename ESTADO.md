@@ -319,3 +319,15 @@ reinicios, 18 cortes de datos simulados, cuatro cabeceras parciales, corrupcione
 limites de generacion, binario256 y restauracion vacia superados. Consola general,
 planificador, nueve NXFS y dieciseis NXE2 superados. Generador rechaza reemplazos.
 Imagen x86 normal 53260 bytes; imagen de pruebas 73740. Disco de arranque intacto.
+
+NXK v0.0.8: reparada entrada al kernel con segmentos nulos desde CPL3 en
+excepciones e INT80. Tablas de paginas aceptan RAM partida y no se reconstruyen
+tras activarse. Inventario PCI propio de lectura, 64 registros maximos y conteo
+de omitidos. Matriz x86 32/64/128/1024 MiB, regresion x64 y comparacion PCI
+contra QMP con puente secundario/multifuncion superadas. Ver
+ENTREGA-ESTABILIDAD-PCI.md. Aun faltan drivers PCI, ECAM y procesos separados.
+Cierre v0.0.8: matriz x86 32/64/128/1024 MiB y regresion x64 64 MiB,
+22 escenarios NXE2 (incluidos seis de segmentos nulos), PCI comparado con QMP
+en dos topologias, consola, planificador y persistencia NXPD1 superados.
+Imagen normal x86 53260 bytes; pruebas x86 73740. La prueba fisica ASUS
+permanece pendiente.

@@ -55,6 +55,8 @@ if ($Architecture -eq 'x86') {
     if (!$log.Contains('NXK: ESPERA MENSAJES OK')) { throw 'Fallo de espera y despertar por mensajes.' }
     if (!$log.Contains('NXK: BUZONES FIFO OK')) { throw 'Fallo de comunicacion entre tareas.' }
     if (!$log.Contains('NXK: PLANIFICADOR OCHO TAREAS OK')) { throw 'Fallo del planificador reutilizable.' }
+    if (!$log.Contains('NXK: PAGINACION ESTABLE OK')) { throw 'Fallo al preservar las tablas de paginas.' }
+    if (!$log.Contains('NXK: PCI INVENTARIO OK')) { throw 'Fallo del inventario PCI.' }
     if (!$log.Contains('NXK: ATA LECTURA OK')) { throw 'Fallo de lectura ATA.' }
     if (!$log.Contains('NXK: NEXTRY USUARIO OK')) { throw 'Fallo de NEXTRY en modo usuario.' }
     if (!$log.Contains('NXK: SERVICIOS USUARIO OK')) { throw 'Fallo de servicios de usuario.' }

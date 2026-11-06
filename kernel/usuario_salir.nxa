@@ -4,7 +4,6 @@ externo nxk_usuario_pila_guardada
 externo nxk_usuario_cs_guardado
 direccion_adelante
 cargar_pila32 ecx, 4
-escribir_memoria32 nxk_usuario_cs_guardado, ecx
 # Recuperar segmentos, pila kernel, registros preservados y banderas.
 guardar32 eax
 cargar16 ax, 16
@@ -13,6 +12,8 @@ segmento es, ax
 segmento fs, ax
 segmento gs, ax
 recuperar32 eax
+# Solo escribir globals despues de restaurar DS: la app puede dejar DS nulo.
+escribir_memoria32 nxk_usuario_cs_guardado, ecx
 leer_memoria32 esp, nxk_usuario_pila_guardada
 recuperar32 edi
 recuperar32 esi

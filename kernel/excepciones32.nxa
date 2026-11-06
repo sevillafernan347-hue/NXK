@@ -12,6 +12,13 @@ bytes 0x6a, 0
 desactivar_interrupciones
 direccion_adelante
 guardar_registros32
+# CPL3 puede dejar segmentos nulos legalmente. Normalizar antes de que C lea
+# globals o copie memoria; PUSHAD ya preservo EAX y conserva el marco original.
+cargar16 ax, 16
+segmento ds, ax
+segmento es, ax
+segmento fs, ax
+segmento gs, ax
 copiar32 esi, esp
 alinear_pila16
 # Reserva 12 bytes y apila el argumento: ESP queda alineado antes de CALL.

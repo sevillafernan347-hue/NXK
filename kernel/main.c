@@ -17,6 +17,7 @@
 #include "mutex.h"
 #include "version.h"
 #include "persistencia.h"
+#include "pci.h"
 #if defined(__i386__)
 #define NXK_ARCH_TEXT "x86 de 32 bits"
 #define NXK_MODE_MARKER "NXK: PROTECTED MODE 32 OK\n"
@@ -286,6 +287,8 @@ void kernel_main(void) {
     int resultado_semaforos=nxk_semaforos_probar();
     if (resultado_semaforos) { print("NXK: SEMAFOROS FAIL "); number((unsigned)resultado_semaforos); put('\n'); out8(0xf4,0x11); nxk_es_detener(); }
     print("NXK: SEMAFOROS OK\n");
+    if (nxk_paginacion_probar()) { print("NXK: PAGINACION ESTABLE FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
+    print("NXK: PAGINACION ESTABLE OK\n");
     print("NXK: PILAS Y REUTILIZACION OK\nNXK: PLANIFICADOR OCHO TAREAS OK\nNXK: BUZONES FIFO OK\nNXK: ESPERA MENSAJES OK\nNXK: RESULTADOS TAREAS OK\nNXK: ENVIO CON PLAZO OK\nNXK: CICLOS CRUZADOS OK\nNXK: METRICAS TAREAS OK\n");
 #endif
 #ifdef NXK_TEST
@@ -294,6 +297,8 @@ void kernel_main(void) {
 #if defined(__i386__)
     if (nxk_ata_probar()) { print("NXK: ATA FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
     print("NXK: ATA LECTURA OK\n");
+    if (nxk_pci_probar()) { print("NXK: PCI FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
+    print("NXK: PCI INVENTARIO OK\n");
 #endif
     unsigned char prueba_memoria[19];
     memset(prueba_memoria, 0xcc, sizeof(prueba_memoria));
@@ -380,7 +385,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | pci | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -439,6 +444,20 @@ void kernel_main(void) {
                 int n=contenido ? nxk_volumen_leer(line+13,contenido,4096) : -1;
                 if (n<0) print("No se pudo leer o verificar el archivo.\n");
                 else { for (int i=0;i<n;++i) put((char)contenido[i]); put('\n'); }
+            }
+            else if (nxk_equal(line,"pci")) {
+                struct nxk_pci_resumen r;
+                if (nxk_pci_explorar() || nxk_pci_resumen(&r)) print("PCI no disponible.\n");
+                else {
+                    print("PCI: detectados "); number(r.detectados); print("; guardados "); number(r.guardados); print("; omitidos "); number(r.omitidos); put('\n');
+                    for (unsigned i=0;i<r.guardados;++i) {
+                        struct nxk_pci_dispositivo d; if (nxk_pci_consultar(i,&d)) break;
+                        print("PCI "); number(d.bus); put(':'); number(d.ranura); put('.'); number(d.funcion);
+                        print(" ID "); hexadecimal((d.dispositivo<<16)|d.fabricante);
+                        print(" clase "); hexadecimal((d.clase<<16)|(d.subclase<<8)|d.interfaz);
+                        print(" revision "); number(d.revision); print(" IRQ "); number(d.irq); put('\n');
+                    }
+                }
             }
             else if (nxk_equal(line, "discos")) {
                 for (unsigned u=0;u<2;++u) { struct nxk_ata_info info;
