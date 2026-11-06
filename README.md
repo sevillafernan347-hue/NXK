@@ -1,6 +1,6 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.8**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.9**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
 
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
@@ -107,6 +107,8 @@ Consulta [pasos, formato y limites](ENTREGA-PERSISTENCIA.md) y
 ## Deteccion de dispositivos y estabilidad
 
 `pci` muestra los dispositivos de los buses PCI que el firmware configuro.
+`pci red` y `pci almacenamiento` muestran solo esas clases para ayudar a
+identificar futuros controladores.
 El kernel tambien contiene fallos de aplicaciones que llegan con segmentos
 nulos y protege sus tablas de paginas ante un segundo inicio. Consulta
 [la entrega y sus pruebas](ENTREGA-ESTABILIDAD-PCI.md).

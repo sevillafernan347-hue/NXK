@@ -49,6 +49,15 @@ int nxk_pci_consultar(unsigned i,struct nxk_pci_dispositivo *s) {
     if (i>=resumen.guardados) return -2;
     *s=dispositivos[i]; return 0;
 }
+int nxk_pci_buscar_clase(uint32_t clase,unsigned indice,struct nxk_pci_dispositivo *s) {
+    if (!s || clase>255) return -1;
+    for (unsigned i=0;i<resumen.guardados;++i)
+        if (dispositivos[i].clase==clase) {
+            if (!indice) { *s=dispositivos[i]; return 0; }
+            --indice;
+        }
+    return -2;
+}
 #ifdef NXK_TEST
 static unsigned cantidad_falsa;
 static uint32_t falso(unsigned b,unsigned d,unsigned f,unsigned r) {
@@ -71,6 +80,14 @@ int nxk_pci_probar(void) {
     memset(&p,0xa5,sizeof(p));
     if (nxk_pci_consultar(64,&p)!=-2 || nxk_pci_consultar(0,0)!=-1 || nxk_pci_resumen(0)!=-1) return 3;
     for (unsigned i=0;i<sizeof(p);++i) if (((unsigned char *)&p)[i]!=0xa5) return 4;
+    if (nxk_pci_buscar_clase(2,63,&p) || p.funcion!=7) return 8;
+    memset(&p,0xa5,sizeof(p));
+    if (nxk_pci_buscar_clase(2,64,&p)!=-2 ||
+        nxk_pci_buscar_clase(1,0,&p)!=-2 ||
+        nxk_pci_buscar_clase(256,0,&p)!=-1 ||
+        nxk_pci_buscar_clase(2,0,0)!=-1) return 8;
+    for (unsigned i=0;i<sizeof(p);++i)
+        if (((unsigned char *)&p)[i]!=0xa5) return 9;
     cantidad_falsa=1; explorar(falso);
     if (resumen.detectados!=1 || resumen.guardados!=1 || resumen.omitidos) return 5;
     uint32_t selector=entrada32(0xcf8),antes,despues;
@@ -85,5 +102,6 @@ int nxk_pci_probar(void) {
 int nxk_pci_explorar(void) { return -64; }
 int nxk_pci_resumen(struct nxk_pci_resumen *s) { (void)s;return -64; }
 int nxk_pci_consultar(unsigned i,struct nxk_pci_dispositivo *s) { (void)i;(void)s;return -64; }
+int nxk_pci_buscar_clase(uint32_t c,unsigned i,struct nxk_pci_dispositivo *s) { (void)c;(void)i;(void)s;return -64; }
 int nxk_pci_leer32(unsigned b,unsigned d,unsigned f,unsigned r,uint32_t *s) { (void)b;(void)d;(void)f;(void)r;(void)s;return -64; }
 #endif

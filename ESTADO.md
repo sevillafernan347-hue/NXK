@@ -331,3 +331,8 @@ Cierre v0.0.8: matriz x86 32/64/128/1024 MiB y regresion x64 64 MiB,
 en dos topologias, consola, planificador y persistencia NXPD1 superados.
 Imagen normal x86 53260 bytes; pruebas x86 73740. La prueba fisica ASUS
 permanece pendiente.
+
+NXK v0.0.9: consulta PCI por clase con estado de salida intacto al fallar;
+comandos pci red y pci almacenamiento para identificar futuros controladores.
+Arranque QEMU x86 32MiB y filtros frente a QMP en dos topologias superados.
+Todavia es inventario, no controladores de red o almacenamiento PCI nuevos.

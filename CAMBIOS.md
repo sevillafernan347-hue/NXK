@@ -3,6 +3,12 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.9
+
+- Busqueda de dispositivos PCI por clase con salida intacta si no hay coincidencia.
+- Comandos `pci red` y `pci almacenamiento`; pruebas de limites y contraste QMP.
+- Arranque x86 de 32 MiB y dos topologias PCI verificados.
+
 ## v0.0.8
 
 - NEXTRY ASM normaliza segmentos al entrar por excepcion y antes de salida INT80.

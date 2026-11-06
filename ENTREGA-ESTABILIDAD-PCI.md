@@ -45,3 +45,15 @@ certifican la ASUS fisica. Los nuevos puentes C se migraran cuando NEXTRY
 tenga estructuras, punteros y acceso seguro a E/S.
 
 Referencia de mecanismo 1: https://www.intel.com/Assets/PDF/datasheet/316966.pdf
+
+## Ampliacion v0.0.9
+
+`nxk_pci_buscar_clase(clase, indice, salida)` consulta el enesimo dispositivo
+de una clase basica 0..255 del inventario mas reciente. Rechaza puntero nulo
+y clase fuera de rango (-1); si no hay coincidencia devuelve -2 sin tocar la
+salida. No hace otra lectura de hardware. La consola expone `pci red` (clase2)
+y `pci almacenamiento` (clase1), utiles para ubicar dispositivos antes de
+implementar controladores. Es solo identificacion, sin E/S del dispositivo.
+Pruebas: mapa sintetico de 70 funciones con resultados invalidos intactos,
+arranque QEMU x86 32MiB y filtros contrastados con QMP en maquina basica y con
+puente/multifuncion; tres consultas sucesivas no alteran heap ni configuracion.

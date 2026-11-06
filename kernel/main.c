@@ -385,7 +385,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | pci | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -445,13 +445,15 @@ void kernel_main(void) {
                 if (n<0) print("No se pudo leer o verificar el archivo.\n");
                 else { for (int i=0;i<n;++i) put((char)contenido[i]); put('\n'); }
             }
-            else if (nxk_equal(line,"pci")) {
+            else if (nxk_equal(line,"pci") || nxk_equal(line,"pci red") || nxk_equal(line,"pci almacenamiento")) {
+                unsigned filtro=nxk_equal(line,"pci red") ? 2u : nxk_equal(line,"pci almacenamiento") ? 1u : 256u;
                 struct nxk_pci_resumen r;
                 if (nxk_pci_explorar() || nxk_pci_resumen(&r)) print("PCI no disponible.\n");
                 else {
                     print("PCI: detectados "); number(r.detectados); print("; guardados "); number(r.guardados); print("; omitidos "); number(r.omitidos); put('\n');
                     for (unsigned i=0;i<r.guardados;++i) {
-                        struct nxk_pci_dispositivo d; if (nxk_pci_consultar(i,&d)) break;
+                        struct nxk_pci_dispositivo d;
+                        if (filtro==256u ? nxk_pci_consultar(i,&d) : nxk_pci_buscar_clase(filtro,i,&d)) break;
                         print("PCI "); number(d.bus); put(':'); number(d.ranura); put('.'); number(d.funcion);
                         print(" ID "); hexadecimal((d.dispositivo<<16)|d.fabricante);
                         print(" clase "); hexadecimal((d.clase<<16)|(d.subclase<<8)|d.interfaz);

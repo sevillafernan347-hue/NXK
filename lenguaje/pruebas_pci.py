@@ -52,6 +52,11 @@ for nombre,extra in casos.items():
                     observado[clave]=(int(id,16),int(clase,16)>>8)
                 assert observado==esperado,(nombre,observado,esperado,inventario)
                 assert b'; omitidos 0' in inventario
+                for palabra,clase in [('red',2),('almacenamiento',1)]:
+                    filtrado=comando('pci '+palabra)
+                    filas=re.findall(rb'PCI (\d+):(\d+)\.(\d+) ID 0x([0-9A-F]+) clase 0x([0-9A-F]+)',filtrado)
+                    encontrado={(int(b),int(d),int(f)):(int(id,16),int(c,16)>>8) for b,d,f,id,c in filas}
+                    assert encontrado=={k:v for k,v in esperado.items() if v[1]>>8==clase},(nombre,palabra,encontrado,esperado)
             assert comando('mem')==memoria
             assert qmp('query-pci')==antes,'El inventario altero dispositivos/recursos'
             if extra:assert any(b>0 for b,d,f in observado) and (0,4,3) in observado
