@@ -49,6 +49,22 @@ int nxk_espacio_consultar(uint32_t id,struct nxk_espacio_info *salida) {
     struct espacio *e=buscar(id); if (!e || !salida) return -1;
     *salida=(struct nxk_espacio_info){e->id,e->base,e->base+12288,e->base+16384}; return 0;
 }
+/* Restar despues de validar el inicio evita overflow de direccion+longitud.
+ * Codigo y pila fisicos son contiguos en la reserva propia de cinco paginas. */
+static int copiar(uint32_t id,uint32_t virtual,void *buffer,size_t n,int escritura) {
+    struct espacio *e=buscar(id); if (!e || (!buffer && n)) return -1;
+    if (!contexto() || cr3()!=KERNEL_CR3) return -3;
+    uint32_t minimo=escritura ? NXK_ESPACIO_PILA : NXK_ESPACIO_CODIGO;
+    uint32_t fin=NXK_ESPACIO_PILA+4096;
+    if (virtual<minimo || virtual>fin || n>fin-virtual) return -2;
+    if (n) {
+        void *fisico=(void *)(uintptr_t)(e->base+12288+virtual-NXK_ESPACIO_CODIGO);
+        if (escritura) memmove(fisico,buffer,n); else memmove(buffer,fisico,n);
+    }
+    return 0;
+}
+int nxk_espacio_leer(uint32_t id,uint32_t virtual,void *destino,size_t n) { return copiar(id,virtual,destino,n,0); }
+int nxk_espacio_escribir(uint32_t id,uint32_t virtual,const void *origen,size_t n) { return copiar(id,virtual,(void *)origen,n,1); }
 int nxk_espacio_activar(uint32_t id) {
     struct espacio *e=buscar(id); if (!e) return -1;
     if (!contexto()) return -3;
@@ -106,6 +122,27 @@ static int probar_guarda(uint32_t id) {
     *pte=original; __asm__ volatile("invlpg (%0)"::"r"(0x17f000u):"memory");
     return r;
 }
+static int probar_copias(uint32_t a,uint32_t b) {
+    unsigned char salida[4]={0xa5,0xa5,0xa5,0xa5}, valor=0x7b;
+    uint32_t base=NXK_ESPACIO_CODIGO,pila=NXK_ESPACIO_PILA,fin=pila+4096;
+    if (nxk_espacio_leer(a,base,salida,1) || salida[0]!=0xc3 ||
+        nxk_espacio_escribir(a,pila,&valor,1) || nxk_espacio_leer(a,pila-1,salida,2) ||
+        salida[0] || salida[1]!=valor || nxk_espacio_leer(b,pila,salida,1) || salida[0]) return 1;
+    memset(salida,0xa5,sizeof(salida));
+    if (nxk_espacio_leer(a,fin-1,salida,2)!=-2 || nxk_espacio_leer(a,UINT32_MAX,salida,1)!=-2 ||
+        nxk_espacio_leer(a,base,salida,(size_t)-1)!=-2 || nxk_espacio_leer(a,base-1,salida,1)!=-2 ||
+        nxk_espacio_escribir(a,base,&valor,1)!=-2 || nxk_espacio_escribir(a,pila-1,&valor,1)!=-2 ||
+        nxk_espacio_escribir(a,fin-1,&valor,2)!=-2 || nxk_espacio_leer(a,pila,0,1)!=-1 ||
+        nxk_espacio_escribir(a,pila,0,1)!=-1) return 2;
+    for (unsigned i=0;i<sizeof(salida);++i) if (salida[i]!=0xa5) return 3;
+    if (nxk_espacio_leer(a,fin,0,0) || nxk_espacio_escribir(a,fin,0,0) ||
+        nxk_espacio_leer(a,pila,salida,1) || salida[0]!=valor ||
+        nxk_espacio_leer(a,base,salida,1) || salida[0]!=0xc3 || nxk_espacio_activar(a)) return 4;
+    int r=nxk_espacio_leer(b,pila,salida,1);
+    int w=nxk_espacio_escribir(b,pila,&valor,1);
+    if (nxk_espacio_restaurar() || r!=-3 || w!=-3) return 5;
+    return 0;
+}
 int nxk_espacios_probar(void) {
     uint32_t ids[NXK_ESPACIOS_MAX]={0}, salida=0xdeadbeef, libres=nxk_paginas_libres();
     size_t heap=nxk_heap_used(); unsigned char codigo=0xc3;
@@ -126,6 +163,7 @@ int nxk_espacios_probar(void) {
         for (unsigned j=0;j<4096;++j) if (((unsigned char *)(uintptr_t)info.pila_fisica)[j]) return 9;
     }
     if (probar_guarda(ids[0])) return 14;
+    if (probar_copias(ids[0],ids[1])) return 15;
     uint32_t viejo=ids[0];
     for (unsigned i=0;i<NXK_ESPACIOS_MAX;++i) if (nxk_espacio_destruir(ids[i])) return 10;
     struct nxk_espacio_info info; memset(&info,0xa5,sizeof(info));
@@ -139,6 +177,8 @@ int nxk_espacios_probar(void) {
 #else
 int nxk_espacio_crear(const void *c,size_t n,uint32_t *id) { (void)c;(void)n;(void)id;return -64; }
 int nxk_espacio_consultar(uint32_t id,struct nxk_espacio_info *s) { (void)id;(void)s;return -64; }
+int nxk_espacio_leer(uint32_t id,uint32_t v,void *p,size_t n) { (void)id;(void)v;(void)p;(void)n;return -64; }
+int nxk_espacio_escribir(uint32_t id,uint32_t v,const void *p,size_t n) { (void)id;(void)v;(void)p;(void)n;return -64; }
 int nxk_espacio_activar(uint32_t id) { (void)id;return -64; }
 int nxk_espacio_restaurar(void) { return -64; }
 int nxk_espacio_destruir(uint32_t id) { (void)id;return -64; }

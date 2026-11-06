@@ -3,6 +3,12 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.11
+
+- Copias acotadas entre buffers kernel y espacios privados: lectura codigo/pila,
+  escritura solo pila, rechazo sin copia parcial y comprobaciones sin overflow.
+- Pruebas de aislamiento entre espacios, fronteras y contexto; x86 32MiB superado.
+
 ## v0.0.10
 
 - Pool x86 de cuatro espacios privados con IDs de generacion y cinco paginas cada uno.

@@ -12,6 +12,12 @@ struct nxk_espacio_info { uint32_t id, directorio, codigo_fisico, pila_fisica; }
  * -3 contexto no permitido; -4 memoria fisica insuficiente. */
 int nxk_espacio_crear(const void *codigo,size_t longitud,uint32_t *id);
 int nxk_espacio_consultar(uint32_t id,struct nxk_espacio_info *salida);
+/* Copias solo desde CR3 kernel, buffers kernel confiables sin solaparse con
+ * tablas ni codigo del espacio. Leer codigo/pila; escribir solo pila.
+ * 0 exito, -1 ID/buffer, -2 rango, -3 contexto. Rechazo no copia parcialmente.
+ * Longitud cero admite buffer null y direccion justo despues del final. */
+int nxk_espacio_leer(uint32_t id,uint32_t virtual,void *destino,size_t longitud);
+int nxk_espacio_escribir(uint32_t id,uint32_t virtual,const void *origen,size_t longitud);
 /* Activa desde kernel u otro espacio propio, refresca mapas kernel y CR3.
  * NO cambia registros CPU, TSS ni pila de retorno de un proceso. */
 int nxk_espacio_activar(uint32_t id);

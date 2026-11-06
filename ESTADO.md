@@ -345,3 +345,8 @@ se crean desde CR3 kernel. Puente C independiente del runtime CPL3 anterior;
 no son procesos concurrentes. Ver ENTREGA-ESPACIOS-PRIVADOS.md.
 Matriz x86 32/64/128/1024MiB, regresion x64 64MiB, consola general/planificador
 con demos repetidas y22casos NXE2 superados. Imagen normal53260B/pruebas77836B.
+
+NXK v0.0.11: API kernel de copia acotada leer/escribir espacios privados;
+escribir solo pila, limites por resta, sin copia parcial al rechazar.
+Pruebas de cruce codigo/pila, independencia, overflow/null/contexto y rechazo
+sin mutacion. Arranque x86 QEMU32MiB superado. Sin nueva syscall ni proceso.

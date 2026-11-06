@@ -17,6 +17,7 @@ existiendo aunque no reciban una etiqueta propia.
 | v0.0.8 | Segmentos de usuario seguros, tablas estables e inventario PCI |
 | v0.0.9 | Busqueda PCI por clase para preparar controladores |
 | v0.0.10 | Cuatro espacios privados y retorno de paginas para futuros procesos |
+| v0.0.11 | Copias acotadas de datos en espacios privados |
 
 La serie de etiquetas se inicia el 3 de noviembre de 2026. v0.0.1 identifica
 la entrega previa ya probada; no cambia sus archivos ni fecha del commit.

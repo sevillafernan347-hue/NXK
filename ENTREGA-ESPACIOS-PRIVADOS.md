@@ -69,3 +69,19 @@ TSS/pila de retorno, carga NXE, recursos por proceso, terminacion y planificador
 Los mapas kernel son compartidos supervisor y no constituyen aislamiento entre
 componentes ring0. Antes de preempcion/SMP hacen falta exclusion e invalidacion
 coordinada de mapas; las guardas nuevas se reflejan al volver a activar.
+
+## Ampliacion v0.0.11: copias acotadas
+
+`nxk_espacio_leer(id,virtual,destino,longitud)` copia codigo o pila al buffer
+kernel. `nxk_espacio_escribir(id,virtual,origen,longitud)` acepta solo direcciones
+de pila. Ambas exigen CR3 kernel e ID vigente antes de copiar; no activan otro
+mapa. Validan longitud por resta para rechazar overflow y no copian parcialmente.
+Retornos:0 exito, -1 ID/buffer, -2 rango, -3 contexto, -64 x64. Buffer nulo solo
+con longitud0; virtual0x402000 solo con longitud0. Incluso n0 valida ID/contexto.
+Los buffers kernel son confiables y no deben solaparse con tablas ni codigo.
+La escritura rechaza direcciones virtuales de codigo; no es proteccion contra
+un componente ring0 que escriba por un alias fisico. No son syscalls CPL3.
+
+Pruebas: copia en pila sin modificar otro espacio, lectura cruzando codigo y
+pila, rechazo de rangos fuera de paginas, overflow, null, longitud0, codigo RO,
+contexto privado y salida intacta ante rechazo. Arranque x86 QEMU32MiB superado.
