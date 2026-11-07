@@ -1,0 +1,8 @@
+# Demostracion de preempcion: este proceso no cede voluntariamente.
+# Ejecutar mediante proceso cargar y proceso ejecutar en NXK v0.0.14 o posterior.
+# Otros procesos pueden avanzar; liberar su ID desde la consola para detenerlo.
+funcion inicio
+    mostrar "Proceso ocupado sin ceder: el temporizador reparte los turnos"
+    mientras verdadero
+    fin
+fin

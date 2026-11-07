@@ -56,6 +56,7 @@ if ($Architecture -eq 'x86') {
     if (!$log.Contains('NXK: BUZONES FIFO OK')) { throw 'Fallo de comunicacion entre tareas.' }
     if (!$log.Contains('NXK: PLANIFICADOR OCHO TAREAS OK')) { throw 'Fallo del planificador reutilizable.' }
     if (!$log.Contains('NXK: PAGINACION ESTABLE OK')) { throw 'Fallo al preservar las tablas de paginas.' }
+    if (!$log.Contains('NXK: PREEMPCION CPL3 OK')) { throw 'Fallo del temporizador de procesos.' }
     if (!$log.Contains('NXK: PROCESOS COOPERATIVOS OK')) { throw 'Fallo de reanudacion de procesos.' }
     if (!$log.Contains('NXK: EJECUCION PRIVADA OK')) { throw 'Fallo de ejecucion en espacios privados.' }
     if (!$log.Contains('NXK: ESPACIOS PRIVADOS OK')) { throw 'Fallo de espacios privados.' }

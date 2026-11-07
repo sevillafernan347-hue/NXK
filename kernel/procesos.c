@@ -1,6 +1,6 @@
-/* Planificacion CPL3 cooperativa. La continuacion usa NEXTRY ASM; PCB en C.
+/* Planificacion CPL3 por rondas. La continuacion usa NEXTRY ASM; PCB en C.
  * Un ID de espacio obsoleto nunca hereda registros de la generacion anterior.
- * No existe preempcion reanudable: el limite PIT sigue siendo un fallo terminal. */
+ * El PIT suspende procesos; el kernel y sus tareas conservan cooperacion. */
 #include "procesos.h"
 #include "paginas.h"
 #include "paginacion.h"
@@ -75,7 +75,11 @@ static int ejecutar_uno(struct proceso *p) {
     if (r) { p->info.error_motor=(uint32_t)(-r); p->info.estado=NXK_PROCESO_FALLIDO; return r; }
     p->info.ultimo=resultado;
     if (resultado.fallo) p->info.estado=NXK_PROCESO_FALLIDO;
-    else if (cedido) { p->info.estado=NXK_PROCESO_LISTO; incrementar(&p->info.cesiones); }
+    else if (cedido) {
+        p->info.estado=NXK_PROCESO_LISTO;
+        if (cedido==NXK_USUARIO_QUANTUM) incrementar(&p->info.preempciones);
+        else incrementar(&p->info.cesiones);
+    }
     else p->info.estado=NXK_PROCESO_TERMINADO;
     return 0;
 }

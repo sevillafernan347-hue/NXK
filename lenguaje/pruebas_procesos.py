@@ -79,9 +79,10 @@ with log.open('wb',buffering=0) as salida:
         assert comando('mem')==memoria
         comando('proceso paso '+str(a),b'No se pudo ejecutar proceso.')
         # FPU bloqueada, segmentos nulos reanudados y contexto de pila invalido contenido.
-        for archivo,vector in [('fpu.nxe',7),('bucle.nxe',32)]:
+        for archivo,vector in [('fpu.nxe',7)]:
             id=cargar(archivo);fin=paso(id,4);assert ('fallo, vector '+str(vector)).encode() in fin
             liberar(id)
+        id=cargar('bucle.nxe');paso(id,1);assert b'preempciones 1' in info(id,1,1,0);liberar(id)
         id=cargar('segmentos.nxe');paso(id,1);paso(id,3);liberar(id)
         id=cargar('esp.nxe');comando('proceso paso '+str(id),b'No se pudo ejecutar proceso.');assert b'Error de motor 6' in info(id,4,1,0);liberar(id)
         id=cargar('siempre.nxe');comando('proceso ejecutar',b'Presupuesto agotado; quedan procesos listos.');info(id,1,32,32)

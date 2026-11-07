@@ -1,4 +1,4 @@
-/* Procesos CPL3 cooperativos: cuatro contextos CPU sobre espacios privados.
+/* Procesos CPL3 con cesion y preempcion: cuatro contextos CPU privados.
  * Puente C, una CPU, fuera de IRQ/tareas. El servicio INT81/9 cede el turno. */
 #ifndef NXK_PROCESOS_H
 #define NXK_PROCESOS_H
@@ -7,7 +7,7 @@
 enum nxk_proceso_estado { NXK_PROCESO_LIBRE, NXK_PROCESO_LISTO,
     NXK_PROCESO_EJECUTANDO, NXK_PROCESO_TERMINADO, NXK_PROCESO_FALLIDO };
 struct nxk_proceso_info {
-    uint32_t id,estado,turnos,cesiones,error_motor;
+    uint32_t id,estado,turnos,cesiones,preempciones,error_motor;
     struct nxk_usuario_resultado ultimo;
 };
 /* Crear/cargar conserva salida al fallar. IDs son los IDs completos del espacio.
@@ -25,7 +25,9 @@ int nxk_proceso_liberar(uint32_t id);
 /* Impide arrancar por la ruta legacy un espacio con contexto CPU conservado. */
 int nxk_proceso_gestionado(uint32_t id);
 int nxk_procesos_demo(void);
+int nxk_preempcion_demo(void);
 #ifdef NXK_TEST
 int nxk_procesos_probar(void);
+int nxk_preempcion_probar(void);
 #endif
 #endif

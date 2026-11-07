@@ -378,3 +378,13 @@ siguen pendientes. Ver ENTREGA-PROCESOS-COOPERATIVOS.md.
 Cierre: consola general y planificador kernel superados con el nucleo final;
 la compilacion x64 mantiene su limite BIOS al excluir comandos CPL3 de32bits.
 Las fuentes NXA enlazadas coinciden con sus binarios, incluida reanudacion26B.
+
+NXK v0.0.14: PIT suspende CPL3 gestionado tras10ticks sin cambiar EAX y guarda
+marco para reanudar. Motivo quantum separado de cesion; contador preempciones.
+Proceso preempcion verifica un bucle sin ceder y progreso de otra app, GPR/ESP,
+DF/FS/GS y limpieza. Ejemplo NEXTRY proceso_ocupado.nxf; prueba externa con
+rondas acotadas, NEXTRY, UD2 y segmentos nulos. Legacy mantiene fallo32.
+Matriz x86 32/64/128/1024MiB y regresion x64 64MiB superadas; procesos, espacios
+privados, consola, tareas y22NXE2 superados. Imagen x86 normal61452B/pruebas90124B.
+No preempta kernel/syscalls, sin SMP ni E/S bloqueante por proceso; ASUS pendiente.
+Ver ENTREGA-PREEMPCION.md.

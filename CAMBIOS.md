@@ -3,6 +3,15 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.14
+
+- El PIT suspende y permite reanudar procesos CPL3 al agotar10 ticks por turno.
+- EAX original y marco completo conservados; motivo quantum distinto de ceder.
+- Contador de preempciones, rondas acotadas y demo proceso preempcion.
+- Prueba de GPR/ESP/DF/FS/GS, progreso de otra app y memoria estable.
+- Ejemplo NEXTRY sin ceder; tests de bucle sin bloqueo, segmentos nulos y legacy.
+- Matriz x86, regresion x64, procesos, ejecucion privada, consola/tareas y22NXE2.
+
 ## v0.0.13
 
 - Cuatro PCB cooperativos con registros, EIP/ESP y segmentos conservados al ceder.

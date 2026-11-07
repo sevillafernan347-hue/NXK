@@ -148,8 +148,8 @@ static const unsigned char *usuario_carga;
 static size_t usuario_carga_longitud;
 extern const unsigned char servicio_nxa_inicio[], servicio_nxa_fin[];
 static unsigned char servicio_entrada[42];
-static uint32_t *contexto_cesion;
-static uint32_t hubo_cesion;
+static uint32_t *contexto_reanudable;
+static uint32_t motivo_retorno;
 extern uint32_t nxk_usuario_reanudar(const uint32_t *marco);
 extern _Noreturn void nxk_usuario_abortar(uint32_t resultado);
 extern void nxk_pe_salida(const char *datos,uint32_t n);
@@ -164,9 +164,9 @@ static void usuario_servicio(uint32_t *c) {
     if (!usuario_activo || (c[13]&3)!=3) return;
     char datos[256];
     /* Solo los procesos reanudables habilitan la cesion; ABI anterior rechaza9. */
-    if (servicio==9 && contexto_cesion) {
-        c[11]=0; memcpy(contexto_cesion,c,17*sizeof(uint32_t));
-        hubo_cesion=1; nxk_usuario_cs_guardado=c[13]; nxk_usuario_abortar(0);
+    if (servicio==9 && contexto_reanudable) {
+        c[11]=0; memcpy(contexto_reanudable,c,17*sizeof(uint32_t));
+        motivo_retorno=NXK_USUARIO_CEDER; nxk_usuario_cs_guardado=c[13]; nxk_usuario_abortar(0);
     }
     if (servicio==1) {
         if (n>256 || !usuario_rango(p,n,0)) return;
@@ -221,6 +221,14 @@ extern _Noreturn void nxk_usuario_abortar(uint32_t resultado);
 static void usuario_temporizador(const uint32_t *contexto) {
     /* Segmentos 0..3, PUSHAD 4..11, EIP/CS/EFLAGS 12..14, ESP/SS 15..16. */
     if (!usuario_activo || (contexto[13]&3)!=3 || (uint32_t)(ticks-usuario_inicio)<10) return;
+    if (contexto_reanudable) {
+        /* IRQ0 tiene el mismo marco que INT81. Conservar EAX original: no es
+         * una llamada al sistema ni una salida del proceso. EOI ya enviado. */
+        memcpy(contexto_reanudable,contexto,17*sizeof(uint32_t));
+        motivo_retorno=NXK_USUARIO_QUANTUM;
+        fallo_eip=contexto[12]; fallo_pila=contexto[15];
+        nxk_usuario_cs_guardado=contexto[13]; nxk_usuario_abortar(0);
+    }
     fallo_ocurrido=1; fallo_vector=32; fallo_error=fallo_direccion=0;
     fallo_eip=contexto[12]; fallo_pila=contexto[15];
     nxk_usuario_cs_guardado=contexto[13];
@@ -264,7 +272,7 @@ static int ejecutar_privado(uint32_t id,uint32_t *marco,struct nxk_usuario_resul
     tss_normal[1]=(uint32_t)(uintptr_t)(pila+4096); tss_normal[2]=16;
     int r=nxk_espacio_activar(id);
     if (!r) {
-        contexto_cesion=marco; hubo_cesion=0;
+        contexto_reanudable=marco; motivo_retorno=0;
         usuario_base=NXK_ESPACIO_CODIGO; usuario_inicio=ticks; nxk_usuario_cs_guardado=0;
         fallo_vector=fallo_error=fallo_direccion=fallo_eip=fallo_ocurrido=fallo_pila=0;
         usuario_activo=1;
@@ -292,10 +300,10 @@ static int ejecutar_privado(uint32_t id,uint32_t *marco,struct nxk_usuario_resul
     /* Cerrar tambien si activar fallo, sin exponer un resultado parcial. */
     tabla[128]=antes_salida; tabla[129]=antes_servicio;
     tss_normal[1]=esp0; tss_normal[2]=ss0; usuario_base=base_anterior;
-    contexto_cesion=0;
+    contexto_reanudable=0;
     if (r) return r==-5 ? -5 : -2;
     *salida=historial[(siguiente_resultado+7)%8];
-    if (cedido) *cedido=hubo_cesion;
+    if (cedido) *cedido=motivo_retorno;
     return 0;
 }
 /* Solo datos controlados vuelven a IRET: selectores y privilegios fijos. */

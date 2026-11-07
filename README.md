@@ -1,6 +1,6 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.13**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.14**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
 
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
@@ -123,7 +123,7 @@ pila. `usuario espacios` verifica fallos contenidos. Para NXE2 de disco usa
 `usuario liberar ID`. Consulta [la memoria privada](ENTREGA-ESPACIOS-PRIVADOS.md) y
 [la ejecucion y sus limites](ENTREGA-EJECUCION-PRIVADA.md).
 
-## Procesos cooperativos y NEXTRY
+## Procesos con turnos automaticos y NEXTRY
 
 `proceso demo` comprueba programas que ceden y se reanudan con registros y pila
 conservados. Puedes cargar NXE2 con `proceso cargar nombre.nxe`, verlos con
@@ -131,7 +131,10 @@ conservados. Puedes cargar NXE2 con `proceso cargar nombre.nxe`, verlos con
 `proceso ejecutar` y liberar con `proceso liberar ID`.
 NEXTRY incorpora `ceder`; hay un ejemplo comentado en
 [lenguaje/ejemplos/proceso.nxf](lenguaje/ejemplos/proceso.nxf).
-Consulta [reanudacion, estados y limites](ENTREGA-PROCESOS-COOPERATIVOS.md).
+Consulta [reanudacion y estados](ENTREGA-PROCESOS-COOPERATIVOS.md).
+`proceso preempcion` comprueba que un bucle sin ceder permite avanzar a otros
+procesos. El temporizador guarda contexto al agotar el turno y lo reanuda en
+la siguiente ronda. Consulta [pruebas y limites](ENTREGA-PREEMPCION.md).
 
 ## Construir en Windows
 
@@ -153,7 +156,7 @@ El mapa BIOS se analiza uniendo regiones de RAM y respetando reservas solapadas;
 los archivos RAM se pueden recortar o ampliar con ceros desde la API kernel.
 Consulta [la entrega de robustez](ENTREGA-ROBUSTEZ-MEMORIA.md).
 Ya hay paginacion inicial, contexto CPL3 reutilizable y archivos RAM. Faltan
-procesos CPL3 simultaneos, un sistema de archivos general e aislamiento completo.
+esperas de E/S por proceso, un sistema de archivos general y permisos completos.
 El compilador genera C; el kernel aun no esta escrito completamente en NEXTRY.
 El EXE de demostracion usa solo tres funciones Win32: no hay compatibilidad general.
 

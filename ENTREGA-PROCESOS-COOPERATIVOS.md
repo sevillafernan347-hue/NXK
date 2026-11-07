@@ -1,5 +1,9 @@
 # NXK v0.0.13: procesos cooperativos reanudables
 
+Desde v0.0.14 el PIT tambien suspende y reanuda procesos gestionados.
+Consultar [la ampliacion de preempcion](ENTREGA-PREEMPCION.md); las referencias
+al PIT terminal de este documento describen la entrega v0.0.13.
+
 Base v0.0.12, commit3c6c491. Cuatro procesos sobre el pool de espacios privados.
 NEXTRY ASM restaura CPU/IRET; C mantiene PCB, rondas y validacion del contexto.
 
