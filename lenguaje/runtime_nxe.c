@@ -53,3 +53,13 @@ uint32_t nxk_es_recibir_mensaje(uint32_t *origen,uint32_t *valor,uint32_t ticks)
     (void)origen; (void)valor; (void)ticks; nxk_es_fallo(0);
 }
 uint32_t nxk_es_proceso_actual(void) { nxk_es_fallo(0); }
+
+/* ABI NXE1 no tiene espera por proceso ni salida no local con codigo.
+ * No detener toda la maquina fingiendo que finalizo solo esta aplicacion. */
+uint32_t nxk_es_enviar_esperando(uint32_t destino,uint32_t valor,uint32_t ticks) {
+    (void)destino; (void)valor; (void)ticks; nxk_es_fallo(0);
+}
+uint32_t nxk_es_esperar_proceso(uint32_t destino,uint32_t *estado,uint32_t *codigo,uint32_t ticks) {
+    (void)destino; (void)estado; (void)codigo; (void)ticks; nxk_es_fallo(0);
+}
+_Noreturn void nxk_es_finalizar(uint32_t codigo) { (void)codigo; nxk_es_fallo(0); }

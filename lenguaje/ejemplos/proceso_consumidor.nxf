@@ -1,0 +1,22 @@
+# Receptor del ejemplo proceso_productor.nxf. La cola solo admite cuatro
+# registros; las doce entregas comprueban que el productor puede esperar hueco.
+funcion inicio
+    mostrar "Consumidor: mi ID"
+    numero proceso_actual()
+    entero valor = 0
+    entero origen = 0
+    entero resultado = 9
+    entero esperado = 1
+    entero suma = 0
+    repetir 12 veces
+        recibir_mensaje valor, origen, resultado, 10000
+        afirmar resultado == 0
+        afirmar valor == esperado
+        suma = suma + valor
+        esperado = esperado + 1
+    fin
+    afirmar suma == 78
+    mostrar "Consumidor: suma comprobada"
+    numero suma
+    finalizar 42
+fin

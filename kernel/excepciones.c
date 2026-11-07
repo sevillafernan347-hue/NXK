@@ -199,6 +199,23 @@ static void usuario_servicio(uint32_t *c) {
         nxk_usuario_cs_guardado=c[13]; nxk_usuario_abortar(0);
     }
     if (servicio==13 && contexto_reanudable) { c[11]=usuario_id_activo; return; }
+    if ((servicio==14 || servicio==15) && contexto_reanudable) {
+        uint32_t espera=c[9];
+        if (espera>0x7fffffffu || (servicio==15 && !usuario_rango(n,8,1))) return;
+        struct nxk_proceso_resultado resultado;
+        int r=servicio==14 ? nxk_proceso_enviar_esperando_actual(usuario_id_activo,p,n,espera) :
+            nxk_proceso_esperar_fin_actual(usuario_id_activo,p,n,espera,&resultado);
+        if (r==0 && servicio==15)
+            memcpy((void *)(uintptr_t)n,&resultado,sizeof(resultado));
+        c[11]=r==2 ? 1u : (uint32_t)r;
+        if (r!=2) return;
+        /* El gestor guarda destino/valor o buffer; el marco conserva todos
+         * los registros, incluido EDX. El plazo empieza en esta peticion. */
+        memcpy(contexto_reanudable,c,17*sizeof(uint32_t));
+        motivo_retorno=servicio==14 ? NXK_USUARIO_ENVIO : NXK_USUARIO_FIN;
+        plazo_retorno=ticks+espera;
+        nxk_usuario_cs_guardado=c[13]; nxk_usuario_abortar(0);
+    }
     if (servicio==1) {
         if (n>256 || !usuario_rango(p,n,0)) return;
         if (n) { memcpy(datos,(void *)(uintptr_t)p,n); nxk_pe_salida(datos,n); }
@@ -336,7 +353,7 @@ static int ejecutar_privado(uint32_t id,uint32_t *marco,struct nxk_usuario_resul
     if (r) return r==-5 ? -5 : -2;
     *salida=historial[(siguiente_resultado+7)%8];
     if (cedido) *cedido=motivo_retorno;
-    if (despertar) *despertar=(motivo_retorno==NXK_USUARIO_DORMIR || motivo_retorno==NXK_USUARIO_MENSAJE) ? plazo_retorno : 0;
+    if (despertar) *despertar=motivo_retorno>=NXK_USUARIO_DORMIR && motivo_retorno<=NXK_USUARIO_FIN ? plazo_retorno : 0;
     return 0;
 }
 /* Solo datos controlados vuelven a IRET: selectores y privilegios fijos. */

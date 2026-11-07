@@ -1,8 +1,9 @@
 # Estado de NXK
 
-Version actual: 0.0.16. Cuatro procesos CPL3 con memoria privada, preempcion,
-espera temporal, mensajes FIFO y cancelacion. Guia actual y pruebas en
-ENTREGA-MENSAJES-PROCESOS.md; siguientes hitos en PENDIENTES-KERNEL.md.
+Version actual: 0.0.17. Cuatro procesos CPL3 con memoria privada, preempcion,
+espera temporal, mensajes FIFO, envio con plazo, resultados y cancelacion.
+Guia actual y pruebas en ENTREGA-DEPENDENCIAS-PROCESOS.md;
+siguientes hitos en PENDIENTES-KERNEL.md.
 
 El registro siguiente conserva las etapas anteriores: cada entrada describe
 lo disponible en esa entrega, incluidas limitaciones resueltas posteriormente.
@@ -424,3 +425,24 @@ dormir/procesos/preempcion/22NXE2 superadas. Imagen normal65548B/pruebas94220B.
 Puentes C y una CPU; cuatro procesos y cuatro mensajes uint32 por cola,
 sin espera de espacio al enviar, permisos, E/S dispositivos ni certificacion
 ASUS. Ver ENTREGA-MENSAJES-PROCESOS.md y PENDIENTES-KERNEL.md.
+
+NXK v0.0.17: envio con espera de espacio y observacion de resultados entre
+procesos. Estados8ENVIO/9FIN, plazos, valores/destinos retenidos en PCB,
+salidas8bytes copiadas antes de retirar referencias. Dos observadores pueden
+recibir el mismo resultado; liberar por proceso o espacio devuelve-5 mientras
+quede una espera FIN. Cancelar/fallar/destruir observador retira referencias.
+Detector acotado de ciclos FIN/ENVIO al registrar y al despachar, incluido
+ciclo posterior al relleno por un tercero; rebloqueo sin turnos extra si otro
+emisor toma el hueco. Contadores esperando/esperas_envio/esperas_fin/ciclos.
+Servicios INT81/14..15 opcionales; NEXTRY enviar_esperando, esperar_proceso,
+finalizar codigo y tres ejemplos. Comando proceso dependencias verifica
+resultado42, retencion por ambas API y limpieza, repetido tres veces en test.
+48pruebas compilador; matriz x86 32/64/128/1024MiB y x64 64MiB superadas.
+Prueba externa cubre plazos, GPR/CF/DF, limites, referencias multiples,
+fallos/cancelacion, IDs obsoletos, ciclos FIN2/3, ENVIO, mixtos y dinamicos.
+Productor/consumidor/observador reales:12mensajes, suma78, salidas42/42/0.
+Regresiones IPC, procesos, ejecucion privada, dormir, preempcion, consola,
+tareas y22NXE2 superadas. Memoria estable y discos originales intactos.
+Imagen normal69644B/pruebas98316B. Puentes C, una CPU, sin ACL, E/S de
+dispositivos ni certificacion ASUS; detector no infiere protocolos implicitos.
+Ver ENTREGA-DEPENDENCIAS-PROCESOS.md y PENDIENTES-KERNEL.md.

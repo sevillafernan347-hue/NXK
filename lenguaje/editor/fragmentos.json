@@ -4,5 +4,8 @@
   "Condicion": {"prefix": "si", "body": ["si ${1:verdadero}", "    $2", "sino", "    $0", "fin"], "description": "Elegir entre dos bloques"},
   "Funcion": {"prefix": "funcion", "body": ["función ${1:nombre}", "    $0", "fin"], "description": "Declarar una función"},
   "Enviar mensaje": {"prefix": "enviar_mensaje", "body": ["enviar_mensaje ${1:destino}, ${2:valor}"], "description": "Enviar un valor a un proceso CPL3"},
-  "Recibir mensaje": {"prefix": "recibir_mensaje", "body": ["entero ${1:valor} = 0", "entero ${2:origen} = 0", "entero ${3:resultado} = 0", "recibir_mensaje ${1:valor}, ${2:origen}, ${3:resultado}, ${4:100}"], "description": "Recibir con plazo; resultado 0 indica mensaje y 1 plazo o cola vacia"}
+  "Recibir mensaje": {"prefix": "recibir_mensaje", "body": ["entero ${1:valor} = 0", "entero ${2:origen} = 0", "entero ${3:resultado} = 0", "recibir_mensaje ${1:valor}, ${2:origen}, ${3:resultado}, ${4:100}"], "description": "Recibir con plazo; resultado 0 indica mensaje y 1 plazo o cola vacia"},
+  "Enviar con plazo": {"prefix": "enviar_esperando", "body": ["enviar_esperando ${1:destino}, ${2:valor}, ${3:resultado}, ${4:100}"], "description": "Esperar espacio en la cola sin descartar mensajes"},
+  "Esperar proceso": {"prefix": "esperar_proceso", "body": ["entero ${1:estado} = 0", "entero ${2:codigo} = 0", "entero ${3:resultado} = 0", "esperar_proceso ${4:destino}, ${1:estado}, ${2:codigo}, ${3:resultado}, ${5:100}"], "description": "Observar el resultado de otro proceso sin consumirlo"},
+  "Finalizar proceso": {"prefix": "finalizar", "body": ["finalizar ${1:0}"], "description": "Terminar el programa CPL3 con codigo propio"}
 }

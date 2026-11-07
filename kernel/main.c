@@ -156,6 +156,15 @@ uint32_t nxk_es_recibir_mensaje(uint32_t *origen,uint32_t *valor,uint32_t ticks)
     (void)origen; (void)valor; (void)ticks; nxk_es_fallo(0);
 }
 uint32_t nxk_es_proceso_actual(void) { nxk_es_fallo(0); }
+uint32_t nxk_es_enviar_esperando(uint32_t destino,uint32_t valor,uint32_t ticks) {
+    (void)destino; (void)valor; (void)ticks; nxk_es_fallo(0);
+}
+uint32_t nxk_es_esperar_proceso(uint32_t destino,uint32_t *estado,uint32_t *codigo,uint32_t ticks) {
+    (void)destino; (void)estado; (void)codigo; (void)ticks; nxk_es_fallo(0);
+}
+_Noreturn void nxk_es_finalizar(uint32_t codigo) {
+    nxk_tarea_finalizar(codigo); nxk_es_fallo(0);
+}
 void nxk_es_guardar_archivo(const char *nombre,const char *texto) {
     size_t n=0; while (n<256 && texto[n]) ++n;
     if (n==256 || nxk_archivo_escribir(nombre,texto,n)) nxk_es_fallo(0);
@@ -319,6 +328,9 @@ void kernel_main(void) {
     print("NXK: PREEMPCION CPL3 OK\n");
     if (nxk_proceso_dormir_probar()) { print("NXK: DORMIR PROCESO FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
     print("NXK: DORMIR PROCESO OK\n");
+    int dependencias=nxk_dependencias_probar();
+    if (dependencias) { print("NXK: DEPENDENCIAS PROCESO FAIL "); number((unsigned)dependencias); put('\n'); out8(0xf4,0x11); nxk_es_detener(); }
+    print("NXK: DEPENDENCIAS PROCESO OK\n");
     if (nxk_tareas_demo()) { print("NXK: TAREAS FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
     print("NXK: TAREAS COOPERATIVAS OK\n");
     extern int nxk_tareas_probar_limites(void);
@@ -432,7 +444,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | espacios | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nproceso dormir | proceso preempcion | proceso demo | proceso cargar nombre.nxe | proceso listar | proceso paso ID\nproceso ejecutar | proceso liberar ID\nproceso enviar ID VALOR | proceso cancelar ID\nusuario espacios | usuario listar | usuario cargar archivo.nxe | usuario turno ID | usuario liberar ID\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | espacios | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nproceso dependencias | proceso dormir | proceso preempcion | proceso demo | proceso cargar nombre.nxe | proceso listar | proceso paso ID\nproceso ejecutar | proceso liberar ID\nproceso enviar ID VALOR | proceso cancelar ID\nusuario espacios | usuario listar | usuario cargar archivo.nxe | usuario turno ID | usuario liberar ID\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -522,6 +534,9 @@ void kernel_main(void) {
                 for (unsigned i=0;i<8;++i) { const char *s=nxk_archivo_nombre(i); if (s) { print(s); put('\n'); } }
             }
 #if defined(__i386__)
+            else if (nxk_equal(line,"proceso dependencias")) {
+                print(nxk_dependencias_demo() ? "No se pudo verificar dependencias.\n" : "Dependencias: resultado42 recibido y liberacion anticipada protegida.\n");
+            }
             else if (nxk_equal(line,"proceso dormir")) {
                 print(nxk_proceso_dormir_demo() ? "No se pudo verificar espera.\n" : "Espera de proceso: otro avanzo y el dormido continuo al vencer.\n");
             }
@@ -543,7 +558,8 @@ void kernel_main(void) {
                     if (!nxk_proceso_enumerar(i,&p)) {
                         print("Proceso "); number(p.id); print(" estado "); number(p.estado);
                         print(" turnos "); number(p.turnos); print(" cesiones "); number(p.cesiones); print(" preempciones "); number(p.preempciones); print(" dormidas "); number(p.dormidas); print(" despertar "); number(p.despertar);
-                        print(" mensajes "); number(p.mensajes); print(" enviados "); number(p.enviados); print(" recibidos "); number(p.recibidos); print(" esperas "); number(p.esperas_mensaje); print(" plazos "); number(p.plazos); put('\n');
+                        print(" mensajes "); number(p.mensajes); print(" enviados "); number(p.enviados); print(" recibidos "); number(p.recibidos); print(" esperas "); number(p.esperas_mensaje); print(" plazos "); number(p.plazos);
+                        print(" esperando "); number(p.esperando); print(" esperas_envio "); number(p.esperas_envio); print(" esperas_fin "); number(p.esperas_fin); print(" ciclos "); number(p.ciclos); put('\n');
                         if (p.estado==NXK_PROCESO_CANCELADO) print("Cancelado; recursos retenidos hasta liberar.\n");
                         else if (p.error_motor) { print("Error de motor "); number(p.error_motor); put('\n'); }
                         else if (p.turnos) usuario_resultado(&p.ultimo);
@@ -559,7 +575,7 @@ void kernel_main(void) {
             }
             else if (nxk_equal(line,"proceso ejecutar")) {
                 int r=nxk_procesos_ejecutar(32);
-                print(r<0 ? "Fallo al ejecutar procesos.\n" : r==2 ? "Procesos esperando plazo o mensaje; vuelve a ejecutar para continuar.\n" : r ? "Presupuesto agotado; quedan procesos listos.\n" : "Procesos sin pendientes.\n");
+                print(r<0 ? "Fallo al ejecutar procesos.\n" : r==2 ? "Procesos esperando plazo, mensaje o proceso; vuelve a ejecutar para continuar.\n" : r ? "Presupuesto agotado; quedan procesos listos.\n" : "Procesos sin pendientes.\n");
             }
             else if (prefijo(line,"proceso liberar ")) {
                 uint32_t id;

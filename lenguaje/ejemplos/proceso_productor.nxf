@@ -1,0 +1,21 @@
+# Compilar como NXE2 y cargar junto a proceso_consumidor.nxf.
+# Dar un turno al productor y enviarle el ID del consumidor con la consola:
+# proceso enviar ID_PRODUCTOR ID_CONSUMIDOR
+# Ejecutar rondas con proceso ejecutar. El envio espera si la cola esta llena.
+funcion inicio
+    mostrar "Productor: mi ID"
+    numero proceso_actual()
+    entero receptor = 0
+    entero origen = 0
+    entero resultado = 9
+    recibir_mensaje receptor, origen, resultado, 10000
+    afirmar resultado == 0
+    entero valor = 1
+    repetir 12 veces
+        enviar_esperando receptor, valor, resultado, 10000
+        afirmar resultado == 0
+        valor = valor + 1
+    fin
+    mostrar "Productor: doce mensajes enviados"
+    finalizar 42
+fin

@@ -3,6 +3,25 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.17
+
+- Envio CPL3 con espera de espacio, plazo original y valor retenido en el PCB.
+- Observacion de resultados con varios esperadores, copia completa del registro
+  y retencion del ID protegida tambien frente a la API antigua de espacios.
+- Estados8/9, referencias, contadores y cancelacion de las nuevas esperas.
+- Detector acotado de ciclos FIN/ENVIO, incluidos los creados por rellenar una
+  cola despues de despertar. Rebloqueo sin turno CPU extra si se pierde el hueco.
+- NEXTRY enviar_esperando, esperar_proceso y finalizar codigo. Tres ejemplos
+  comentados, editor y comando proceso dependencias con pruebas de arranque.
+- 48 pruebas del compilador y matriz QEMU x86 32/64/128/1024 MiB superadas;
+  regresion x64 64 MiB y demostracion repetida con recursos estables.
+- Prueba externa: FIFO/backpressure, plazos, registros/banderas, limites,
+  referencias, fallos/cancelacion, IDs reciclados y ciclos de dos/tres procesos.
+  Tres ejemplos reales juntos verifican12mensajes, suma78 y salidas42/42/0.
+- Regresiones de IPC, procesos, ejecucion privada, dormir, preempcion, consola,
+  tareas y22casos NXE2 superadas. Discos virtuales originales intactos.
+- Limites y pasos de uso: ENTREGA-DEPENDENCIAS-PROCESOS.md.
+
 ## v0.0.16
 
 - FIFO4 de mensajes por proceso, valor uint32 y remitente real con ID completo.

@@ -32,6 +32,7 @@ PALABRAS = set('funcion fin variable constante si sino mientras repetir veces '
                'mostrar numero llamar volver detener ceder dormir afirmar leer_puerto '
                'escribir_puerto verdadero falso y o no y_bits o_bits xor_bits '
                'memoria_usada proceso_actual enviar_mensaje recibir_mensaje '
+               'enviar_esperando esperar_proceso finalizar '
                'romper continuar entero logico texto guardar_archivo mostrar_archivo borrar_archivo agregar_archivo renombrar_archivo copiar_archivo'.split())
 ALIAS = {'función': 'funcion', 'número': 'numero'}
 PATRON = re.compile(
@@ -160,7 +161,7 @@ class Analizador:
                 salida.append((k,t,nombre,self.expresion())); self.linea()
             elif k in ('mostrar_archivo','borrar_archivo'):
                 salida.append((k,t,self.expresion())); self.linea()
-            elif k in ('mostrar', 'numero', 'dormir', 'afirmar'):
+            elif k in ('mostrar', 'numero', 'dormir', 'finalizar', 'afirmar'):
                 salida.append((k, t, self.expresion())); self.linea()
             elif k in ('volver', 'detener', 'ceder', 'romper', 'continuar'):
                 salida.append((k, t)); self.linea()
@@ -181,6 +182,17 @@ class Analizador:
                 origen = self.tomar('NOMBRE'); self.tomar(',')
                 resultado = self.tomar('NOMBRE'); self.tomar(',')
                 salida.append((k, t, valor, origen, resultado, self.expresion())); self.linea()
+            elif k == 'enviar_esperando':
+                destino = self.expresion(); self.tomar(',')
+                valor = self.expresion(); self.tomar(',')
+                resultado = self.tomar('NOMBRE'); self.tomar(',')
+                salida.append((k, t, destino, valor, resultado, self.expresion())); self.linea()
+            elif k == 'esperar_proceso':
+                destino = self.expresion(); self.tomar(',')
+                estado = self.tomar('NOMBRE'); self.tomar(',')
+                codigo = self.tomar('NOMBRE'); self.tomar(',')
+                resultado = self.tomar('NOMBRE'); self.tomar(',')
+                salida.append((k, t, destino, estado, codigo, resultado, self.expresion())); self.linea()
             elif k in ('si', 'mientras', 'repetir'):
                 condicion = self.expresion()
                 if k == 'repetir': self.tomar('veces')
@@ -229,6 +241,18 @@ class Generador:
     def tipo(self, t, obtenido, esperado):
         if obtenido != esperado:
             self.error(t, f'Se requiere un valor {esperado}; se recibio {obtenido}.')
+
+    def salidas_enteras(self, destinos):
+        # Nunca entregar punteros a logicos (_Bool), constantes o alias:
+        # los servicios publican palabras completas de 32 bits.
+        nombres = []
+        for destino in destinos:
+            tipo, nombre, constante = self.buscar(destino)
+            self.tipo(destino, tipo, 'entero')
+            if constante: self.error(destino, 'El destino debe ser una variable modificable.')
+            if nombre in nombres: self.error(destino, 'Los destinos deben ser variables distintas.')
+            nombres.append(nombre)
+        return nombres
 
     def expresion(self, e):
         k, t = e[:2]
@@ -290,9 +314,9 @@ class Generador:
                     tipo,datos=self.expresion(s[3]); self.tipo(t,tipo,'texto')
                     poner(f'nxk_es_{k}({nombre}, {datos});')
                 else: poner(f'nxk_es_{k}({nombre});')
-            elif k in ('mostrar', 'numero', 'dormir', 'afirmar'):
+            elif k in ('mostrar', 'numero', 'dormir', 'finalizar', 'afirmar'):
                 tipo, valor = self.expresion(s[2])
-                esperado = {'mostrar': 'texto', 'numero': 'entero', 'dormir': 'entero', 'afirmar': 'logico'}[k]
+                esperado = {'mostrar': 'texto', 'numero': 'entero', 'dormir': 'entero', 'finalizar': 'entero', 'afirmar': 'logico'}[k]
                 self.tipo(t, tipo, esperado)
                 if k == 'afirmar': poner(f'if (!({valor})) nxk_es_fallo(UINT32_C({t.linea}));')
                 else: poner(f'nxk_es_{k}({valor});')
@@ -333,6 +357,17 @@ class Generador:
                 pt, plazo = self.expresion(s[5]); self.tipo(t, pt, 'entero')
                 valor, origen, resultado = nombres
                 poner(f'{resultado} = nxk_es_recibir_mensaje(&{origen}, &{valor}, {plazo});')
+            elif k == 'enviar_esperando':
+                dt, destino = self.expresion(s[2]); vt, valor = self.expresion(s[3])
+                self.tipo(t, dt, 'entero'); self.tipo(t, vt, 'entero')
+                resultado, = self.salidas_enteras((s[4],))
+                pt, plazo = self.expresion(s[5]); self.tipo(t, pt, 'entero')
+                poner(f'{resultado} = nxk_es_enviar_esperando({destino}, {valor}, {plazo});')
+            elif k == 'esperar_proceso':
+                dt, destino = self.expresion(s[2]); self.tipo(t, dt, 'entero')
+                estado, codigo, resultado = self.salidas_enteras(s[3:6])
+                pt, plazo = self.expresion(s[6]); self.tipo(t, pt, 'entero')
+                poner(f'{resultado} = nxk_es_esperar_proceso({destino}, &{estado}, &{codigo}, {plazo});')
             else:
                 tipo, condicion = self.expresion(s[2])
                 self.tipo(t, tipo, 'entero' if k == 'repetir' else 'logico')

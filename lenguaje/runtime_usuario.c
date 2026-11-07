@@ -51,6 +51,26 @@ uint32_t nxk_es_proceso_actual(void) {
     if (!r || r>=UINT32_C(0xfffffffe)) nxk_es_fallo(0);
     return r;
 }
+/* Enviar con plazo conserva el valor en el PCB si la cola esta llena.
+ * Retornos negativos (incluido ciclo) no se confunden con vencimiento. */
+uint32_t nxk_es_enviar_esperando(uint32_t destino,uint32_t valor,uint32_t ticks) {
+    uint32_t r=14;
+    if (ticks>UINT32_C(0x7fffffff)) nxk_es_fallo(0);
+    __asm__ volatile("int $0x81":"+a"(r):"b"(destino),"c"(valor),"d"(ticks):"memory","cc");
+    if (r>1) nxk_es_fallo(0);
+    return r;
+}
+uint32_t nxk_es_esperar_proceso(uint32_t destino,uint32_t *estado,uint32_t *codigo,uint32_t ticks) {
+    uint32_t r=15, resultado[2];
+    if (ticks>UINT32_C(0x7fffffff)) nxk_es_fallo(0);
+    /* El servicio escribe su registro en la pila privada. Una consulta vacia
+     * o plazo vencido no publica bytes no inicializados sobre las variables. */
+    __asm__ volatile("int $0x81":"+a"(r):"b"(destino),"c"(resultado),"d"(ticks):"memory","cc");
+    if (!r) { *estado=resultado[0]; *codigo=resultado[1]; }
+    else if (r!=1) nxk_es_fallo(0);
+    return r;
+}
+_Noreturn void nxk_es_finalizar(uint32_t codigo) { terminar(codigo); }
 void nxk_es_mostrar(const char *t) {
     uint32_t n=0; while (n<256 && t[n]) ++n;
     if (n==256 || escribir(t,n)!=n || escribir("\n",1)!=1) nxk_es_fallo(0);

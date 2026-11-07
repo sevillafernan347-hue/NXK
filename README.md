@@ -1,6 +1,6 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.16**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.17**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
 
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
@@ -145,6 +145,11 @@ recepcion con plazo. Desde NEXTRY: `enviar_mensaje`, `recibir_mensaje` y
 `proceso_actual()`. La consola permite `proceso enviar ID VALOR` y
 `proceso cancelar ID`; cancelar conserva el diagnostico hasta liberar.
 Consulta [contratos, ejemplos y limites](ENTREGA-MENSAJES-PROCESOS.md).
+Desde v0.0.17 `enviar_esperando` permite esperar espacio sin descartar datos,
+`esperar_proceso` observa un resultado y `finalizar codigo` termina la app.
+El gestor rechaza ciclos de estas dependencias y conserva resultados
+hasta entregarlos. `proceso dependencias` verifica una espera desde la consola.
+Consulta [ejemplos y contrato de resultados](ENTREGA-DEPENDENCIAS-PROCESOS.md).
 
 ## Construir en Windows
 

@@ -6,13 +6,16 @@
 #include "espacios.h"
 enum nxk_proceso_estado { NXK_PROCESO_LIBRE, NXK_PROCESO_LISTO,
     NXK_PROCESO_EJECUTANDO, NXK_PROCESO_TERMINADO, NXK_PROCESO_FALLIDO, NXK_PROCESO_DORMIDO,
-    NXK_PROCESO_ESPERANDO_MENSAJE, NXK_PROCESO_CANCELADO };
+    NXK_PROCESO_ESPERANDO_MENSAJE, NXK_PROCESO_CANCELADO,
+    NXK_PROCESO_ESPERANDO_ENVIO, NXK_PROCESO_ESPERANDO_FIN };
 #define NXK_PROCESO_BUZON_MAX 4u
 struct nxk_proceso_mensaje { uint32_t origen,valor; };
+struct nxk_proceso_resultado { uint32_t estado,codigo; };
 struct nxk_proceso_info {
     uint32_t id,estado,turnos,cesiones,preempciones,error_motor,dormidas,despertar;
     /* mensajes: cantidad en cola. Los otros cuatro contadores saturan. */
     uint32_t mensajes,enviados,recibidos,esperas_mensaje,plazos;
+    uint32_t esperando,esperas_envio,esperas_fin,ciclos;
     struct nxk_usuario_resultado ultimo;
 };
 /* Crear/cargar conserva salida al fallar. IDs son los IDs completos del espacio.
@@ -34,20 +37,33 @@ int nxk_proceso_enviar(uint32_t destino,uint32_t valor);
 int nxk_proceso_enviar_desde(uint32_t origen,uint32_t destino,uint32_t valor);
 int nxk_proceso_recibir_actual(uint32_t id,struct nxk_proceso_mensaje *salida);
 int nxk_proceso_preparar_espera(uint32_t id,uint32_t buffer_virtual);
-/* Cancelar solo LISTO/DORMIDO/ESPERANDO: limpia buzon y espera, retiene ID y
+/* Puentes INT81/14..15: solo proceso actual. 0 exito, 1 consulta/plazo,
+ * 2 preparar suspension, -1 contrato/ID, -3 envio a terminal, -4 ciclo.
+ * El motor guarda marco y plazo absoluto despues de un retorno2. No reservar
+ * sitio en la cola al esperar; el siguiente despacho vuelve a comprobarlo. */
+int nxk_proceso_enviar_esperando_actual(uint32_t id,uint32_t destino,uint32_t valor,uint32_t ticks);
+int nxk_proceso_esperar_fin_actual(uint32_t id,uint32_t destino,uint32_t buffer_virtual,uint32_t ticks,struct nxk_proceso_resultado *salida);
+/* Referencia de resultado pendiente, incluso listo tras vencer. Protege la
+ * liberacion del destino hasta entregar, cancelar o retirar al observador.
+ * Solo consulta metadatos y generaciones; no requiere el CR3 del kernel. */
+int nxk_proceso_retenido(uint32_t id);
+/* Cancelar LISTO/DORMIDO o cualquier espera: limpia buzon y espera, retiene ID y
  * memoria hasta liberar. -1 ID, -2 estado terminal, -3 contexto/gestor ocupado. */
 int nxk_proceso_cancelar(uint32_t id);
-/* Hasta1024 turnos: 0 sin pendientes, 1 presupuesto, 2 solo dormidos/esperas.
+/* Hasta1024 despachos: 0 sin pendientes, 1 presupuesto, 2 solo dormidos/esperas.
  * Un fallo CPU de una app no impide ejecutar otras. Error del motor negativo. */
 int nxk_procesos_ejecutar(uint32_t presupuesto);
+/* -5 mientras otra espera FIN conserve una referencia al resultado. */
 int nxk_proceso_liberar(uint32_t id);
 /* Impide arrancar por la ruta legacy un espacio con contexto CPU conservado. */
 int nxk_proceso_gestionado(uint32_t id);
 int nxk_procesos_demo(void);
+int nxk_dependencias_demo(void);
 int nxk_preempcion_demo(void);
 int nxk_proceso_dormir_demo(void);
 #ifdef NXK_TEST
 int nxk_procesos_probar(void);
+int nxk_dependencias_probar(void);
 int nxk_preempcion_probar(void);
 int nxk_proceso_dormir_probar(void);
 #endif

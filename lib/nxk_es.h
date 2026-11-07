@@ -24,6 +24,13 @@ void nxk_es_enviar_mensaje(uint32_t destino,uint32_t valor);
  * El plazo maximo es 0x7fffffff ticks; cero consulta sin bloquear. */
 uint32_t nxk_es_recibir_mensaje(uint32_t *origen,uint32_t *valor,uint32_t ticks);
 uint32_t nxk_es_proceso_actual(void);
+/* 0 enviado, 1 plazo/cola llena; errores de ID, destino o ciclo detienen la app. */
+uint32_t nxk_es_enviar_esperando(uint32_t destino,uint32_t valor,uint32_t ticks);
+/* 0 publica estado/codigo terminal; 1 conserva ambas salidas al vencer.
+ * Resultado del proceso no consumido; variables de salida distintas. */
+uint32_t nxk_es_esperar_proceso(uint32_t destino,uint32_t *estado,uint32_t *codigo,uint32_t ticks);
+/* Finaliza el proceso CPL3 con codigo propio; no vuelve a la siguiente orden. */
+_Noreturn void nxk_es_finalizar(uint32_t codigo);
 uint32_t nxk_es_memoria_usada(void);
 uint32_t nxk_es_dividir(uint32_t a, uint32_t b);
 uint32_t nxk_es_resto(uint32_t a, uint32_t b);

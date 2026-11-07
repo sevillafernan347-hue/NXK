@@ -24,6 +24,8 @@ int nxk_espacio_escribir(uint32_t id,uint32_t virtual,const void *origen,size_t 
  * NO cambia registros CPU, TSS ni pila de retorno de un proceso. */
 int nxk_espacio_activar(uint32_t id);
 int nxk_espacio_restaurar(void);
+/* Destruir: -5 si un observador de proceso retiene el resultado de este ID.
+ * Debe consumir su espera o cancelarla antes de liberar el destino. */
 int nxk_espacio_destruir(uint32_t id);
 int nxk_espacios_demo(void);
 #ifdef NXK_TEST

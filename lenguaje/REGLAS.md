@@ -263,3 +263,21 @@ El remitente real lo asigna el kernel; origen0 representa consola/kernel.
 Solo ruta `proceso`; no equivale a los buzones de tareas ring0.
 Ejemplos: proceso_mensajes.nxf y proceso_receptor.nxf.
 Ver ENTREGA-MENSAJES-PROCESOS.md para los contratos y limites completos.
+
+## Dependencias y codigo de salida (v0.0.17)
+
+`enviar_esperando destino, valor, resultado, ticks` espera espacio si la cola
+esta llena. Resultado debe ser una variable entero modificable; los otros
+argumentos son expresiones enteras. Resultado0 significa enviado; resultado1 significa cola llena o plazo vencido.
+`esperar_proceso destino, estado, codigo, resultado, ticks` observa el fin.
+Las tres salidas son variables entero modificables y distintas. Retorno0
+publica estado/codigo;1 conserva ambas salidas. Plazo0 consulta sin suspender.
+Los intervalos positivos tienen el mismo maximo0x7fffffff que dormir.
+IDs invalidos, destinos de envio terminales o ciclos hacen fallar el runtime;
+no se presentan como plazos vencidos. Varias apps pueden observar un resultado.
+`finalizar expresion_entera` termina la app CPL3 con ese codigo uint32 usando
+INT80. No retorna a la instruccion siguiente. El retorno normal de inicio
+sigue terminando con0. En kernel NEXTRY requiere una tarea actual; NXE1
+rechaza finalizar por carecer de retorno no local con codigo.
+Ejemplos: proceso_productor.nxf, proceso_consumidor.nxf y proceso_observador.nxf.
+Guia completa: ENTREGA-DEPENDENCIAS-PROCESOS.md.

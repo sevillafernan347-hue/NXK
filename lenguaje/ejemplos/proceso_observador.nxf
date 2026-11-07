@@ -1,0 +1,22 @@
+# Compilar como NXE2 y cargar junto al productor o consumidor.
+# Despues de cargar, enviar el ID del proceso cuyo resultado se desea observar:
+# proceso enviar ID_OBSERVADOR ID_TRABAJADOR
+# No liberar el trabajador mientras el observador espera su resultado.
+funcion inicio
+    mostrar "Observador: mi ID"
+    numero proceso_actual()
+    entero trabajador = 0
+    entero origen = 0
+    entero resultado = 9
+    recibir_mensaje trabajador, origen, resultado, 10000
+    afirmar resultado == 0
+    entero estado = 99
+    entero codigo = 99
+    esperar_proceso trabajador, estado, codigo, resultado, 10000
+    afirmar resultado == 0
+    afirmar estado == 3
+    afirmar codigo == 42
+    mostrar "Observador: proceso terminado con codigo"
+    numero codigo
+    finalizar 0
+fin

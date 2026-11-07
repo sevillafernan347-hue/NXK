@@ -82,3 +82,9 @@ EAX13 consulta el ID actual. Recepcion0=mensaje,1=vacio/plazo, negativos=error.
 Buffer solo pila privada y plazo0..7fffffff, validados antes de consumir datos.
 ABI1 y cabecera sin cambios; legacy rechaza estas extensiones.
 Ver ENTREGA-MENSAJES-PROCESOS.md y ejemplos proceso_mensajes/proceso_receptor.
+
+Desde v0.0.17 INT81/EAX14 envia con espera: EBXdestino ECXvalor EDXticks.
+INT81/EAX15 espera fin: EBXdestino ECXbuffer8{estado,codigo} EDXticks.
+Ambos retornan 0 exito o 1 consulta/plazo; negativos son errores; solo ruta proceso.
+Buffer15 en pila privada; ticks0..7fffffff. La ABI1 y cabecera no cambian.
+INT80 ya acepta el codigo de finalizar NEXTRY. Ver entrega de dependencias.

@@ -20,9 +20,10 @@ int nxk_usuario_ejecutar_archivo(const char *nombre);
  * salida: -1 contrato/ID/activo, -2 contexto, -3 heap, -4 plantilla, -5 retorno.
  * Solo kernel CR3 original, IF habilitada, GDT/TSS/PIT iniciados, fuera de tareas. */
 int nxk_usuario_ejecutar_espacio(uint32_t id,struct nxk_usuario_resultado *salida);
-enum nxk_usuario_motivo { NXK_USUARIO_FINAL, NXK_USUARIO_CEDER, NXK_USUARIO_QUANTUM, NXK_USUARIO_DORMIR, NXK_USUARIO_MENSAJE };
+enum nxk_usuario_motivo { NXK_USUARIO_FINAL, NXK_USUARIO_CEDER, NXK_USUARIO_QUANTUM, NXK_USUARIO_DORMIR, NXK_USUARIO_MENSAJE, NXK_USUARIO_ENVIO, NXK_USUARIO_FIN };
 /* Marco17 DWORD de INT81/IRQ0; API interna kernel. Solo publica marco al
- * suspender: 1=ceder, 2=quantum, 3=dormir, 4=esperar mensaje, 0=salida/fallo.
+ * suspender: 1=ceder, 2=quantum, 3=dormir, 4=recibir, 5=enviar, 6=fin ajeno.
+ * Motivo0 indica salida/fallo.
  * despertar recibe plazo absoluto al dormir/esperar; en los otros casos0.
  * -6 rechaza EIP/ESP/selectores antes de IRET.
  * No sustituye NXE ABI: reservado al gestor de procesos, buffers confiables. */

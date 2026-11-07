@@ -6,6 +6,7 @@
 #include "paginas.h"
 #include "tareas.h"
 #include "paginacion.h"
+#include "procesos.h"
 #if defined(__i386__)
 #define KERNEL_CR3 0x200000u
 struct espacio { uint32_t generacion,id,base; };
@@ -86,6 +87,9 @@ int nxk_espacio_destruir(uint32_t id) {
     struct espacio *e=buscar(id); if (!e) return -1;
     if (paginado() && cr3()==e->base) return -2;
     if (!contexto() || cr3()!=KERNEL_CR3) return -3;
+    /* Un observador conserva el resultado de este ID hasta consumirlo o
+     * cancelar su espera, tambien si entra por la API antigua de espacios. */
+    if (nxk_proceso_retenido(id)) return -5;
     if (nxk_paginas_liberar_bloque((void *)(uintptr_t)e->base,5)) return -4;
     e->base=0; e->id=0; return 0;
 }

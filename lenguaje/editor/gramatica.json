@@ -3,9 +3,9 @@
   "patterns": [
     {"name": "comment.line.number-sign.nxk", "match": "#.*$"},
     {"name": "string.quoted.double.nxk", "begin": "\"", "end": "\"", "patterns": [{"name": "constant.character.escape.nxk", "match": "\\\\."}]},
-    {"name": "keyword.control.nxk", "match": "\\b(funcion|función|fin|variable|constante|si|sino|mientras|repetir|veces|llamar|volver|detener|afirmar|romper|continuar|ceder|dormir)\\b"},
+    {"name": "keyword.control.nxk", "match": "\\b(funcion|función|fin|variable|constante|si|sino|mientras|repetir|veces|llamar|volver|detener|finalizar|afirmar|romper|continuar|ceder|dormir)\\b"},
     {"name": "storage.type.nxk", "match": "\\b(entero|logico|texto)\\b"},
-    {"name": "support.function.nxk", "match": "\\b(mostrar|numero|número|memoria_usada|proceso_actual|enviar_mensaje|recibir_mensaje|leer_puerto|escribir_puerto|guardar_archivo|mostrar_archivo|borrar_archivo|agregar_archivo|renombrar_archivo|copiar_archivo)\\b"},
+    {"name": "support.function.nxk", "match": "\\b(mostrar|numero|número|memoria_usada|proceso_actual|enviar_mensaje|recibir_mensaje|enviar_esperando|esperar_proceso|leer_puerto|escribir_puerto|guardar_archivo|mostrar_archivo|borrar_archivo|agregar_archivo|renombrar_archivo|copiar_archivo)\\b"},
     {"name": "constant.language.nxk", "match": "\\b(verdadero|falso)\\b"},
     {"name": "keyword.operator.nxk", "match": "\\b(y|o|no|y_bits|o_bits|xor_bits)\\b|==|!=|<=|>=|<<|>>|[=+*/%<>-]"},
     {"name": "constant.numeric.nxk", "match": "\\b(0[xX][0-9a-fA-F]+|[0-9]+)\\b"}
