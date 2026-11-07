@@ -1,0 +1,15 @@
+# Compilar como NXE2 y cargar en la ruta de procesos de NXK.
+# El plazo usa ticks PIT (~100 por segundo), no milisegundos.
+funcion inicio
+    entero valor = 23
+    mostrar "Proceso NEXTRY: antes de dormir"
+    dormir 20
+    afirmar valor == 23
+    mostrar "Proceso NEXTRY: continua despues del plazo"
+    valor = valor + 1
+    # Cero cede el turno sin registrar una espera con plazo.
+    dormir 0
+    afirmar valor == 24
+    numero valor + 18
+    mostrar "Proceso NEXTRY: espera terminada"
+fin

@@ -388,3 +388,16 @@ Matriz x86 32/64/128/1024MiB y regresion x64 64MiB superadas; procesos, espacios
 privados, consola, tareas y22NXE2 superados. Imagen x86 normal61452B/pruebas90124B.
 No preempta kernel/syscalls, sin SMP ni E/S bloqueante por proceso; ASUS pendiente.
 Ver ENTREGA-PREEMPCION.md.
+
+NXK v0.0.15: procesos DORMIDO5 con plazo modular y refresco al consultar o
+planificar. INT81/10 calcula deadline aparte sin alterar EBX; EAX0 alcontinuar.
+NEXTRY dormir expresion,0 como ceder, limite7fffffff, rutas sin soporte fallan.
+Contadores dormidas/despertar; ejecutar retorna2 si solo duermen, sin bloquear
+consola. Liberar cancela espera e IDs viejos no despiertan nuevos slots.
+Matriz x86 32/64/128/1024MiB y regresion x64 64MiB superadas. Pruebas de NEXTRY,
+registros, ausencia de turnos dormido, limites, wrap, reciclaje y memoria estable.
+24pruebas compilador superadas. Imagen normal65548B/pruebas94220B.
+Pendientes IPC y E/S de dispositivos; reloj32bits con horizonte modular acotado.
+Ver ENTREGA-DORMIR-PROCESOS.md.
+Cierre: prueba externa de dormir superada, junto a procesos/preempcion y22casos
+NXE2 anteriores. Sin escrituras a discos originales durante las pruebas.

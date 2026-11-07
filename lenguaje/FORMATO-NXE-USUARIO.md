@@ -71,3 +71,7 @@ INT81/EAX9 cede solo en la ruta `proceso`. El kernel conserva contexto y al
 reanudar devuelve EAX0. El runtime NEXTRY expone `ceder`; la cabecera sigueABI1.
 Rutas sin continuacion devuelven servicio no soportado y el runtime falla
 explicitamente. Ver ENTREGA-PROCESOS-COOPERATIVOS.md para permisos y limites.
+
+Desde v0.0.15 INT81/EAX10, EBX=ticks espera en procesos y retorna0 al despertar.
+Cero equivale a ceder; maximo7fffffff. La ABI1 se mantiene. El plazo es interno
+al kernel; no modifica EBX. Ver ENTREGA-DORMIR-PROCESOS.md.

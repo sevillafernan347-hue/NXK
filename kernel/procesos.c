@@ -9,6 +9,9 @@
 struct proceso { struct nxk_proceso_info info; uint32_t contexto[17]; };
 static struct proceso procesos[NXK_ESPACIOS_MAX];
 static unsigned cursor;
+extern uint32_t nxk_reloj_ticks(void);
+/* Plazos inferiores a media vuelta, sin comparar el valor absoluto con cero. */
+static int vencido(uint32_t ahora,uint32_t plazo) { return ahora-plazo<0x80000000u; }
 static int ocupado;
 static void incrementar(uint32_t *n) { if (*n!=UINT32_MAX) ++*n; }
 static int contexto_kernel(void) {
@@ -23,6 +26,9 @@ static int contexto_kernel(void) {
 static void depurar(unsigned slot) {
     struct proceso *p=&procesos[slot]; struct nxk_espacio_info espacio;
     if (p->info.estado && nxk_espacio_consultar(p->info.id,&espacio)) memset(p,0,sizeof(*p));
+    if (p->info.estado==NXK_PROCESO_DORMIDO && vencido(nxk_reloj_ticks(),p->info.despertar)) {
+        p->info.estado=NXK_PROCESO_LISTO; p->info.despertar=0;
+    }
 }
 static struct proceso *buscar(uint32_t id) {
     unsigned slot=(id&255u)-1u;
@@ -69,12 +75,16 @@ int nxk_proceso_enumerar(unsigned slot,struct nxk_proceso_info *salida) {
 int nxk_proceso_gestionado(uint32_t id) { return buscar(id)!=0; }
 static int ejecutar_uno(struct proceso *p) {
     if (p->info.estado!=NXK_PROCESO_LISTO) return -2;
-    p->info.estado=NXK_PROCESO_EJECUTANDO; incrementar(&p->info.turnos);
-    uint32_t cedido=0; struct nxk_usuario_resultado resultado;
-    int r=nxk_usuario_reanudar_espacio(p->info.id,p->contexto,&resultado,&cedido);
+    p->info.estado=NXK_PROCESO_EJECUTANDO; p->info.despertar=0; incrementar(&p->info.turnos);
+    uint32_t cedido=0,despertar=0; struct nxk_usuario_resultado resultado;
+    int r=nxk_usuario_reanudar_espacio(p->info.id,p->contexto,&resultado,&cedido,&despertar);
     if (r) { p->info.error_motor=(uint32_t)(-r); p->info.estado=NXK_PROCESO_FALLIDO; return r; }
     p->info.ultimo=resultado;
     if (resultado.fallo) p->info.estado=NXK_PROCESO_FALLIDO;
+    else if (cedido==NXK_USUARIO_DORMIR) {
+        p->info.estado=NXK_PROCESO_DORMIDO; p->info.despertar=despertar;
+        incrementar(&p->info.dormidas);
+    }
     else if (cedido) {
         p->info.estado=NXK_PROCESO_LISTO;
         if (cedido==NXK_USUARIO_QUANTUM) incrementar(&p->info.preempciones);
@@ -94,12 +104,13 @@ int nxk_procesos_ejecutar(uint32_t presupuesto) {
     if (ocupado || !contexto_kernel()) return -3;
     ocupado=1; uint32_t usados=0; int r=0;
     for (;;) {
-        unsigned elegida=NXK_ESPACIOS_MAX;
+        unsigned elegida=NXK_ESPACIOS_MAX,esperando=0;
         for (unsigned n=0;n<NXK_ESPACIOS_MAX;++n) {
             unsigned i=(cursor+n)%NXK_ESPACIOS_MAX; depurar(i);
+            if (procesos[i].info.estado==NXK_PROCESO_DORMIDO) ++esperando;
             if (procesos[i].info.estado==NXK_PROCESO_LISTO) { elegida=i; break; }
         }
-        if (elegida==NXK_ESPACIOS_MAX) break;
+        if (elegida==NXK_ESPACIOS_MAX) { r=esperando ? 2 : 0; break; }
         if (usados==presupuesto) { r=1; break; }
         cursor=(elegida+1)%NXK_ESPACIOS_MAX; ++usados;
         r=ejecutar_uno(&procesos[elegida]); if (r) break;
@@ -151,6 +162,8 @@ static int intacto(const struct nxk_proceso_info *p) {
 }
 int nxk_procesos_probar(void) {
     if (!contexto_kernel()) return 1;
+    if (!vencido(3,0xfffffffeu) || vencido(0xfffffffdu,3) || !vencido(0,0) ||
+        vencido(0xffffffffu,0) || !vencido(7,7)) return 13;
     uint32_t libres=nxk_paginas_libres(), ids[4]={0}, salida=0xdeadbeef;
     struct nxk_proceso_info info; memset(&info,0xa5,sizeof(info));
     if (nxk_proceso_crear(0,1,&salida)!=-1 || nxk_proceso_crear("x",0,&salida)!=-1 ||

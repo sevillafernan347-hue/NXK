@@ -135,6 +135,7 @@ static void usuario_resultado(const struct nxk_usuario_resultado *r) {
 }
 /* Puente pequeno entre NXK Espanol y las operaciones del nucleo. */
 void nxk_es_ceder(void) { if (nxk_tarea_ceder()) nxk_es_fallo(0); }
+void nxk_es_dormir(uint32_t ticks) { if (nxk_tarea_dormir(ticks)) nxk_es_fallo(0); }
 void nxk_es_guardar_archivo(const char *nombre,const char *texto) {
     size_t n=0; while (n<256 && texto[n]) ++n;
     if (n==256 || nxk_archivo_escribir(nombre,texto,n)) nxk_es_fallo(0);
@@ -296,6 +297,8 @@ void kernel_main(void) {
     print("NXK: PROCESOS COOPERATIVOS OK\n");
     if (nxk_preempcion_probar()) { print("NXK: PREEMPCION FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
     print("NXK: PREEMPCION CPL3 OK\n");
+    if (nxk_proceso_dormir_probar()) { print("NXK: DORMIR PROCESO FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
+    print("NXK: DORMIR PROCESO OK\n");
     if (nxk_tareas_demo()) { print("NXK: TAREAS FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
     print("NXK: TAREAS COOPERATIVAS OK\n");
     extern int nxk_tareas_probar_limites(void);
@@ -409,7 +412,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | espacios | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nproceso preempcion | proceso demo | proceso cargar nombre.nxe | proceso listar | proceso paso ID\nproceso ejecutar | proceso liberar ID\nusuario espacios | usuario listar | usuario cargar archivo.nxe | usuario turno ID | usuario liberar ID\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | espacios | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nproceso dormir | proceso preempcion | proceso demo | proceso cargar nombre.nxe | proceso listar | proceso paso ID\nproceso ejecutar | proceso liberar ID\nusuario espacios | usuario listar | usuario cargar archivo.nxe | usuario turno ID | usuario liberar ID\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -499,6 +502,9 @@ void kernel_main(void) {
                 for (unsigned i=0;i<8;++i) { const char *s=nxk_archivo_nombre(i); if (s) { print(s); put('\n'); } }
             }
 #if defined(__i386__)
+            else if (nxk_equal(line,"proceso dormir")) {
+                print(nxk_proceso_dormir_demo() ? "No se pudo verificar espera.\n" : "Espera de proceso: otro avanzo y el dormido continuo al vencer.\n");
+            }
             else if (nxk_equal(line,"proceso preempcion")) {
                 print(nxk_preempcion_demo() ? "No se pudo verificar preempcion.\n" : "Preempcion: bucle suspendido, otro proceso completo y registros conservados.\n");
             }
@@ -516,7 +522,7 @@ void kernel_main(void) {
                     struct nxk_proceso_info p;
                     if (!nxk_proceso_enumerar(i,&p)) {
                         print("Proceso "); number(p.id); print(" estado "); number(p.estado);
-                        print(" turnos "); number(p.turnos); print(" cesiones "); number(p.cesiones); print(" preempciones "); number(p.preempciones); put('\n');
+                        print(" turnos "); number(p.turnos); print(" cesiones "); number(p.cesiones); print(" preempciones "); number(p.preempciones); print(" dormidas "); number(p.dormidas); print(" despertar "); number(p.despertar); put('\n');
                         if (p.error_motor) { print("Error de motor "); number(p.error_motor); put('\n'); }
                         else if (p.turnos) usuario_resultado(&p.ultimo);
                         ++n;
@@ -531,7 +537,7 @@ void kernel_main(void) {
             }
             else if (nxk_equal(line,"proceso ejecutar")) {
                 int r=nxk_procesos_ejecutar(32);
-                print(r<0 ? "Fallo al ejecutar procesos.\n" : r ? "Presupuesto agotado; quedan procesos listos.\n" : "Procesos sin pendientes.\n");
+                print(r<0 ? "Fallo al ejecutar procesos.\n" : r==2 ? "Procesos esperando plazo; vuelve a ejecutar para continuar.\n" : r ? "Presupuesto agotado; quedan procesos listos.\n" : "Procesos sin pendientes.\n");
             }
             else if (prefijo(line,"proceso liberar ")) {
                 uint32_t id;

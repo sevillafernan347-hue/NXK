@@ -50,6 +50,20 @@ class Lenguaje(unittest.TestCase):
             self.error('funcion inicio\nceder'+sufijo+'\nfin','NL')
         self.error('funcion inicio\nentero ceder = 1\nfin','NOMBRE')
 
+    def test_dormir_entero(self):
+        fuente=(Path(__file__).parent/'ejemplos/proceso_dormir.nxf').read_text()
+        self.assertEqual(compilar(fuente).count('nxk_es_dormir('),2)
+        codigo=compilar('funcion inicio\nentero plazo = 20\ndormir plazo + 1\ndormir 0x7fffffff\nfin')
+        self.assertIn('nxk_es_dormir(',codigo)
+        self.assertIn('UINT32_C(2147483647)',codigo)
+        # El limite modular se comprueba al ejecutar, incluso para expresiones.
+        self.assertIn('nxk_es_dormir(',compilar('funcion inicio\ndormir 0x80000000\nfin'))
+        for valor in ('verdadero','"veinte"'):
+            self.error('funcion inicio\ndormir '+valor+'\nfin','entero')
+        self.error('funcion inicio\ndormir 1, 2\nfin','NL')
+        self.error('funcion inicio\ndormir\nfin','expresion')
+        self.error('funcion inicio\nentero dormir = 1\nfin','NOMBRE')
+
     def test_control_bucles(self):
         for orden in ('romper', 'continuar'):
             self.error(f'funcion inicio\n{orden}\nfin', 'dentro de un bucle')

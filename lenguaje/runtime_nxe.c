@@ -41,3 +41,6 @@ void nxk_es_renombrar_archivo(const char *n,const char *t) { (void)n;(void)t;nxk
 
 /* ABI NXE1 no publica reanudacion cooperativa. */
 void nxk_es_ceder(void) { nxk_es_fallo(0); }
+
+/* ABI NXE1 no publica espera con contexto de proceso. */
+void nxk_es_dormir(uint32_t ticks) { (void)ticks; nxk_es_fallo(0); }

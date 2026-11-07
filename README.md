@@ -1,6 +1,6 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.14**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.15**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
 
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
@@ -135,6 +135,10 @@ Consulta [reanudacion y estados](ENTREGA-PROCESOS-COOPERATIVOS.md).
 `proceso preempcion` comprueba que un bucle sin ceder permite avanzar a otros
 procesos. El temporizador guarda contexto al agotar el turno y lo reanuda en
 la siguiente ronda. Consulta [pruebas y limites](ENTREGA-PREEMPCION.md).
+NEXTRY tambien permite `dormir 20` para esperar sin consumir turnos;
+`proceso dormir` verifica espera y continuacion con datos conservados.
+Si todos esperan, la consola regresa y se puede volver a ejecutar despues.
+Consulta [la entrega de esperas](ENTREGA-DORMIR-PROCESOS.md).
 
 ## Construir en Windows
 

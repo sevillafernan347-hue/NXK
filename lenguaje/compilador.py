@@ -29,7 +29,7 @@ class Token:
 
 
 PALABRAS = set('funcion fin variable constante si sino mientras repetir veces '
-               'mostrar numero llamar volver detener ceder afirmar leer_puerto '
+               'mostrar numero llamar volver detener ceder dormir afirmar leer_puerto '
                'escribir_puerto verdadero falso y o no y_bits o_bits xor_bits '
                'memoria_usada romper continuar entero logico texto guardar_archivo mostrar_archivo borrar_archivo agregar_archivo renombrar_archivo copiar_archivo'.split())
 ALIAS = {'función': 'funcion', 'número': 'numero'}
@@ -159,7 +159,7 @@ class Analizador:
                 salida.append((k,t,nombre,self.expresion())); self.linea()
             elif k in ('mostrar_archivo','borrar_archivo'):
                 salida.append((k,t,self.expresion())); self.linea()
-            elif k in ('mostrar', 'numero', 'afirmar'):
+            elif k in ('mostrar', 'numero', 'dormir', 'afirmar'):
                 salida.append((k, t, self.expresion())); self.linea()
             elif k in ('volver', 'detener', 'ceder', 'romper', 'continuar'):
                 salida.append((k, t)); self.linea()
@@ -280,9 +280,9 @@ class Generador:
                     tipo,datos=self.expresion(s[3]); self.tipo(t,tipo,'texto')
                     poner(f'nxk_es_{k}({nombre}, {datos});')
                 else: poner(f'nxk_es_{k}({nombre});')
-            elif k in ('mostrar', 'numero', 'afirmar'):
+            elif k in ('mostrar', 'numero', 'dormir', 'afirmar'):
                 tipo, valor = self.expresion(s[2])
-                esperado = {'mostrar': 'texto', 'numero': 'entero', 'afirmar': 'logico'}[k]
+                esperado = {'mostrar': 'texto', 'numero': 'entero', 'dormir': 'entero', 'afirmar': 'logico'}[k]
                 self.tipo(t, tipo, esperado)
                 if k == 'afirmar': poner(f'if (!({valor})) nxk_es_fallo(UINT32_C({t.linea}));')
                 else: poner(f'nxk_es_{k}({valor});')

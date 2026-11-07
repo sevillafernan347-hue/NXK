@@ -230,7 +230,22 @@ reanudar. Requiere la ruta de procesos con contexto CPU conservado; las rutas
 anteriores de ejecucion sincronica que no ofrecen reanudacion devuelven error
 y el runtime termina con fallo explicito. La ABI NXE1 no ofrece esta operacion.
 En codigo kernel, el puente exige una tarea cooperativa actual que pueda ceder.
-El ejemplo `lenguaje/ejemplos/proceso.nxf` cede dos veces y despues muestra42.
+El ejemplo `lenguaje/ejemplos/proceso.nxf` cede dos veces y despues muestra 42.
 
 Ceder no crea un hilo ni activa preempcion; el programa decide el punto de
 cesion y el kernel debe volver a ejecutarlo para que continue.
+
+## Esperar sin sondeo
+
+`dormir expresion` recibe un entero uint32. El valor se mide en ticks PIT
+(aproximadamente 100 por segundo), no en milisegundos. El kernel admite
+0..0x7fffffff; valores mayores devuelven error y el runtime termina con fallo.
+La expresion se calcula una vez al pedir la espera. Cero equivale a `ceder`.
+
+En procesos CPL3 el runtime usa INT81 servicio10 con ticks en EBX y exige
+retorno0 al reanudar. Una ruta sin soporte de espera falla explicitamente;
+NXE1 no publica este servicio. En una tarea kernel se usa el puente de tareas.
+El ejemplo `ejemplos/proceso_dormir.nxf` conserva una variable tras dormir 20,
+cede con dormir 0 y despues muestra 42. Dormir no crea hilos ni calcula una fecha
+real: utiliza el reloj modular del kernel y requiere volver a planificar el
+proceso cuando el plazo haya vencido.

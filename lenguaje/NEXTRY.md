@@ -32,4 +32,13 @@ El prototipo incorpora la orden `ceder`, sin argumentos. Una aplicacion NXE2
 cargada en la ruta cooperativa puede entregar su turno al kernel y continuar
 despues con su contexto conservado. El runtime CPL3 utiliza INT81 servicio9;
 las rutas sin ese soporte y NXE1 fallan explicitamente. No implementa objetos,
-hilos Java ni preempcion. Ver `REGLAS.md` y `ejemplos/proceso.nxf`.
+hilos Java. Ceder es voluntario aunque la ruta de procesos tambien disponga
+de interrupcion por PIT. Ver `REGLAS.md` y `ejemplos/proceso.nxf`.
+
+## Espera de procesos
+
+`dormir expresion` espera un numero entero de ticks PIT y continua con el
+contexto conservado. El servicio CPL3 es INT81 numero10 (EBX=ticks), con retorno0
+al reanudar. El kernel limita el intervalo a 0..0x7fffffff; dormir 0 equivale a
+ceder. Las rutas sin soporte y NXE1 terminan con fallo explicito. Consultar
+`REGLAS.md` y `ejemplos/proceso_dormir.nxf` para sintaxis y limites.

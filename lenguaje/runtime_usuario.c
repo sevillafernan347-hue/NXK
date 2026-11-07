@@ -21,6 +21,13 @@ void nxk_es_ceder(void) {
     __asm__ volatile("int $0x81":"+a"(r)::"memory","cc");
     if (r) nxk_es_fallo(0);
 }
+/* Servicio10 conserva el contexto hasta vencer el plazo. Cero cede sin
+ * dormir; el kernel rechaza intervalos mayores que 0x7fffffff ticks. */
+void nxk_es_dormir(uint32_t ticks) {
+    uint32_t r=10;
+    __asm__ volatile("int $0x81":"+a"(r):"b"(ticks):"memory","cc");
+    if (r) nxk_es_fallo(0);
+}
 void nxk_es_mostrar(const char *t) {
     uint32_t n=0; while (n<256 && t[n]) ++n;
     if (n==256 || escribir(t,n)!=n || escribir("\n",1)!=1) nxk_es_fallo(0);

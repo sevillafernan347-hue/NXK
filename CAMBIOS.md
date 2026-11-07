@@ -3,6 +3,14 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.15
+
+- Estado DORMIDO, plazos modulares y retorno inmediato si todos esperan.
+- Servicio opcional INT81/10 conserva registros y calcula plazo al pedir dormir.
+- Orden NEXTRY dormir expresion, cero como cesion y limites validados.
+- Demo/pruebas de reanudacion, otra app avanzando, maximo, errores y reciclaje.
+- Matriz x86, regresion x64 y24pruebas del compilador superadas.
+
 ## v0.0.14
 
 - El PIT suspende y permite reanudar procesos CPL3 al agotar10 ticks por turno.

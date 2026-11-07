@@ -20,12 +20,13 @@ int nxk_usuario_ejecutar_archivo(const char *nombre);
  * salida: -1 contrato/ID/activo, -2 contexto, -3 heap, -4 plantilla, -5 retorno.
  * Solo kernel CR3 original, IF habilitada, GDT/TSS/PIT iniciados, fuera de tareas. */
 int nxk_usuario_ejecutar_espacio(uint32_t id,struct nxk_usuario_resultado *salida);
-enum nxk_usuario_motivo { NXK_USUARIO_FINAL, NXK_USUARIO_CEDER, NXK_USUARIO_QUANTUM };
+enum nxk_usuario_motivo { NXK_USUARIO_FINAL, NXK_USUARIO_CEDER, NXK_USUARIO_QUANTUM, NXK_USUARIO_DORMIR };
 /* Marco17 DWORD de INT81/IRQ0; API interna kernel. Solo publica marco al
- * suspender y retorna motivo 1=ceder, 2=quantum, 0=salida/fallo.
+ * suspender y retorna motivo 1=ceder, 2=quantum, 3=dormir, 0=salida/fallo.
+ * despertar recibe plazo absoluto solo al dormir; en los otros casos recibe0.
  * -6 rechaza EIP/ESP/selectores antes de IRET.
  * No sustituye NXE ABI: reservado al gestor de procesos, buffers confiables. */
-int nxk_usuario_reanudar_espacio(uint32_t id,uint32_t *marco,struct nxk_usuario_resultado *salida,uint32_t *cedido);
+int nxk_usuario_reanudar_espacio(uint32_t id,uint32_t *marco,struct nxk_usuario_resultado *salida,uint32_t *cedido,uint32_t *despertar);
 /* Validar NXE2 y copiar a espacio retenido, sin ejecutar. Salida ID intacta
  * ante error. El llamador destruye el espacio tras terminar de usarlo. */
 int nxk_usuario_crear_espacio_nxe(const unsigned char *datos,size_t longitud,uint32_t *id);
