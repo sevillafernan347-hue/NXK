@@ -10,6 +10,7 @@
 #include "volumen.h"
 #include "espacios.h"
 #include "tareas.h"
+#include "procesos.h"
 #if defined(__i386__)
 struct __attribute__((packed)) puerta {
     uint16_t bajo, selector;
@@ -147,6 +148,10 @@ static const unsigned char *usuario_carga;
 static size_t usuario_carga_longitud;
 extern const unsigned char servicio_nxa_inicio[], servicio_nxa_fin[];
 static unsigned char servicio_entrada[42];
+static uint32_t *contexto_cesion;
+static uint32_t hubo_cesion;
+extern uint32_t nxk_usuario_reanudar(const uint32_t *marco);
+extern _Noreturn void nxk_usuario_abortar(uint32_t resultado);
 extern void nxk_pe_salida(const char *datos,uint32_t n);
 static int usuario_rango(uint32_t p,uint32_t n,int escritura) {
     if (!n) return 1;
@@ -158,6 +163,11 @@ static void usuario_servicio(uint32_t *c) {
     c[11]=0xffffffffu;
     if (!usuario_activo || (c[13]&3)!=3) return;
     char datos[256];
+    /* Solo los procesos reanudables habilitan la cesion; ABI anterior rechaza9. */
+    if (servicio==9 && contexto_cesion) {
+        c[11]=0; memcpy(contexto_cesion,c,17*sizeof(uint32_t));
+        hubo_cesion=1; nxk_usuario_cs_guardado=c[13]; nxk_usuario_abortar(0);
+    }
     if (servicio==1) {
         if (n>256 || !usuario_rango(p,n,0)) return;
         if (n) { memcpy(datos,(void *)(uintptr_t)p,n); nxk_pe_salida(datos,n); }
@@ -235,7 +245,7 @@ static int contexto_privado(void) {
     __asm__ volatile("mov %%cr0,%0":"=r"(cr0));
     return (cr0&0x80000000u) && (flags&0x200u) && cr3==0x200000u && !nxk_tarea_actual() && reloj_listo && emergencia_lista;
 }
-int nxk_usuario_ejecutar_espacio(uint32_t id,struct nxk_usuario_resultado *salida) {
+static int ejecutar_privado(uint32_t id,uint32_t *marco,struct nxk_usuario_resultado *salida,uint32_t *cedido) {
     struct nxk_espacio_info info;
     if (!salida || usuario_activo || nxk_espacio_consultar(id,&info)) return -1;
     if (!contexto_privado()) return -2;
@@ -254,10 +264,17 @@ int nxk_usuario_ejecutar_espacio(uint32_t id,struct nxk_usuario_resultado *salid
     tss_normal[1]=(uint32_t)(uintptr_t)(pila+4096); tss_normal[2]=16;
     int r=nxk_espacio_activar(id);
     if (!r) {
+        contexto_cesion=marco; hubo_cesion=0;
         usuario_base=NXK_ESPACIO_CODIGO; usuario_inicio=ticks; nxk_usuario_cs_guardado=0;
         fallo_vector=fallo_error=fallo_direccion=fallo_eip=fallo_ocurrido=fallo_pila=0;
         usuario_activo=1;
-        uint32_t resultado=nxk_usuario_entrar(NXK_ESPACIO_CODIGO,NXK_ESPACIO_PILA+4096);
+        uint32_t cr0_antes;
+        __asm__ volatile("mov %%cr0,%0":"=r"(cr0_antes));
+        /* FPU/MMX/SSE no tienen contexto por proceso todavia: #NM en vez de
+         * compartir registros. TS+MP tambien bloquean FWAIT. */
+        if (marco) __asm__ volatile("mov %0,%%cr0"::"r"(cr0_antes|0xau):"memory");
+        uint32_t resultado=marco ? nxk_usuario_reanudar(marco) : nxk_usuario_entrar(NXK_ESPACIO_CODIGO,NXK_ESPACIO_PILA+4096);
+        if (marco) __asm__ volatile("mov %0,%%cr0"::"r"(cr0_antes):"memory");
         uint32_t regreso; __asm__ volatile("mov %%cr3,%0":"=r"(regreso));
         usuario_activo=0;
         /* Restaurar el mapa antes de publicar resultado o liberar recursos. */
@@ -275,8 +292,37 @@ int nxk_usuario_ejecutar_espacio(uint32_t id,struct nxk_usuario_resultado *salid
     /* Cerrar tambien si activar fallo, sin exponer un resultado parcial. */
     tabla[128]=antes_salida; tabla[129]=antes_servicio;
     tss_normal[1]=esp0; tss_normal[2]=ss0; usuario_base=base_anterior;
+    contexto_cesion=0;
     if (r) return r==-5 ? -5 : -2;
-    *salida=historial[(siguiente_resultado+7)%8]; return 0;
+    *salida=historial[(siguiente_resultado+7)%8];
+    if (cedido) *cedido=hubo_cesion;
+    return 0;
+}
+/* Solo datos controlados vuelven a IRET: selectores y privilegios fijos. */
+static int normalizar_marco(uint32_t *m) {
+    if (m[12]<NXK_ESPACIO_CODIGO || m[12]>=NXK_ESPACIO_PILA ||
+        m[15]<NXK_ESPACIO_PILA || m[15]>NXK_ESPACIO_PILA+4096) return -6;
+    for (unsigned i=0;i<4;++i) {
+        m[i]&=0xffffu;
+        if (m[i]>3 && m[i]!=43 && m[i]!=51) return -6;
+    }
+    m[7]=0; m[13]=43; m[16]=51;
+    m[14]=(m[14]&0xcd5u)|0x202u; /* Solo aritmetica/DF; sin TF/IOPL/NT/VM. */
+    return 0;
+}
+int nxk_usuario_ejecutar_espacio(uint32_t id,struct nxk_usuario_resultado *salida) {
+    if (nxk_proceso_gestionado(id)) return -2;
+    return ejecutar_privado(id,0,salida,0);
+}
+int nxk_usuario_reanudar_espacio(uint32_t id,uint32_t *marco,struct nxk_usuario_resultado *salida,uint32_t *cedido) {
+    if (!marco || !salida || !cedido) return -1;
+    uint32_t temporal[17]; memcpy(temporal,marco,sizeof(temporal));
+    int r=normalizar_marco(temporal); if (r) return r;
+    struct nxk_usuario_resultado resultado; uint32_t cesion=0;
+    r=ejecutar_privado(id,temporal,&resultado,&cesion); if (r) return r;
+    if (cesion && normalizar_marco(temporal)) return -6;
+    if (cesion) memcpy(marco,temporal,sizeof(temporal));
+    *salida=resultado; *cedido=cesion; return 0;
 }
 static int usuario_ejecutar(unsigned modo) {
     if (usuario_activo || modo>41) return -1;
@@ -605,6 +651,7 @@ int nxk_usuario_comprobar_fallos(void) { return -64; }
 int nxk_usuario_cargar_nxe(const unsigned char *p,size_t n) { (void)p;(void)n;return -64; }
 int nxk_usuario_ejecutar_archivo(const char *n) { (void)n;return -64; }
 int nxk_usuario_ejecutar_espacio(uint32_t id,struct nxk_usuario_resultado *s) { (void)id;(void)s;return -64; }
+int nxk_usuario_reanudar_espacio(uint32_t id,uint32_t *m,struct nxk_usuario_resultado *s,uint32_t *c) { (void)id;(void)m;(void)s;(void)c;return -64; }
 int nxk_usuario_crear_espacio_nxe(const unsigned char *p,size_t n,uint32_t *id) { (void)p;(void)n;(void)id;return -64; }
 int nxk_usuario_preparar_archivo(const char *n,uint32_t *id) { (void)n;(void)id;return -64; }
 int nxk_usuario_nextry(void) { return -64; }

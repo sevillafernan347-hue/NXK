@@ -1,0 +1,23 @@
+# Reanudar cdecl (marco[17]): conserva el retorno kernel como usuario_entrar.
+# Marco ya validado por C, en memoria kernel confiable:
+# GS FS ES DS EDI ESI EBP ESP_ignorado EBX EDX ECX EAX EIP CS EFLAGS ESP SS.
+modo 32
+externo nxk_usuario_pila_guardada
+guardar_banderas32
+guardar32 ebp
+guardar32 ebx
+guardar32 esi
+guardar32 edi
+escribir_memoria32 nxk_usuario_pila_guardada, esp
+cargar_pila32 eax, 24
+# No permitir IRQ entre tomar el marco y terminar el cambio de privilegio.
+desactivar_interrupciones
+copiar32 esp, eax
+# POP e IRET leen mediante SS kernel aun si DS/ES se restauran como nulos.
+# El marco IRET restaura despues la pila de usuario y sus banderas saneadas.
+recuperar_segmento32 gs
+recuperar_segmento32 fs
+recuperar_segmento32 es
+recuperar_segmento32 ds
+recuperar_registros32
+retornar_interrupcion32

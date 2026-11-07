@@ -14,6 +14,13 @@ _Noreturn void nxk_es_fallo(uint32_t linea) {
     (void)linea; const char *t="Error de aplicacion NEXTRY\n";
     escribir(t,sizeof("Error de aplicacion NEXTRY\n")-1); terminar(1);
 }
+/* Solo el motor cooperativo atiende servicio9. Una ruta sin reanudacion
+ * devuelve error: no fingir que la cesion ocurrio ni continuar silenciosamente. */
+void nxk_es_ceder(void) {
+    uint32_t r=9;
+    __asm__ volatile("int $0x81":"+a"(r)::"memory","cc");
+    if (r) nxk_es_fallo(0);
+}
 void nxk_es_mostrar(const char *t) {
     uint32_t n=0; while (n<256 && t[n]) ++n;
     if (n==256 || escribir(t,n)!=n || escribir("\n",1)!=1) nxk_es_fallo(0);

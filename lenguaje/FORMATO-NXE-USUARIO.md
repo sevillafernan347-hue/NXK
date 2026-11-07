@@ -64,3 +64,10 @@ disco.nxe y leeme.txt; se puede conectar mediante run.ps1 -Volumen esa_ruta.
 El ejemplo de disco tambien copia leeme.txt a RAM, agrega un marcador y borra
 la copia al finalizar. Tres recargas comprueban que la orden copiar_archivo
 funciona desde un NXE2 independiente sin conservar destinos ni consumir heap.
+
+## Extension cooperativa opcional desde v0.0.13
+
+INT81/EAX9 cede solo en la ruta `proceso`. El kernel conserva contexto y al
+reanudar devuelve EAX0. El runtime NEXTRY expone `ceder`; la cabecera sigueABI1.
+Rutas sin continuacion devuelven servicio no soportado y el runtime falla
+explicitamente. Ver ENTREGA-PROCESOS-COOPERATIVOS.md para permisos y limites.

@@ -29,7 +29,7 @@ class Token:
 
 
 PALABRAS = set('funcion fin variable constante si sino mientras repetir veces '
-               'mostrar numero llamar volver detener afirmar leer_puerto '
+               'mostrar numero llamar volver detener ceder afirmar leer_puerto '
                'escribir_puerto verdadero falso y o no y_bits o_bits xor_bits '
                'memoria_usada romper continuar entero logico texto guardar_archivo mostrar_archivo borrar_archivo agregar_archivo renombrar_archivo copiar_archivo'.split())
 ALIAS = {'función': 'funcion', 'número': 'numero'}
@@ -161,7 +161,7 @@ class Analizador:
                 salida.append((k,t,self.expresion())); self.linea()
             elif k in ('mostrar', 'numero', 'afirmar'):
                 salida.append((k, t, self.expresion())); self.linea()
-            elif k in ('volver', 'detener', 'romper', 'continuar'):
+            elif k in ('volver', 'detener', 'ceder', 'romper', 'continuar'):
                 salida.append((k, t)); self.linea()
             elif k == 'llamar':
                 salida.append((k, t, self.tomar('NOMBRE'))); self.linea()
@@ -291,6 +291,8 @@ class Generador:
                 if n.texto not in self.nombres: self.error(n, f'La funcion «{n.texto}» no existe.')
                 self.llamadas[self.funcion].add(n.texto)
                 poner(f'{self.nombres[n.texto]}();')
+            elif k == 'ceder':
+                poner('nxk_es_ceder();')
             elif k in ('volver', 'detener'):
                 poner('return;' if k == 'volver' else 'nxk_es_detener();')
             elif k in ('romper', 'continuar'):

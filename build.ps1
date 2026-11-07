@@ -99,6 +99,7 @@ Invoke-Zig cc @flags -c kernel/planificador.c -o "$buildDir/planificador.o"
 Invoke-Zig cc @flags -c kernel/mutex.c -o "$buildDir/mutex.o"
 Invoke-Zig cc @flags -c kernel/semaforos.c -o "$buildDir/semaforos.o"
 Invoke-Zig cc @flags -c kernel/tareas.c -o "$buildDir/tareas.o"
+Invoke-Zig cc @flags -c kernel/procesos.c -o "$buildDir/procesos.o"
 Invoke-Zig cc @flags -c kernel/ejecucion_privada.c -o "$buildDir/ejecucion_privada.o"
 Invoke-Zig cc @flags -c kernel/espacios.c -o "$buildDir/espacios.o"
 Invoke-Zig cc @flags -c kernel/pci.c -o "$buildDir/pci.o"
@@ -129,6 +130,7 @@ $objects += "$buildDir/persistencia.o"
 $objects += "$buildDir/pci.o"
 $objects += "$buildDir/espacios.o"
 $objects += "$buildDir/ejecucion_privada.o"
+$objects += "$buildDir/procesos.o"
 $objects += "$buildDir/ram.o"
 $objects += "$buildDir/paginacion.o"
 $objects += "$buildDir/paginas.o"
@@ -136,7 +138,7 @@ if ($Architecture -eq 'x86') {
     Invoke-Zig cc -target $target -c compatibilidad/windows/retorno32.S -o "$buildDir/pe_retorno.o"
     $objects += "$buildDir/pe_retorno.o"
     $usuarioObjeto = ".section .text`n"
-    foreach ($parte in @('entrar','salir','abortar')) {
+    foreach ($parte in @('entrar','salir','abortar','reanudar')) {
         & $python lenguaje/ensamblador.py "kernel/usuario_$parte.nxa" --permitir-externos -o "$buildDir/usuario_$parte.bin"
         if ($LASTEXITCODE -ne 0) { throw 'Error en NEXTRY ASM de usuario.' }
         $usuarioObjeto += ".global nxk_usuario_$parte`nnxk_usuario_${parte}:`n.incbin `"$buildDir/usuario_$parte.bin`"`n"
@@ -162,7 +164,7 @@ if ($Architecture -eq 'x86') {
     $entradaFinal = $entrada + '# ' + [IO.File]::ReadAllText((Join-Path $PSScriptRoot "$buildDir/simbolos-entrada.json")) + "`n"
     [IO.File]::WriteAllText((Join-Path $PSScriptRoot $entrySource),$entradaFinal)
     Invoke-Zig cc -target $target -c $entrySource -o "$buildDir/entry.o"
-    foreach ($parte in @('entrar','salir','abortar')) {
+    foreach ($parte in @('entrar','salir','abortar','reanudar')) {
         & $python lenguaje/ensamblador.py "kernel/usuario_$parte.nxa" --simbolos "$buildDir/simbolos-entrada.json" -o "$buildDir/usuario_$parte.bin"
         if ($LASTEXITCODE -ne 0) { throw 'Error resolviendo simbolos de usuario NEXTRY ASM.' }
     }

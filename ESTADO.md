@@ -363,3 +363,18 @@ Cierre v0.0.12: matriz x86 32/64/128/1024MiB y regresion x64 64MiB,
 prueba externa de carga/turnos/listado/liberacion con NEXTRY, datos separados,
 RO/PIT, limites y memoria estable superadas. Consola general, planificador y
 22NXE2 de regresion superados. Imagen normal x86 57356B; pruebas81932B.
+
+NXK v0.0.13: cuatro PCB reanudables sobre espacios privados. INT81/9 conserva
+marco CPU; NEXTRY ASM restaura segmentos/GPR/IRET tras validar EIP/ESP/EFLAGS.
+Rondas cooperativas con presupuesto, estados, errores de motor, IDs obsoletos
+retirados y rechazo de restartlegacy sobre proceso registrado. Comandos proceso
+cargar/listar/paso/ejecutar/liberar/demo. NEXTRY ceder con ejemplo y23pruebas.
+FPU/MMX/SSE bloqueados por TS+MP en esta ruta; CR0/CR3/TSS/IDT restaurados.
+Matriz x86 32/64/128/1024MiB y regresion x64 64MiB superadas. Prueba externa
+GPR/CF/DF/ESP, segmentos nulos, FPU, ESP0, rondas, NEXTRY y memoria estable;
+ejecucion privada anterior y22NXE2 superados. Imagen normal61452B/pruebas90124B.
+Preempcion reanudable, E/S bloqueante, recursos/ACL por proceso y hardware ASUS
+siguen pendientes. Ver ENTREGA-PROCESOS-COOPERATIVOS.md.
+Cierre: consola general y planificador kernel superados con el nucleo final;
+la compilacion x64 mantiene su limite BIOS al excluir comandos CPL3 de32bits.
+Las fuentes NXA enlazadas coinciden con sus binarios, incluida reanudacion26B.

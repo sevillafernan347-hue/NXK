@@ -221,3 +221,16 @@ funcion inicio
     mostrar_archivo "respaldo"
 fin
 ```
+
+## Cesion cooperativa
+
+`ceder` ocupa una linea sin argumentos ni parentesis. El compilador genera
+`nxk_es_ceder()`. En una aplicacion CPL3 usa INT81 servicio9: exige retorno0 al
+reanudar. Requiere la ruta de procesos con contexto CPU conservado; las rutas
+anteriores de ejecucion sincronica que no ofrecen reanudacion devuelven error
+y el runtime termina con fallo explicito. La ABI NXE1 no ofrece esta operacion.
+En codigo kernel, el puente exige una tarea cooperativa actual que pueda ceder.
+El ejemplo `lenguaje/ejemplos/proceso.nxf` cede dos veces y despues muestra42.
+
+Ceder no crea un hilo ni activa preempcion; el programa decide el punto de
+cesion y el kernel debe volver a ejecutarlo para que continue.

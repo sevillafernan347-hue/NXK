@@ -18,7 +18,7 @@ for s in secciones:
 for nombre,archivo in (('usuario_nxf_inicio','usuario-nxf/programa.bin'),('kernel_entry','entrada.bin'),('reloj_nxa_inicio','reloj.bin'),
     ('servicio_nxa_inicio','servicio.bin'),('excepcion_nxa_inicio','excepciones.bin'),('nxk_cambiar_tarea','tareas.bin'),
     ('nxk_usuario_entrar','usuario_entrar.bin'),('nxk_usuario_salir','usuario_salir.bin'),
-    ('nxk_usuario_abortar','usuario_abortar.bin'),('memset','llenar32.bin'),
+    ('nxk_usuario_abortar','usuario_abortar.bin'),('nxk_usuario_reanudar','usuario_reanudar.bin'),('memset','llenar32.bin'),
     ('memcpy','copiar32.bin'),('memmove','mover32.bin')):
     esperado=(raiz/archivo).read_bytes(); direccion=simbolos[nombre]
     s=next(s for s in secciones if s[1]!=8 and s[3]<=direccion and direccion+len(esperado)<=s[3]+s[5])

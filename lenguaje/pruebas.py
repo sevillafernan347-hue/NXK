@@ -41,6 +41,15 @@ class Lenguaje(unittest.TestCase):
         self.error('funcion inicio\ncopiar_archivo "a", falso\nfin','texto')
         self.error('funcion inicio\ncopiar_archivo "a"\nfin',',')
 
+    def test_ceder_cooperativo(self):
+        fuente=(Path(__file__).parent/'ejemplos/proceso.nxf').read_text()
+        codigo=compilar(fuente)
+        self.assertEqual(codigo.count('nxk_es_ceder();'),2)
+        self.assertIn('nxk_es_ceder();',compilar('funcion inicio\nmientras verdadero\nceder\nromper\nfin\nfin'))
+        for sufijo in (' 1','()',' verdadero',','):
+            self.error('funcion inicio\nceder'+sufijo+'\nfin','NL')
+        self.error('funcion inicio\nentero ceder = 1\nfin','NOMBRE')
+
     def test_control_bucles(self):
         for orden in ('romper', 'continuar'):
             self.error(f'funcion inicio\n{orden}\nfin', 'dentro de un bucle')

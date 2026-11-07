@@ -1,0 +1,14 @@
+# Compilar como NXE2 y ejecutar en la ruta cooperativa de procesos.
+# Cada ceder vuelve al kernel; la reanudacion continua en la linea siguiente.
+funcion inicio
+    mostrar "Proceso NEXTRY: antes de ceder"
+    entero valor = 23
+    ceder
+    afirmar valor == 23
+    valor = valor + 1
+    mostrar "Proceso NEXTRY: segunda cesion"
+    ceder
+    afirmar valor == 24
+    numero valor + 18
+    mostrar "Proceso NEXTRY: terminado"
+fin

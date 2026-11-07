@@ -14,6 +14,8 @@ void nxk_es_mostrar_archivo(const char *nombre);
 void nxk_es_borrar_archivo(const char *nombre);
 void nxk_es_mostrar(const char *texto);
 void nxk_es_numero(uint32_t valor);
+/* Cesion cooperativa: la ruta de ejecucion debe ofrecer reanudacion. */
+void nxk_es_ceder(void);
 uint32_t nxk_es_memoria_usada(void);
 uint32_t nxk_es_dividir(uint32_t a, uint32_t b);
 uint32_t nxk_es_resto(uint32_t a, uint32_t b);

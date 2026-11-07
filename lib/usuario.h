@@ -20,6 +20,10 @@ int nxk_usuario_ejecutar_archivo(const char *nombre);
  * salida: -1 contrato/ID/activo, -2 contexto, -3 heap, -4 plantilla, -5 retorno.
  * Solo kernel CR3 original, IF habilitada, GDT/TSS/PIT iniciados, fuera de tareas. */
 int nxk_usuario_ejecutar_espacio(uint32_t id,struct nxk_usuario_resultado *salida);
+/* Marco17 DWORD del wrapper INT81; API interna kernel. Solo publica marco al
+ * ceder y retorna cedido=1. -6 rechaza EIP/ESP/selectores antes de IRET.
+ * No sustituye NXE ABI: reservado al gestor de procesos, buffers confiables. */
+int nxk_usuario_reanudar_espacio(uint32_t id,uint32_t *marco,struct nxk_usuario_resultado *salida,uint32_t *cedido);
 /* Validar NXE2 y copiar a espacio retenido, sin ejecutar. Salida ID intacta
  * ante error. El llamador destruye el espacio tras terminar de usarlo. */
 int nxk_usuario_crear_espacio_nxe(const unsigned char *datos,size_t longitud,uint32_t *id);

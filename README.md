@@ -1,6 +1,6 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.12**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.13**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
 
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
@@ -122,6 +122,16 @@ pila. `usuario espacios` verifica fallos contenidos. Para NXE2 de disco usa
 `usuario cargar nombre.nxe`, `usuario listar`, `usuario turno ID` y
 `usuario liberar ID`. Consulta [la memoria privada](ENTREGA-ESPACIOS-PRIVADOS.md) y
 [la ejecucion y sus limites](ENTREGA-EJECUCION-PRIVADA.md).
+
+## Procesos cooperativos y NEXTRY
+
+`proceso demo` comprueba programas que ceden y se reanudan con registros y pila
+conservados. Puedes cargar NXE2 con `proceso cargar nombre.nxe`, verlos con
+`proceso listar`, ejecutar un turno con `proceso paso ID`, recorrerlos con
+`proceso ejecutar` y liberar con `proceso liberar ID`.
+NEXTRY incorpora `ceder`; hay un ejemplo comentado en
+[lenguaje/ejemplos/proceso.nxf](lenguaje/ejemplos/proceso.nxf).
+Consulta [reanudacion, estados y limites](ENTREGA-PROCESOS-COOPERATIVOS.md).
 
 ## Construir en Windows
 

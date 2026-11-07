@@ -3,6 +3,16 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.13
+
+- Cuatro PCB cooperativos con registros, EIP/ESP y segmentos conservados al ceder.
+- Nuevo retorno CPL3 en NEXTRY ASM, con validacion de marco y EFLAGS seguros.
+- Rondas con presupuesto, estados, diagnosticos, IDs generacionales y liberacion.
+- Comandos proceso y orden NEXTRY ceder mediante INT81/9 opcional.
+- Contexto FPU aun no soportado: bloqueado durante los procesos con TS+MP.
+- Pruebas de GPR/CF/DF/ESP, segmentos nulos, marco invalido, FPU y NEXTRY.
+- Matriz x86, regresion x64,23pruebas compilador, ejecucion privada y22NXE2.
+
 ## v0.0.12
 
 - Ejecucion CPL3 sincronica en espacios retenidos, con pila propia conservada.

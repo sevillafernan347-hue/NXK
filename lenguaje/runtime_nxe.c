@@ -38,3 +38,6 @@ void nxk_es_copiar_archivo(const char *origen,const char *destino) {
     (void)origen; (void)destino; nxk_es_fallo(0);
 }
 void nxk_es_renombrar_archivo(const char *n,const char *t) { (void)n;(void)t;nxk_es_fallo(0); }
+
+/* ABI NXE1 no publica reanudacion cooperativa. */
+void nxk_es_ceder(void) { nxk_es_fallo(0); }

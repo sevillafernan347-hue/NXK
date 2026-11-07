@@ -25,3 +25,11 @@ El prototipo actual NO cumple aun este requisito. Su nucleo y arranque conservan
 El siguiente trabajo de lenguaje debe especificar e implementar las capacidades de sistemas necesarias antes de migrar componentes. La ruta tecnica de `AUTOALOJAMIENTO.md` sirve de base, bajo el nombre y requisito principal establecidos aqui.
 
 Las extensiones `.nxf` y `.nxj` existentes son formatos fuente de los prototipos. No se han renombrado automaticamente ni se ha decidido una nueva extension definitiva para NEXTRY. `.nxe` sigue siendo el formato ejecutable propio de NXK.
+
+## Cesion de turno en aplicaciones
+
+El prototipo incorpora la orden `ceder`, sin argumentos. Una aplicacion NXE2
+cargada en la ruta cooperativa puede entregar su turno al kernel y continuar
+despues con su contexto conservado. El runtime CPL3 utiliza INT81 servicio9;
+las rutas sin ese soporte y NXE1 fallan explicitamente. No implementa objetos,
+hilos Java ni preempcion. Ver `REGLAS.md` y `ejemplos/proceso.nxf`.

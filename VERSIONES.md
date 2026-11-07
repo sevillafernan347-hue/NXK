@@ -19,6 +19,7 @@ existiendo aunque no reciban una etiqueta propia.
 | v0.0.10 | Cuatro espacios privados y retorno de paginas para futuros procesos |
 | v0.0.11 | Copias acotadas de datos en espacios privados |
 | v0.0.12 | Programas NXE2 retenidos con turnos CPL3, datos privados y fallos contenidos |
+| v0.0.13 | Procesos cooperativos reanudables y ceder en NEXTRY |
 
 La serie de etiquetas se inicia el 3 de noviembre de 2026. v0.0.1 identifica
 la entrega previa ya probada; no cambia sus archivos ni fecha del commit.
