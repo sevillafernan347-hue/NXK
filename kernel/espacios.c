@@ -49,6 +49,11 @@ int nxk_espacio_consultar(uint32_t id,struct nxk_espacio_info *salida) {
     struct espacio *e=buscar(id); if (!e || !salida) return -1;
     *salida=(struct nxk_espacio_info){e->id,e->base,e->base+12288,e->base+16384}; return 0;
 }
+int nxk_espacio_enumerar(unsigned slot,struct nxk_espacio_info *salida) {
+    if (slot>=NXK_ESPACIOS_MAX || !salida) return -1;
+    if (!espacios[slot].base) return -2;
+    return nxk_espacio_consultar(espacios[slot].id,salida);
+}
 /* Restar despues de validar el inicio evita overflow de direccion+longitud.
  * Codigo y pila fisicos son contiguos en la reserva propia de cinco paginas. */
 static int copiar(uint32_t id,uint32_t virtual,void *buffer,size_t n,int escritura) {
@@ -167,7 +172,8 @@ int nxk_espacios_probar(void) {
     uint32_t viejo=ids[0];
     for (unsigned i=0;i<NXK_ESPACIOS_MAX;++i) if (nxk_espacio_destruir(ids[i])) return 10;
     struct nxk_espacio_info info; memset(&info,0xa5,sizeof(info));
-    if (nxk_espacio_consultar(viejo,&info)!=-1 || nxk_espacio_activar(viejo)!=-1 || nxk_espacio_destruir(viejo)!=-1) return 11;
+    if (nxk_espacio_enumerar(0,&info)!=-2 || nxk_espacio_enumerar(NXK_ESPACIOS_MAX,&info)!=-1 ||
+        nxk_espacio_enumerar(0,0)!=-1 || nxk_espacio_consultar(viejo,&info)!=-1 || nxk_espacio_activar(viejo)!=-1 || nxk_espacio_destruir(viejo)!=-1) return 11;
     for (unsigned i=0;i<sizeof(info);++i) if (((unsigned char *)&info)[i]!=0xa5) return 12;
     if (nxk_espacio_crear(&codigo,1,&ids[0]) || ids[0]==viejo || nxk_espacio_destruir(ids[0]) ||
         nxk_espacios_demo() || nxk_espacios_demo() || nxk_paginas_libres()!=libres || nxk_heap_used()!=heap) return 13;
@@ -177,6 +183,7 @@ int nxk_espacios_probar(void) {
 #else
 int nxk_espacio_crear(const void *c,size_t n,uint32_t *id) { (void)c;(void)n;(void)id;return -64; }
 int nxk_espacio_consultar(uint32_t id,struct nxk_espacio_info *s) { (void)id;(void)s;return -64; }
+int nxk_espacio_enumerar(unsigned i,struct nxk_espacio_info *s) { (void)i;(void)s;return -64; }
 int nxk_espacio_leer(uint32_t id,uint32_t v,void *p,size_t n) { (void)id;(void)v;(void)p;(void)n;return -64; }
 int nxk_espacio_escribir(uint32_t id,uint32_t v,const void *p,size_t n) { (void)id;(void)v;(void)p;(void)n;return -64; }
 int nxk_espacio_activar(uint32_t id) { (void)id;return -64; }

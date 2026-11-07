@@ -8,6 +8,8 @@
 #include "usuario.h"
 #include "archivos.h"
 #include "volumen.h"
+#include "espacios.h"
+#include "tareas.h"
 #if defined(__i386__)
 struct __attribute__((packed)) puerta {
     uint16_t bajo, selector;
@@ -23,6 +25,7 @@ static unsigned char entrada[33][48];
 extern const unsigned char reloj_nxa_inicio[], reloj_nxa_fin[];
 static unsigned char reloj_entrada[42];
 static volatile uint32_t ticks;
+static int reloj_listo, emergencia_lista;
 static void puerto(uint16_t p,uint8_t v) {
     __asm__ volatile("outb %0,%1" :: "a"(v),"Nd"(p));
     __asm__ volatile("outb %%al,$0x80" :: "a"(0));
@@ -52,7 +55,7 @@ void nxk_reloj_iniciar(void) {
     puerto(0x21,0xfe); puerto(0xa1,0xff);
     /* PIT canal 0: divisor 11932, aproximadamente 100 Hz. */
     puerto(0x43,0x36); puerto(0x40,0x9c); puerto(0x40,0x2e);
-    ticks=0;
+    ticks=0; reloj_listo=1;
     __asm__ volatile("sti" ::: "memory");
 }
 /* Doble fallo: cambio de tarea hardware a TSS con pila independiente.
@@ -97,6 +100,7 @@ int nxk_emergencia_iniciar(void) {
     uint16_t selector=24;
     __asm__ volatile("ltr %0" :: "r"(selector) : "memory");
     tabla[8]=(struct puerta){0,32,0,0x85,0}; /* Task gate, DPL0. */
+    emergencia_lista=1;
     return 0;
 }
 /* Prueba aislada: dos paginas de usuario, resto de PTE solo supervisor.
@@ -222,6 +226,57 @@ void nxk_usuario_atender_fallo(const uint32_t *contexto) {
     if (v==14) __asm__ volatile("mov %%cr2,%0":"=r"(fallo_direccion));
     nxk_usuario_cs_guardado=contexto[11];
     nxk_usuario_abortar(0x80000000u|v);
+}
+/* El estado de entrada a CPL3 sigue siendo unico: turnos secuenciales. */
+static int contexto_privado(void) {
+    uint32_t flags,cr3,cr0;
+    __asm__ volatile("pushfl; popl %0":"=r"(flags));
+    __asm__ volatile("mov %%cr3,%0":"=r"(cr3));
+    __asm__ volatile("mov %%cr0,%0":"=r"(cr0));
+    return (cr0&0x80000000u) && (flags&0x200u) && cr3==0x200000u && !nxk_tarea_actual() && reloj_listo && emergencia_lista;
+}
+int nxk_usuario_ejecutar_espacio(uint32_t id,struct nxk_usuario_resultado *salida) {
+    struct nxk_espacio_info info;
+    if (!salida || usuario_activo || nxk_espacio_consultar(id,&info)) return -1;
+    if (!contexto_privado()) return -2;
+    if ((uintptr_t)servicio_nxa_fin-(uintptr_t)servicio_nxa_inicio!=42 || servicio_nxa_inicio[25]!=0xb8) return -4;
+    static unsigned char *pila;
+    if (!pila) { pila=nxk_alloc(4096); if (!pila) return -3; }
+    uint32_t esp0=tss_normal[1],ss0=tss_normal[2];
+    struct puerta antes_salida=tabla[128],antes_servicio=tabla[129];
+    uintptr_t base_anterior=usuario_base;
+    memcpy(servicio_entrada,servicio_nxa_inicio,42);
+    uintptr_t manejador=(uintptr_t)usuario_servicio, servicio=(uintptr_t)servicio_entrada;
+    for (unsigned i=0;i<4;++i) servicio_entrada[26+i]=(unsigned char)(manejador>>(8*i));
+    uintptr_t puerta_salida=(uintptr_t)nxk_usuario_salir;
+    tabla[128]=(struct puerta){(uint16_t)puerta_salida,8,0,0xee,(uint16_t)(puerta_salida>>16)};
+    tabla[129]=(struct puerta){(uint16_t)servicio,8,0,0xee,(uint16_t)(servicio>>16)};
+    tss_normal[1]=(uint32_t)(uintptr_t)(pila+4096); tss_normal[2]=16;
+    int r=nxk_espacio_activar(id);
+    if (!r) {
+        usuario_base=NXK_ESPACIO_CODIGO; usuario_inicio=ticks; nxk_usuario_cs_guardado=0;
+        fallo_vector=fallo_error=fallo_direccion=fallo_eip=fallo_ocurrido=fallo_pila=0;
+        usuario_activo=1;
+        uint32_t resultado=nxk_usuario_entrar(NXK_ESPACIO_CODIGO,NXK_ESPACIO_PILA+4096);
+        uint32_t regreso; __asm__ volatile("mov %%cr3,%0":"=r"(regreso));
+        usuario_activo=0;
+        /* Restaurar el mapa antes de publicar resultado o liberar recursos. */
+        int restaurado=nxk_espacio_restaurar();
+        if (restaurado) __asm__ volatile("mov %0,%%cr3"::"r"(0x200000u):"memory");
+        if (restaurado || regreso!=info.directorio || (nxk_usuario_cs_guardado&3)!=3) r=-5;
+        if (!r) {
+            struct nxk_usuario_resultado nuevo={++secuencia_resultado,resultado,fallo_ocurrido,
+                fallo_vector,fallo_error,fallo_eip,fallo_direccion,fallo_pila};
+            historial[siguiente_resultado]=nuevo;
+            siguiente_resultado=(siguiente_resultado+1)%8;
+            if (cantidad_resultados<8) ++cantidad_resultados;
+        }
+    }
+    /* Cerrar tambien si activar fallo, sin exponer un resultado parcial. */
+    tabla[128]=antes_salida; tabla[129]=antes_servicio;
+    tss_normal[1]=esp0; tss_normal[2]=ss0; usuario_base=base_anterior;
+    if (r) return r==-5 ? -5 : -2;
+    *salida=historial[(siguiente_resultado+7)%8]; return 0;
 }
 static int usuario_ejecutar(unsigned modo) {
     if (usuario_activo || modo>41) return -1;
@@ -421,7 +476,7 @@ static int usuario_ejecutar(unsigned modo) {
 static uint32_t usuario_u32(const unsigned char *p) {
     return p[0]|(uint32_t)p[1]<<8|(uint32_t)p[2]<<16|(uint32_t)p[3]<<24;
 }
-int nxk_usuario_cargar_nxe(const unsigned char *p,size_t n) {
+static int usuario_validar_nxe(const unsigned char *p,size_t n) {
     if (!p || n<64 || n>4096 || usuario_activo) return -1;
     if (usuario_u32(p)!=0x0045584e || usuario_u32(p+4)!=0x00010002u ||
         usuario_u32(p+8)!=64 || usuario_u32(p+12)!=0x400000 || usuario_u32(p+16) ||
@@ -430,17 +485,35 @@ int nxk_usuario_cargar_nxe(const unsigned char *p,size_t n) {
     for (unsigned i=36;i<64;++i) if (p[i]) return -2;
     uint32_t h=2166136261u; for (size_t i=64;i<n;++i) h=(h^p[i])*16777619u;
     if (h!=usuario_u32(p+28)) return -3;
+    return 0;
+}
+int nxk_usuario_cargar_nxe(const unsigned char *p,size_t n) {
+    int r=usuario_validar_nxe(p,n); if (r) return r;
     usuario_carga=p+64; usuario_carga_longitud=n-64;
     int resultado=usuario_ejecutar(29);
     usuario_carga=0; usuario_carga_longitud=0; return resultado;
 }
+int nxk_usuario_crear_espacio_nxe(const unsigned char *p,size_t n,uint32_t *id) {
+    if (!id) return -1;
+    int r=usuario_validar_nxe(p,n); if (r) return r;
+    if (!contexto_privado()) return -2;
+    return nxk_espacio_crear(p+64,n-64,id);
+}
+static unsigned char *imagen_archivo;
+int nxk_usuario_preparar_archivo(const char *nombre,uint32_t *id) {
+    if (!nombre || !id || usuario_activo) return -1;
+    if (!contexto_privado()) return -2;
+    if (!imagen_archivo) imagen_archivo=nxk_alloc(4096);
+    if (!imagen_archivo) return -3;
+    int n=nxk_volumen_leer(nombre,imagen_archivo,4096);
+    return n<0 ? -4 : nxk_usuario_crear_espacio_nxe(imagen_archivo,(size_t)n,id);
+}
 int nxk_usuario_ejecutar_archivo(const char *nombre) {
     if (!nombre || usuario_activo) return -1;
-    static unsigned char *imagen;
-    if (!imagen) imagen=nxk_alloc(4096);
-    if (!imagen) return -1;
-    int n=nxk_volumen_leer(nombre,imagen,4096);
-    return n<0 ? -4 : nxk_usuario_cargar_nxe(imagen,(size_t)n);
+    if (!imagen_archivo) imagen_archivo=nxk_alloc(4096);
+    if (!imagen_archivo) return -1;
+    int n=nxk_volumen_leer(nombre,imagen_archivo,4096);
+    return n<0 ? -4 : nxk_usuario_cargar_nxe(imagen_archivo,(size_t)n);
 }
 int nxk_usuario_nextry(void) { return usuario_ejecutar(17); }
 int nxk_usuario_demo(void) { return usuario_ejecutar(0); }
@@ -531,6 +604,9 @@ void nxk_usuario_atender_fallo(const uint32_t *p) { (void)p; }
 int nxk_usuario_comprobar_fallos(void) { return -64; }
 int nxk_usuario_cargar_nxe(const unsigned char *p,size_t n) { (void)p;(void)n;return -64; }
 int nxk_usuario_ejecutar_archivo(const char *n) { (void)n;return -64; }
+int nxk_usuario_ejecutar_espacio(uint32_t id,struct nxk_usuario_resultado *s) { (void)id;(void)s;return -64; }
+int nxk_usuario_crear_espacio_nxe(const unsigned char *p,size_t n,uint32_t *id) { (void)p;(void)n;(void)id;return -64; }
+int nxk_usuario_preparar_archivo(const char *n,uint32_t *id) { (void)n;(void)id;return -64; }
 int nxk_usuario_nextry(void) { return -64; }
 int nxk_usuario_demo(void) { return -64; }
 void nxk_excepciones_iniciar(void) {}

@@ -3,6 +3,16 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.12
+
+- Ejecucion CPL3 sincronica en espacios retenidos, con pila propia conservada.
+- Carga NXE2 validada sin ejecutar; comparte validacion con el cargador anterior.
+- Comandos usuario cargar/listar/turno/liberar y demo usuario espacios.
+- Restaura CR3, TSS y puertas de interrupcion tras salida, fallo o limite PIT.
+- Pruebas de cuatro apps, datos separados, escritura RO, bucle, EAX alto y limpieza.
+- Matriz x86, regresion x64, prueba externa de turnos, consola/planificador
+  y22casos NXE2 superados.
+
 ## v0.0.11
 
 - Copias acotadas entre buffers kernel y espacios privados: lectura codigo/pila,

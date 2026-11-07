@@ -14,4 +14,18 @@ int nxk_usuario_probar_servicios(void);
 int nxk_usuario_nextry(void);
 int nxk_usuario_cargar_nxe(const unsigned char *datos,size_t longitud);
 int nxk_usuario_ejecutar_archivo(const char *nombre);
+/* Turno sincrono en espacio ya creado. Comienza en 400000 con ESP402000 y
+ * registros limpios; conserva bytes de pila. No reanuda EIP ni planifica.
+ * 0 resultado disponible (fallo indica excepcion/PIT); negativos conservan
+ * salida: -1 contrato/ID/activo, -2 contexto, -3 heap, -4 plantilla, -5 retorno.
+ * Solo kernel CR3 original, IF habilitada, GDT/TSS/PIT iniciados, fuera de tareas. */
+int nxk_usuario_ejecutar_espacio(uint32_t id,struct nxk_usuario_resultado *salida);
+/* Validar NXE2 y copiar a espacio retenido, sin ejecutar. Salida ID intacta
+ * ante error. El llamador destruye el espacio tras terminar de usarlo. */
+int nxk_usuario_crear_espacio_nxe(const unsigned char *datos,size_t longitud,uint32_t *id);
+int nxk_usuario_preparar_archivo(const char *nombre,uint32_t *id);
+int nxk_usuario_espacios_demo(void);
+#ifdef NXK_TEST
+int nxk_usuario_espacios_probar(void);
+#endif
 #endif

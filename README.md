@@ -1,6 +1,6 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.11**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.12**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
 
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
@@ -117,8 +117,11 @@ nulos y protege sus tablas de paginas ante un segundo inicio. Consulta
 
 `espacios` verifica cuatro espacios con codigo y pilas distintos en las mismas
 direcciones virtuales; vuelve al mapa kernel y devuelve las paginas usadas.
-Es la base de memoria virtual para futuros procesos, todavia independiente del
-runtime CPL3 y del planificador. Consulta [la entrega y sus limites](ENTREGA-ESPACIOS-PRIVADOS.md).
+El pool ya puede ejecutar programas CPL3 por turnos conservando sus datos de
+pila. `usuario espacios` verifica fallos contenidos. Para NXE2 de disco usa
+`usuario cargar nombre.nxe`, `usuario listar`, `usuario turno ID` y
+`usuario liberar ID`. Consulta [la memoria privada](ENTREGA-ESPACIOS-PRIVADOS.md) y
+[la ejecucion y sus limites](ENTREGA-EJECUCION-PRIVADA.md).
 
 ## Construir en Windows
 

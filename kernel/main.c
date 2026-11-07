@@ -118,6 +118,14 @@ static void number(size_t n) {
     while (i) put(b[--i]);
 }
 /* Imprimir una copia: la consola no puede modificar el historial interno. */
+/* IDs decimales completos, sin signo ni overflow. */
+static int leer_id(const char *s,uint32_t *id) {
+    if (!s || !*s) return 0;
+    uint32_t n=0;
+    while (*s) { unsigned c=(unsigned char)*s++; if (c<'0' || c>'9' || n>(UINT32_MAX-(c-'0'))/10) return 0; n=n*10+c-'0'; }
+    if (!n) return 0;
+    *id=n; return 1;
+}
 static void usuario_resultado(const struct nxk_usuario_resultado *r) {
     print("Ejecucion "); number(r->secuencia);
     if (!r->fallo) { print(": normal, salida "); number(r->salida); put('\n'); return; }
@@ -278,6 +286,9 @@ void kernel_main(void) {
     print("NXK: SERVICIOS USUARIO OK\n");
     if (nxk_usuario_nextry()) { print("NXK: NEXTRY USUARIO FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
     print("NXK: NEXTRY USUARIO OK\n");
+    int privados=nxk_usuario_espacios_probar();
+    if (privados) { print("NXK: EJECUCION PRIVADA FAIL "); number((unsigned)privados); put('\n'); out8(0xf4,0x11); nxk_es_detener(); }
+    print("NXK: EJECUCION PRIVADA OK\n");
     if (nxk_tareas_demo()) { print("NXK: TAREAS FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
     print("NXK: TAREAS COOPERATIVAS OK\n");
     extern int nxk_tareas_probar_limites(void);
@@ -391,7 +402,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | espacios | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | espacios | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nusuario espacios | usuario listar | usuario cargar archivo.nxe | usuario turno ID | usuario liberar ID\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -479,6 +490,31 @@ void kernel_main(void) {
             }
             else if (nxk_equal(line, "archivos")) {
                 for (unsigned i=0;i<8;++i) { const char *s=nxk_archivo_nombre(i); if (s) { print(s); put('\n'); } }
+            }
+            else if (nxk_equal(line,"usuario espacios")) {
+                print(nxk_usuario_espacios_demo() ? "No se pudo verificar ejecucion privada.\n" : "Programas privados: datos independientes, fallo y bucle contenidos.\n");
+            }
+            else if (nxk_equal(line,"usuario listar")) {
+                unsigned n=0;
+                for (unsigned i=0;i<NXK_ESPACIOS_MAX;++i) {
+                    struct nxk_espacio_info info;
+                    if (!nxk_espacio_enumerar(i,&info)) { print("Programa privado ID "); number(info.id); put('\n'); ++n; }
+                }
+                if (!n) print("Sin programas privados cargados.\n");
+            }
+            else if (prefijo(line,"usuario cargar ")) {
+                uint32_t id;
+                if (nxk_usuario_preparar_archivo(line+15,&id)) print("No se pudo preparar NXE2 privado.\n");
+                else { print("Programa privado ID "); number(id); put('\n'); }
+            }
+            else if (prefijo(line,"usuario turno ")) {
+                uint32_t id; struct nxk_usuario_resultado r;
+                if (!leer_id(line+14,&id) || nxk_usuario_ejecutar_espacio(id,&r)) print("No se pudo ejecutar el turno.\n");
+                else usuario_resultado(&r);
+            }
+            else if (prefijo(line,"usuario liberar ")) {
+                uint32_t id;
+                print(!leer_id(line+16,&id) || nxk_espacio_destruir(id) ? "No se pudo liberar programa.\n" : "Programa privado liberado.\n");
             }
             else if (nxk_equal(line, "usuario nextry")) {
                 print(nxk_usuario_nextry() ? "Aplicacion NEXTRY fallo.\n" : "Aplicacion NEXTRY protegida termino.\n");

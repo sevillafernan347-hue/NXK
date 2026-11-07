@@ -350,3 +350,16 @@ NXK v0.0.11: API kernel de copia acotada leer/escribir espacios privados;
 escribir solo pila, limites por resta, sin copia parcial al rechazar.
 Pruebas de cruce codigo/pila, independencia, overflow/null/contexto y rechazo
 sin mutacion. Arranque x86 QEMU32MiB superado. Sin nueva syscall ni proceso.
+
+NXK v0.0.12: pool privado conectado a ejecucion CPL3 sincronica. Hasta cuatro
+NXE2 cargados, turnos desde entrada conservando bytes de pila, salida/fallo/PIT
+y liberacion explicita. Comandos usuario cargar/listar/turno/liberar/espacios.
+Restauracion de CR3/TSS/IDT; resultado.fallo distingue EAX normal alto.
+Validador NXE2 compartido mantiene ruta anterior. Pila kernel4KiB reutilizable,
+buffers de lectura compartidos y paginas devueltas al liberar.
+No son procesos concurrentes ni reanudacion CPU; FS y servicios aun comunes.
+Ver ENTREGA-EJECUCION-PRIVADA.md.
+Cierre v0.0.12: matriz x86 32/64/128/1024MiB y regresion x64 64MiB,
+prueba externa de carga/turnos/listado/liberacion con NEXTRY, datos separados,
+RO/PIT, limites y memoria estable superadas. Consola general, planificador y
+22NXE2 de regresion superados. Imagen normal x86 57356B; pruebas81932B.

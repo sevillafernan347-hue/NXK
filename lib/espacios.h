@@ -12,6 +12,8 @@ struct nxk_espacio_info { uint32_t id, directorio, codigo_fisico, pila_fisica; }
  * -3 contexto no permitido; -4 memoria fisica insuficiente. */
 int nxk_espacio_crear(const void *codigo,size_t longitud,uint32_t *id);
 int nxk_espacio_consultar(uint32_t id,struct nxk_espacio_info *salida);
+/* Slot0..3: -2 vacio; -1 contrato. Errores conservan salida. */
+int nxk_espacio_enumerar(unsigned slot,struct nxk_espacio_info *salida);
 /* Copias solo desde CR3 kernel, buffers kernel confiables sin solaparse con
  * tablas ni codigo del espacio. Leer codigo/pila; escribir solo pila.
  * 0 exito, -1 ID/buffer, -2 rango, -3 contexto. Rechazo no copia parcialmente.
