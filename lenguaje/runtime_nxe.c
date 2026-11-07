@@ -44,3 +44,12 @@ void nxk_es_ceder(void) { nxk_es_fallo(0); }
 
 /* ABI NXE1 no publica espera con contexto de proceso. */
 void nxk_es_dormir(uint32_t ticks) { (void)ticks; nxk_es_fallo(0); }
+
+/* ABI NXE1 no ofrece identidad ni buzon de proceso. No simular IPC en ring0. */
+void nxk_es_enviar_mensaje(uint32_t destino,uint32_t valor) {
+    (void)destino; (void)valor; nxk_es_fallo(0);
+}
+uint32_t nxk_es_recibir_mensaje(uint32_t *origen,uint32_t *valor,uint32_t ticks) {
+    (void)origen; (void)valor; (void)ticks; nxk_es_fallo(0);
+}
+uint32_t nxk_es_proceso_actual(void) { nxk_es_fallo(0); }

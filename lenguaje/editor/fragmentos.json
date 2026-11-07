@@ -2,5 +2,7 @@
   "Programa inicial": {"prefix": "inicio", "body": ["función inicio", "    mostrar \"${1:Hola desde NXK}\"", "    $0", "fin"], "description": "Crear un programa NXK Español"},
   "Repeticion": {"prefix": "repetir", "body": ["repetir ${1:3} veces", "    $0", "fin"], "description": "Repetir un bloque"},
   "Condicion": {"prefix": "si", "body": ["si ${1:verdadero}", "    $2", "sino", "    $0", "fin"], "description": "Elegir entre dos bloques"},
-  "Funcion": {"prefix": "funcion", "body": ["función ${1:nombre}", "    $0", "fin"], "description": "Declarar una función"}
+  "Funcion": {"prefix": "funcion", "body": ["función ${1:nombre}", "    $0", "fin"], "description": "Declarar una función"},
+  "Enviar mensaje": {"prefix": "enviar_mensaje", "body": ["enviar_mensaje ${1:destino}, ${2:valor}"], "description": "Enviar un valor a un proceso CPL3"},
+  "Recibir mensaje": {"prefix": "recibir_mensaje", "body": ["entero ${1:valor} = 0", "entero ${2:origen} = 0", "entero ${3:resultado} = 0", "recibir_mensaje ${1:valor}, ${2:origen}, ${3:resultado}, ${4:100}"], "description": "Recibir con plazo; resultado 0 indica mensaje y 1 plazo o cola vacia"}
 }

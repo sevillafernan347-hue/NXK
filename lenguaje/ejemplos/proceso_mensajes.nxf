@@ -1,0 +1,21 @@
+# Compilar como NXE2 y cargar con «proceso cargar»; requiere gestor de procesos.
+# El origen siempre es asignado por el kernel. Cero en plazo consulta sin esperar.
+funcion inicio
+    entero propio = proceso_actual()
+    entero valor = 99
+    entero origen = 99
+    entero resultado = 99
+    enviar_mensaje propio, 42
+    recibir_mensaje valor, origen, resultado, 0
+    afirmar resultado == 0
+    afirmar origen == propio
+    afirmar valor == 42
+    mostrar "Mensaje propio recibido"
+    numero valor
+    # Sin otro mensaje se conserva el valor y el origen anterior.
+    recibir_mensaje valor, origen, resultado, 0
+    afirmar resultado == 1
+    afirmar origen == propio
+    afirmar valor == 42
+    mostrar "Cola vacia comprobada"
+fin

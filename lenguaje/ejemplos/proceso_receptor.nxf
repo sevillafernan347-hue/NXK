@@ -1,0 +1,22 @@
+# Compilar como NXE2 y cargar con «proceso cargar».
+# Ejecutar un turno para ver su ID y suspender; desde la consola usar
+# «proceso enviar ID 42», y despues «proceso ejecutar» para continuarlo.
+# El origen 0 identifica mensajes enviados por la consola del kernel.
+funcion inicio
+    mostrar "Receptor: mi ID"
+    numero proceso_actual()
+    entero valor = 7
+    entero origen = 7
+    entero resultado = 99
+    # Hasta 3000 ticks PIT, aproximadamente 30 segundos.
+    recibir_mensaje valor, origen, resultado, 3000
+    si resultado == 0
+        mostrar "Receptor: mensaje"
+        numero origen
+        numero valor
+    sino
+        afirmar resultado == 1
+        afirmar valor == 7 y origen == 7
+        mostrar "Receptor: plazo vencido"
+    fin
+fin

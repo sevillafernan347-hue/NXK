@@ -1,4 +1,11 @@
-# Estado de NXK 0.1
+# Estado de NXK
+
+Version actual: 0.0.16. Cuatro procesos CPL3 con memoria privada, preempcion,
+espera temporal, mensajes FIFO y cancelacion. Guia actual y pruebas en
+ENTREGA-MENSAJES-PROCESOS.md; siguientes hitos en PENDIENTES-KERNEL.md.
+
+El registro siguiente conserva las etapas anteriores: cada entrada describe
+lo disponible en esa entrega, incluidas limitaciones resueltas posteriormente.
 
 Entrega inicial: 31 de octubre de 2026.
 
@@ -401,3 +408,19 @@ Pendientes IPC y E/S de dispositivos; reloj32bits con horizonte modular acotado.
 Ver ENTREGA-DORMIR-PROCESOS.md.
 Cierre: prueba externa de dormir superada, junto a procesos/preempcion y22casos
 NXE2 anteriores. Sin escrituras a discos originales durante las pruebas.
+
+NXK v0.0.16: tres funciones nuevas de procesos CPL3. FIFO4 de registros
+{origen,valor}, remitente de turno autenticado e IDs completos; recepcion con
+consulta0 o plazo acotado, estado6 y entrega antes de retirar; cancelacion7
+limpia cola y espera, retiene diagnostico/memoria hasta liberar. Extensiones
+INT81/11..13, sin cambiar cabecera ni ABI1. NEXTRY enviar_mensaje,
+recibir_mensaje y proceso_actual(); ejemplos y editor actualizados.
+QEMU IPC comprueba FIFO/cola llena,0/MAX, origen entre dos apps, espera sin
+turnos, timeout/buffer intacto, mensaje disponible tras plazo, GPR/CF/DF,
+contratos de memoria/plazo, cancelacion, reciclaje y API legacy. Pruebas de
+cancelacion DORMIDO agregadas al arranque. Memoria estable y discos intactos.
+36pruebas compilador; matriz x86 32/64/128/1024MiB, x64 64MiB y regresiones
+dormir/procesos/preempcion/22NXE2 superadas. Imagen normal65548B/pruebas94220B.
+Puentes C y una CPU; cuatro procesos y cuatro mensajes uint32 por cola,
+sin espera de espacio al enviar, permisos, E/S dispositivos ni certificacion
+ASUS. Ver ENTREGA-MENSAJES-PROCESOS.md y PENDIENTES-KERNEL.md.

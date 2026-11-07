@@ -249,3 +249,17 @@ El ejemplo `ejemplos/proceso_dormir.nxf` conserva una variable tras dormir 20,
 cede con dormir 0 y despues muestra 42. Dormir no crea hilos ni calcula una fecha
 real: utiliza el reloj modular del kernel y requiere volver a planificar el
 proceso cuando el plazo haya vencido.
+
+## Mensajes de procesos (v0.0.16)
+
+`proceso_actual()` retorna el ID completo del proceso CPL3 gestionado.
+`enviar_mensaje destino, valor` exige dos expresiones enteras y falla si el
+destino no acepta el mensaje. No descarta datos cuando la cola esta llena.
+`recibir_mensaje valor, origen, resultado, plazo` exige tres variables entero
+distintas, modificables y en ambito, mas una expresion entera de plazo.
+Resultado0 entrega origen/valor; resultado1 los conserva. Plazo0 consulta;
+positivo espera hasta mensaje o vencimiento. Maximo0x7fffffff ticks PIT.
+El remitente real lo asigna el kernel; origen0 representa consola/kernel.
+Solo ruta `proceso`; no equivale a los buzones de tareas ring0.
+Ejemplos: proceso_mensajes.nxf y proceso_receptor.nxf.
+Ver ENTREGA-MENSAJES-PROCESOS.md para los contratos y limites completos.

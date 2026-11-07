@@ -75,3 +75,10 @@ explicitamente. Ver ENTREGA-PROCESOS-COOPERATIVOS.md para permisos y limites.
 Desde v0.0.15 INT81/EAX10, EBX=ticks espera en procesos y retorna0 al despertar.
 Cero equivale a ceder; maximo7fffffff. La ABI1 se mantiene. El plazo es interno
 al kernel; no modifica EBX. Ver ENTREGA-DORMIR-PROCESOS.md.
+
+Desde v0.0.16 hay servicios opcionales de mensajes para procesos gestionados:
+INT81/EAX11 envia (EBXdestino, ECXvalor); EAX12 recibe (EBXbuffer8, EDXticks);
+EAX13 consulta el ID actual. Recepcion0=mensaje,1=vacio/plazo, negativos=error.
+Buffer solo pila privada y plazo0..7fffffff, validados antes de consumir datos.
+ABI1 y cabecera sin cambios; legacy rechaza estas extensiones.
+Ver ENTREGA-MENSAJES-PROCESOS.md y ejemplos proceso_mensajes/proceso_receptor.

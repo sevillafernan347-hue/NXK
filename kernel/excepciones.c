@@ -142,7 +142,7 @@ uint32_t nxk_usuario_pila_guardada, nxk_usuario_cs_guardado;
 extern uint32_t nxk_usuario_entrar(uint32_t codigo,uint32_t pila);
 extern void nxk_usuario_salir(void);
 static int usuario_activo;
-static uint32_t usuario_inicio;
+static uint32_t usuario_inicio,usuario_id_activo;
 static uintptr_t usuario_base;
 static const unsigned char *usuario_carga;
 static size_t usuario_carga_longitud;
@@ -175,6 +175,30 @@ static void usuario_servicio(uint32_t *c) {
         plazo_retorno=p ? ticks+p : 0;
         nxk_usuario_cs_guardado=c[13]; nxk_usuario_abortar(0);
     }
+    /* IPC solo de procesos gestionados. El emisor procede del turno activo,
+     * nunca de un ID proporcionado por la aplicacion. Una CPU, IRQ sin IPC. */
+    if (servicio==11 && contexto_reanudable) {
+        c[11]=(uint32_t)nxk_proceso_enviar_desde(usuario_id_activo,p,n); return;
+    }
+    if (servicio==12 && contexto_reanudable) {
+        uint32_t espera=c[9];
+        if (espera>0x7fffffffu || !usuario_rango(p,8,1)) return;
+        struct nxk_proceso_mensaje mensaje;
+        int r=nxk_proceso_recibir_actual(usuario_id_activo,&mensaje);
+        if (!r) {
+            /* Rango completo validado antes de extraer; CR3 sigue siendo el
+             * privado de este proceso, por eso la copia es directa. */
+            memcpy((void *)(uintptr_t)p,&mensaje,sizeof(mensaje)); c[11]=0; return;
+        }
+        if (r!=-2) return;
+        c[11]=1; /* Consulta vacia o vencimiento: buffer sin modificar. */
+        if (!espera) return;
+        if (nxk_proceso_preparar_espera(usuario_id_activo,p)) { c[11]=UINT32_MAX; return; }
+        memcpy(contexto_reanudable,c,17*sizeof(uint32_t));
+        motivo_retorno=NXK_USUARIO_MENSAJE; plazo_retorno=ticks+espera;
+        nxk_usuario_cs_guardado=c[13]; nxk_usuario_abortar(0);
+    }
+    if (servicio==13 && contexto_reanudable) { c[11]=usuario_id_activo; return; }
     if (servicio==1) {
         if (n>256 || !usuario_rango(p,n,0)) return;
         if (n) { memcpy(datos,(void *)(uintptr_t)p,n); nxk_pe_salida(datos,n); }
@@ -280,6 +304,7 @@ static int ejecutar_privado(uint32_t id,uint32_t *marco,struct nxk_usuario_resul
     int r=nxk_espacio_activar(id);
     if (!r) {
         contexto_reanudable=marco; motivo_retorno=plazo_retorno=0;
+        usuario_id_activo=marco ? id : 0;
         usuario_base=NXK_ESPACIO_CODIGO; usuario_inicio=ticks; nxk_usuario_cs_guardado=0;
         fallo_vector=fallo_error=fallo_direccion=fallo_eip=fallo_ocurrido=fallo_pila=0;
         usuario_activo=1;
@@ -291,7 +316,7 @@ static int ejecutar_privado(uint32_t id,uint32_t *marco,struct nxk_usuario_resul
         uint32_t resultado=marco ? nxk_usuario_reanudar(marco) : nxk_usuario_entrar(NXK_ESPACIO_CODIGO,NXK_ESPACIO_PILA+4096);
         if (marco) __asm__ volatile("mov %0,%%cr0"::"r"(cr0_antes):"memory");
         uint32_t regreso; __asm__ volatile("mov %%cr3,%0":"=r"(regreso));
-        usuario_activo=0;
+        usuario_activo=0; usuario_id_activo=0;
         /* Restaurar el mapa antes de publicar resultado o liberar recursos. */
         int restaurado=nxk_espacio_restaurar();
         if (restaurado) __asm__ volatile("mov %0,%%cr3"::"r"(0x200000u):"memory");
@@ -307,11 +332,11 @@ static int ejecutar_privado(uint32_t id,uint32_t *marco,struct nxk_usuario_resul
     /* Cerrar tambien si activar fallo, sin exponer un resultado parcial. */
     tabla[128]=antes_salida; tabla[129]=antes_servicio;
     tss_normal[1]=esp0; tss_normal[2]=ss0; usuario_base=base_anterior;
-    contexto_reanudable=0;
+    contexto_reanudable=0; usuario_id_activo=0;
     if (r) return r==-5 ? -5 : -2;
     *salida=historial[(siguiente_resultado+7)%8];
     if (cedido) *cedido=motivo_retorno;
-    if (despertar) *despertar=motivo_retorno==NXK_USUARIO_DORMIR ? plazo_retorno : 0;
+    if (despertar) *despertar=(motivo_retorno==NXK_USUARIO_DORMIR || motivo_retorno==NXK_USUARIO_MENSAJE) ? plazo_retorno : 0;
     return 0;
 }
 /* Solo datos controlados vuelven a IRET: selectores y privilegios fijos. */

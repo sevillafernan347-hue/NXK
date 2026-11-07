@@ -22,6 +22,7 @@ existiendo aunque no reciban una etiqueta propia.
 | v0.0.13 | Procesos cooperativos reanudables y ceder en NEXTRY |
 | v0.0.14 | Preempcion CPL3 reanudable y turnos automaticos con PIT |
 | v0.0.15 | Esperas temporizadas de procesos y dormir en NEXTRY |
+| v0.0.16 | Mensajes entre procesos, recepcion con plazo y cancelacion |
 
 La serie de etiquetas se inicia el 3 de noviembre de 2026. v0.0.1 identifica
 la entrega previa ya probada; no cambia sus archivos ni fecha del commit.

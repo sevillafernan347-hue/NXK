@@ -3,6 +3,20 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.16
+
+- FIFO4 de mensajes por proceso, valor uint32 y remitente real con ID completo.
+- Recepcion no bloqueante o con plazo, estado6, copia completa antes de consumir.
+- Cancelacion estado7 de listos/dormidos/esperadores; ID retenido hasta liberar.
+- INT81/11..13 opcionales y NEXTRY enviar_mensaje/recibir_mensaje/proceso_actual().
+- Contadores, comandos consola, dos ejemplos y soporte del editor actualizado.
+- 36 pruebas del compilador; QEMU verifica FIFO/full, origen entre dos procesos,
+  punteros/plazos invalidos, GPR/CF/DF, vencimiento, cancelacion e IDs antiguos.
+- Matriz x86 32/64/128/1024 MiB y regresion x64 64 MiB superadas. Regresiones
+  de dormir, procesos, preempcion y 22 casos NXE2 superadas; memoria estable
+  y discos virtuales originales intactos. No equivale a ausencia de errores.
+- Detalle y limites: ENTREGA-MENSAJES-PROCESOS.md. El historial se conserva.
+
 ## v0.0.15
 
 - Estado DORMIDO, plazos modulares y retorno inmediato si todos esperan.

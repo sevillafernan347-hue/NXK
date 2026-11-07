@@ -1,6 +1,6 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.15**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.16**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
 
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
@@ -139,6 +139,12 @@ NEXTRY tambien permite `dormir 20` para esperar sin consumir turnos;
 `proceso dormir` verifica espera y continuacion con datos conservados.
 Si todos esperan, la consola regresa y se puede volver a ejecutar despues.
 Consulta [la entrega de esperas](ENTREGA-DORMIR-PROCESOS.md).
+
+Los procesos tambien disponen de mensajes FIFO con remitente verificado y
+recepcion con plazo. Desde NEXTRY: `enviar_mensaje`, `recibir_mensaje` y
+`proceso_actual()`. La consola permite `proceso enviar ID VALOR` y
+`proceso cancelar ID`; cancelar conserva el diagnostico hasta liberar.
+Consulta [contratos, ejemplos y limites](ENTREGA-MENSAJES-PROCESOS.md).
 
 ## Construir en Windows
 

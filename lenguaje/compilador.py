@@ -31,7 +31,8 @@ class Token:
 PALABRAS = set('funcion fin variable constante si sino mientras repetir veces '
                'mostrar numero llamar volver detener ceder dormir afirmar leer_puerto '
                'escribir_puerto verdadero falso y o no y_bits o_bits xor_bits '
-               'memoria_usada romper continuar entero logico texto guardar_archivo mostrar_archivo borrar_archivo agregar_archivo renombrar_archivo copiar_archivo'.split())
+               'memoria_usada proceso_actual enviar_mensaje recibir_mensaje '
+               'romper continuar entero logico texto guardar_archivo mostrar_archivo borrar_archivo agregar_archivo renombrar_archivo copiar_archivo'.split())
 ALIAS = {'función': 'funcion', 'número': 'numero'}
 PATRON = re.compile(
     r'(?P<ESPACIO>[^\S\n]+)|(?P<COMENTARIO>\#[^\n]*)|(?P<NL>\n)|'
@@ -121,9 +122,9 @@ class Analizador:
             izq = ('logico', t, t.tipo == 'verdadero')
         elif t.tipo == 'NOMBRE':
             izq = ('nombre', t, t.texto)
-        elif t.tipo == 'memoria_usada':
+        elif t.tipo in ('memoria_usada', 'proceso_actual'):
             self.tomar('('); self.tomar(')')
-            izq = ('memoria', t)
+            izq = (t.tipo, t)
         elif t.texto == '(':
             izq = self.expresion(); self.tomar(')')
         elif t.tipo == 'no' or t.texto == '-':
@@ -171,6 +172,15 @@ class Analizador:
             elif k == 'escribir_puerto':
                 puerto = self.expresion(); self.tomar(',')
                 salida.append((k, t, puerto, self.expresion())); self.linea()
+            elif k == 'enviar_mensaje':
+                destino = self.expresion(); self.tomar(',')
+                salida.append((k, t, destino, self.expresion())); self.linea()
+            elif k == 'recibir_mensaje':
+                # Tres variables de salida y un plazo; nunca expresiones/punteros arbitrarios.
+                valor = self.tomar('NOMBRE'); self.tomar(',')
+                origen = self.tomar('NOMBRE'); self.tomar(',')
+                resultado = self.tomar('NOMBRE'); self.tomar(',')
+                salida.append((k, t, valor, origen, resultado, self.expresion())); self.linea()
             elif k in ('si', 'mientras', 'repetir'):
                 condicion = self.expresion()
                 if k == 'repetir': self.tomar('veces')
@@ -228,7 +238,7 @@ class Generador:
         if k == 'logico': return 'logico', '1' if e[2] else '0'
         if k == 'nombre':
             tipo, nombre, _ = self.buscar(t); return tipo, nombre
-        if k == 'memoria': return 'entero', 'nxk_es_memoria_usada()'
+        if k in ('memoria_usada', 'proceso_actual'): return 'entero', f'nxk_es_{k}()'
         if k == 'unario':
             tipo, a = self.expresion(e[2])
             self.tipo(t, tipo, 'logico' if t.tipo == 'no' else 'entero')
@@ -308,6 +318,21 @@ class Generador:
                 pt, puerto = self.expresion(s[2]); vt, valor = self.expresion(s[3])
                 self.tipo(t, pt, 'entero'); self.tipo(t, vt, 'entero')
                 poner(f'nxk_es_escribir_puerto({puerto}, {valor});')
+            elif k == 'enviar_mensaje':
+                dt, destino = self.expresion(s[2]); vt, valor = self.expresion(s[3])
+                self.tipo(t, dt, 'entero'); self.tipo(t, vt, 'entero')
+                poner(f'nxk_es_enviar_mensaje({destino}, {valor});')
+            elif k == 'recibir_mensaje':
+                nombres = []
+                for destino in s[2:5]:
+                    tipo, nombre, constante = self.buscar(destino)
+                    self.tipo(destino, tipo, 'entero')
+                    if constante: self.error(destino, 'El destino del mensaje debe ser una variable.')
+                    if nombre in nombres: self.error(destino, 'Los destinos del mensaje deben ser variables distintas.')
+                    nombres.append(nombre)
+                pt, plazo = self.expresion(s[5]); self.tipo(t, pt, 'entero')
+                valor, origen, resultado = nombres
+                poner(f'{resultado} = nxk_es_recibir_mensaje(&{origen}, &{valor}, {plazo});')
             else:
                 tipo, condicion = self.expresion(s[2])
                 self.tipo(t, tipo, 'entero' if k == 'repetir' else 'logico')

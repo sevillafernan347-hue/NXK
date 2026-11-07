@@ -6,7 +6,12 @@
 #include "paginacion.h"
 #include "tareas.h"
 #if defined(__i386__)
-struct proceso { struct nxk_proceso_info info; uint32_t contexto[17]; };
+struct proceso {
+    struct nxk_proceso_info info;
+    uint32_t contexto[17];
+    struct nxk_proceso_mensaje buzon[NXK_PROCESO_BUZON_MAX];
+    uint32_t primero,buffer_mensaje,recepcion_pendiente;
+};
 static struct proceso procesos[NXK_ESPACIOS_MAX];
 static unsigned cursor;
 extern uint32_t nxk_reloj_ticks(void);
@@ -29,6 +34,11 @@ static void depurar(unsigned slot) {
     if (p->info.estado==NXK_PROCESO_DORMIDO && vencido(nxk_reloj_ticks(),p->info.despertar)) {
         p->info.estado=NXK_PROCESO_LISTO; p->info.despertar=0;
     }
+    /* Una espera despertada conserva su buffer hasta ser despachada. Si el
+     * mensaje llega despues del plazo y antes del turno, tiene prioridad. */
+    if (p->info.estado==NXK_PROCESO_ESPERANDO_MENSAJE &&
+        (p->info.mensajes || vencido(nxk_reloj_ticks(),p->info.despertar)))
+        p->info.estado=NXK_PROCESO_LISTO;
 }
 static struct proceso *buscar(uint32_t id) {
     unsigned slot=(id&255u)-1u;
@@ -73,14 +83,91 @@ int nxk_proceso_enumerar(unsigned slot,struct nxk_proceso_info *salida) {
     *salida=procesos[slot].info; return 0;
 }
 int nxk_proceso_gestionado(uint32_t id) { return buscar(id)!=0; }
+static int terminal(const struct proceso *p) {
+    return p->info.estado==NXK_PROCESO_TERMINADO || p->info.estado==NXK_PROCESO_FALLIDO ||
+        p->info.estado==NXK_PROCESO_CANCELADO;
+}
+static void limpiar_espera(struct proceso *p) {
+    p->buffer_mensaje=0; p->recepcion_pendiente=0; p->info.despertar=0;
+}
+static void retirar_mensaje(struct proceso *p) {
+    memset(&p->buzon[p->primero],0,sizeof(p->buzon[0]));
+    p->primero=(p->primero+1)%NXK_PROCESO_BUZON_MAX;
+    --p->info.mensajes; incrementar(&p->info.recibidos);
+}
+static int enviar(struct proceso *destino,uint32_t origen,uint32_t valor) {
+    if (!destino) return -1;
+    if (terminal(destino)) return -3;
+    if (destino->info.mensajes==NXK_PROCESO_BUZON_MAX) return -2;
+    unsigned i=(destino->primero+destino->info.mensajes)%NXK_PROCESO_BUZON_MAX;
+    destino->buzon[i]=(struct nxk_proceso_mensaje){origen,valor};
+    ++destino->info.mensajes;
+    if (destino->info.estado==NXK_PROCESO_ESPERANDO_MENSAJE)
+        destino->info.estado=NXK_PROCESO_LISTO;
+    return 0;
+}
+int nxk_proceso_enviar(uint32_t destino,uint32_t valor) {
+    if (ocupado || !contexto_kernel()) return -3;
+    return enviar(buscar(destino),0,valor);
+}
+int nxk_proceso_enviar_desde(uint32_t origen,uint32_t destino,uint32_t valor) {
+    struct proceso *p=buscar(origen);
+    if (!ocupado || !p || p->info.estado!=NXK_PROCESO_EJECUTANDO) return -1;
+    int r=enviar(buscar(destino),origen,valor);
+    if (!r) incrementar(&p->info.enviados);
+    return r;
+}
+int nxk_proceso_recibir_actual(uint32_t id,struct nxk_proceso_mensaje *salida) {
+    struct proceso *p=buscar(id);
+    if (!ocupado || !p || !salida || p->info.estado!=NXK_PROCESO_EJECUTANDO) return -1;
+    if (!p->info.mensajes) return -2;
+    *salida=p->buzon[p->primero]; retirar_mensaje(p); return 0;
+}
+int nxk_proceso_preparar_espera(uint32_t id,uint32_t buffer_virtual) {
+    struct proceso *p=buscar(id);
+    if (!ocupado || !p || p->info.estado!=NXK_PROCESO_EJECUTANDO || p->recepcion_pendiente ||
+        buffer_virtual<NXK_ESPACIO_PILA || buffer_virtual>NXK_ESPACIO_PILA+4096-sizeof(struct nxk_proceso_mensaje))
+        return -1;
+    p->buffer_mensaje=buffer_virtual; p->recepcion_pendiente=1; return 0;
+}
+int nxk_proceso_cancelar(uint32_t id) {
+    if (ocupado || !contexto_kernel()) return -3;
+    struct proceso *p=buscar(id); if (!p) return -1;
+    if (p->info.estado!=NXK_PROCESO_LISTO && p->info.estado!=NXK_PROCESO_DORMIDO &&
+        p->info.estado!=NXK_PROCESO_ESPERANDO_MENSAJE) return -2;
+    limpiar_espera(p); memset(p->buzon,0,sizeof(p->buzon)); p->primero=0; p->info.mensajes=0;
+    p->info.estado=NXK_PROCESO_CANCELADO;
+    memset(&p->info.ultimo,0,sizeof(p->info.ultimo)); p->info.ultimo.salida=UINT32_MAX;
+    return 0;
+}
 static int ejecutar_uno(struct proceso *p) {
     if (p->info.estado!=NXK_PROCESO_LISTO) return -2;
+    if (p->recepcion_pendiente) {
+        if (p->info.mensajes) {
+            /* CR3 kernel: validar y copiar antes de consumir. El motor nunca
+             * recibe un buffer kernel ni una traduccion virtual prestada. */
+            int r=nxk_espacio_escribir(p->info.id,p->buffer_mensaje,&p->buzon[p->primero],sizeof(p->buzon[0]));
+            if (r) {
+                limpiar_espera(p); p->info.error_motor=(uint32_t)(-r);
+                p->info.estado=NXK_PROCESO_FALLIDO; return r;
+            }
+            retirar_mensaje(p); p->contexto[11]=0;
+        } else { p->contexto[11]=1; incrementar(&p->info.plazos); }
+        limpiar_espera(p);
+    }
     p->info.estado=NXK_PROCESO_EJECUTANDO; p->info.despertar=0; incrementar(&p->info.turnos);
     uint32_t cedido=0,despertar=0; struct nxk_usuario_resultado resultado;
     int r=nxk_usuario_reanudar_espacio(p->info.id,p->contexto,&resultado,&cedido,&despertar);
-    if (r) { p->info.error_motor=(uint32_t)(-r); p->info.estado=NXK_PROCESO_FALLIDO; return r; }
+    if (r) {
+        limpiar_espera(p); p->info.error_motor=(uint32_t)(-r);
+        p->info.estado=NXK_PROCESO_FALLIDO; return r;
+    }
     p->info.ultimo=resultado;
-    if (resultado.fallo) p->info.estado=NXK_PROCESO_FALLIDO;
+    if (resultado.fallo) { limpiar_espera(p); p->info.estado=NXK_PROCESO_FALLIDO; }
+    else if (cedido==NXK_USUARIO_MENSAJE) {
+        p->info.estado=NXK_PROCESO_ESPERANDO_MENSAJE; p->info.despertar=despertar;
+        incrementar(&p->info.esperas_mensaje);
+    }
     else if (cedido==NXK_USUARIO_DORMIR) {
         p->info.estado=NXK_PROCESO_DORMIDO; p->info.despertar=despertar;
         incrementar(&p->info.dormidas);
@@ -90,7 +177,7 @@ static int ejecutar_uno(struct proceso *p) {
         if (cedido==NXK_USUARIO_QUANTUM) incrementar(&p->info.preempciones);
         else incrementar(&p->info.cesiones);
     }
-    else p->info.estado=NXK_PROCESO_TERMINADO;
+    else { limpiar_espera(p); p->info.estado=NXK_PROCESO_TERMINADO; }
     return 0;
 }
 int nxk_proceso_paso(uint32_t id) {
@@ -107,7 +194,8 @@ int nxk_procesos_ejecutar(uint32_t presupuesto) {
         unsigned elegida=NXK_ESPACIOS_MAX,esperando=0;
         for (unsigned n=0;n<NXK_ESPACIOS_MAX;++n) {
             unsigned i=(cursor+n)%NXK_ESPACIOS_MAX; depurar(i);
-            if (procesos[i].info.estado==NXK_PROCESO_DORMIDO) ++esperando;
+            if (procesos[i].info.estado==NXK_PROCESO_DORMIDO ||
+                procesos[i].info.estado==NXK_PROCESO_ESPERANDO_MENSAJE) ++esperando;
             if (procesos[i].info.estado==NXK_PROCESO_LISTO) { elegida=i; break; }
         }
         if (elegida==NXK_ESPACIOS_MAX) { r=esperando ? 2 : 0; break; }
@@ -195,7 +283,38 @@ int nxk_procesos_probar(void) {
         nxk_procesos_ejecutar(8) || nxk_proceso_consultar(ids[0],&info) ||
         info.estado!=NXK_PROCESO_FALLIDO || !info.ultimo.fallo || info.ultimo.vector!=6 ||
         nxk_proceso_consultar(ids[1],&info) || info.estado!=NXK_PROCESO_TERMINADO ||
-        info.ultimo.salida!=42 || nxk_proceso_liberar(ids[0]) || nxk_proceso_liberar(ids[1])) return 10;
+        info.ultimo.salida!=42 || nxk_proceso_enviar(ids[0],1)!=-3 ||
+        nxk_proceso_enviar(ids[1],1)!=-3 || nxk_proceso_cancelar(ids[0])!=-2 ||
+        nxk_proceso_cancelar(ids[1])!=-2 ||
+        nxk_proceso_liberar(ids[0]) || nxk_proceso_liberar(ids[1])) return 10;
+    /* El envio kernel no inventa identidad de usuario. Cola llena y API
+     * interna fuera de un turno conservan el contenido y la salida. */
+    if (nxk_proceso_crear(salir,sizeof(salir),&ids[0])) return 14;
+    struct nxk_proceso_mensaje mensaje={0xdeadbeefu,0xcafebabeu};
+    if (nxk_proceso_enviar(0,1)!=-1 || nxk_proceso_enviar_desde(ids[0],ids[0],1)!=-1 ||
+        nxk_proceso_recibir_actual(ids[0],&mensaje)!=-1 ||
+        mensaje.origen!=0xdeadbeefu || mensaje.valor!=0xcafebabeu ||
+        nxk_proceso_preparar_espera(ids[0],NXK_ESPACIO_PILA)!=-1) return 15;
+    for (unsigned i=0;i<NXK_PROCESO_BUZON_MAX;++i)
+        if (nxk_proceso_enviar(ids[0],i)) return 16;
+    if (nxk_proceso_enviar(ids[0],4)!=-2 || nxk_proceso_consultar(ids[0],&info) ||
+        info.mensajes!=4 || info.enviados || info.recibidos || info.esperas_mensaje || info.plazos ||
+        nxk_proceso_cancelar(ids[0]) || !nxk_proceso_gestionado(ids[0]) ||
+        nxk_proceso_consultar(ids[0],&info) || info.estado!=NXK_PROCESO_CANCELADO ||
+        info.mensajes || info.despertar || info.ultimo.fallo || info.ultimo.salida!=UINT32_MAX ||
+        info.turnos || nxk_proceso_paso(ids[0])!=-2 || nxk_proceso_cancelar(ids[0])!=-2 ||
+        nxk_proceso_enviar(ids[0],1)!=-3 || nxk_procesos_ejecutar(1) ||
+        nxk_proceso_liberar(ids[0]) || nxk_proceso_enviar(ids[0],1)!=-1 ||
+        nxk_proceso_cancelar(ids[0])!=-1 || nxk_paginas_libres()!=libres) return 17;
+    /* Cancelar tambien retira un plazo de dormir sin liberar sus paginas ni
+     * convertir el dormido en listo. No puede reanudar por una ronda posterior. */
+    static const unsigned char dormir[]={0xbb,0xff,0xff,0xff,0x7f,0xb8,10,0,0,0,0xcd,0x81,0xcd,0x80};
+    if (nxk_proceso_crear(dormir,sizeof(dormir),&ids[0]) || nxk_proceso_paso(ids[0]) ||
+        nxk_proceso_consultar(ids[0],&info) || info.estado!=NXK_PROCESO_DORMIDO || info.dormidas!=1 ||
+        nxk_proceso_cancelar(ids[0]) || nxk_proceso_consultar(ids[0],&info) ||
+        info.estado!=NXK_PROCESO_CANCELADO || info.despertar || info.turnos!=1 ||
+        nxk_paginas_libres()!=libres-5 || nxk_procesos_ejecutar(4) ||
+        nxk_proceso_liberar(ids[0]) || nxk_paginas_libres()!=libres) return 18;
     if (nxk_procesos_demo()) return 11;
     size_t heap=nxk_heap_used();
     if (nxk_procesos_demo() || nxk_procesos_demo() || nxk_heap_used()!=heap || nxk_paginas_libres()!=libres) return 12;
@@ -208,6 +327,11 @@ int nxk_proceso_cargar_archivo(const char *n,uint32_t *id) { (void)n;(void)id;re
 int nxk_proceso_consultar(uint32_t id,struct nxk_proceso_info *s) { (void)id;(void)s;return -64; }
 int nxk_proceso_enumerar(unsigned i,struct nxk_proceso_info *s) { (void)i;(void)s;return -64; }
 int nxk_proceso_paso(uint32_t id) { (void)id;return -64; }
+int nxk_proceso_enviar(uint32_t id,uint32_t valor) { (void)id;(void)valor;return -64; }
+int nxk_proceso_enviar_desde(uint32_t o,uint32_t d,uint32_t v) { (void)o;(void)d;(void)v;return -64; }
+int nxk_proceso_recibir_actual(uint32_t id,struct nxk_proceso_mensaje *s) { (void)id;(void)s;return -64; }
+int nxk_proceso_preparar_espera(uint32_t id,uint32_t b) { (void)id;(void)b;return -64; }
+int nxk_proceso_cancelar(uint32_t id) { (void)id;return -64; }
 int nxk_procesos_ejecutar(uint32_t n) { (void)n;return -64; }
 int nxk_proceso_liberar(uint32_t id) { (void)id;return -64; }
 int nxk_proceso_gestionado(uint32_t id) { (void)id;return 0; }

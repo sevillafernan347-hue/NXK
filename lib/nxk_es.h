@@ -18,6 +18,12 @@ void nxk_es_numero(uint32_t valor);
 void nxk_es_ceder(void);
 /* Espera cooperativa en ticks, 0 equivale a ceder; limite validado por kernel. */
 void nxk_es_dormir(uint32_t ticks);
+/* Mensajes de procesos CPL3: FIFO acotada; un error al enviar detiene la app. */
+void nxk_es_enviar_mensaje(uint32_t destino,uint32_t valor);
+/* 0 entrega origen/valor, 1 vacio o plazo vencido conserva ambas salidas.
+ * El plazo maximo es 0x7fffffff ticks; cero consulta sin bloquear. */
+uint32_t nxk_es_recibir_mensaje(uint32_t *origen,uint32_t *valor,uint32_t ticks);
+uint32_t nxk_es_proceso_actual(void);
 uint32_t nxk_es_memoria_usada(void);
 uint32_t nxk_es_dividir(uint32_t a, uint32_t b);
 uint32_t nxk_es_resto(uint32_t a, uint32_t b);

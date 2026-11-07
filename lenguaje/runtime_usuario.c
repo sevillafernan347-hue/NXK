@@ -28,6 +28,29 @@ void nxk_es_dormir(uint32_t ticks) {
     __asm__ volatile("int $0x81":"+a"(r):"b"(ticks):"memory","cc");
     if (r) nxk_es_fallo(0);
 }
+/* Servicios11..13 son exclusivos del gestor de procesos. El kernel registra
+ * el emisor real, comprueba el destino y limita cada cola a cuatro mensajes. */
+void nxk_es_enviar_mensaje(uint32_t destino,uint32_t valor) {
+    uint32_t r=11;
+    __asm__ volatile("int $0x81":"+a"(r):"b"(destino),"c"(valor):"memory","cc");
+    if (r) nxk_es_fallo(0);
+}
+uint32_t nxk_es_recibir_mensaje(uint32_t *origen,uint32_t *valor,uint32_t ticks) {
+    uint32_t r=12, mensaje[2];
+    if (ticks>UINT32_C(0x7fffffff)) nxk_es_fallo(0);
+    /* El registro temporal esta en la pila privada. Solo publicamos salidas
+     * despues de que el kernel confirme una entrega completa de ocho bytes. */
+    __asm__ volatile("int $0x81":"+a"(r):"b"(mensaje),"d"(ticks):"memory","cc");
+    if (!r) { *origen=mensaje[0]; *valor=mensaje[1]; }
+    else if (r!=1) nxk_es_fallo(0);
+    return r;
+}
+uint32_t nxk_es_proceso_actual(void) {
+    uint32_t r=13;
+    __asm__ volatile("int $0x81":"+a"(r)::"memory","cc");
+    if (!r || r>=UINT32_C(0xfffffffe)) nxk_es_fallo(0);
+    return r;
+}
 void nxk_es_mostrar(const char *t) {
     uint32_t n=0; while (n<256 && t[n]) ++n;
     if (n==256 || escribir(t,n)!=n || escribir("\n",1)!=1) nxk_es_fallo(0);
