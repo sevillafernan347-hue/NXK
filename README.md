@@ -1,6 +1,6 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.18**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.19**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
 
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
@@ -181,3 +181,8 @@ del codigo propio. Las dependencias conservan sus licencias originales.
 
 `proceso resumen` muestra estados y mensajes sin modificar procesos ni plazos.
 Consulta [el contrato](ENTREGA-RESUMEN-PROCESOS.md).
+
+Desde v0.0.19 los procesos pueden renunciar a permisos de salida, archivos e
+IPC con `restringir_permisos mascara`; `permisos_actuales()` consulta la mascara.
+La consola ofrece `proceso permisos ID MASCARA`; solo puede quitar bits.
+Consulta [permisos, ejemplos y alcance](ENTREGA-PERMISOS-PROCESOS.md).

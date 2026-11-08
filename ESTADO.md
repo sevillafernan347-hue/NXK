@@ -1,7 +1,7 @@
 # Estado de NXK
 
-Version actual: 0.0.18. Cuatro procesos CPL3 con memoria privada, preempcion,
-espera temporal, mensajes FIFO, envio con plazo, resultados y cancelacion.
+Version actual: 0.0.19. Cuatro procesos CPL3 con memoria privada, preempcion,
+espera temporal, mensajes FIFO, envio con plazo, resultados y permisos por operacion.
 Guia actual y pruebas en ENTREGA-DEPENDENCIAS-PROCESOS.md;
 siguientes hitos en PENDIENTES-KERNEL.md.
 
@@ -454,3 +454,18 @@ Matriz x86 32/64/128/1024MiB y regresion x64 superadas. Prueba externa de
 estados mixtos, cola, referencias, plazos sin refrescar, memoria/historial
 estables e IDs antiguos superada; tambien regresion completa de dependencias.
 Imagen normal69644B/pruebas102412B. Ver ENTREGA-RESUMEN-PROCESOS.md.
+
+NXK v0.0.19: permisos por operacion en PCB, defaults15, reduccion monotona y
+mascara0 valida. Bits salida1/lectura2/modificacion4/envio8; servicios1..8
+comprueban antes de copiar o alterar archivos. Copia exige lectura+modificacion.
+IPC11/14 y despacho pendiente retornan-5 si falta permiso; revocacion despierta
+sin enviar ni formar dependencia bloqueante. Cancelar conserva mascara;
+nuevoID vuelve15. INT81/16..17 y NEXTRY restringir_permisos/permisos_actuales().
+Consola proceso permisos ID MASCARA y mascara en listar; ejemplo comentado.
+56pruebas compilador, matriz x86 32/64/128/1024MiB y x64 64MiB superadas.
+Pruebas negativas de FS/salida/IPC sin efectos, consulta0, subconjuntos,
+escalacion rechazada, revocacion en espera, ciclos, IDs y ejemplo real superadas.
+Regresiones resumen/dependencias/IPC/22NXE2 superadas. Memoria y discos estables.
+Imagen normal73740B/pruebas102412B. Sin ACL por archivo, usuarios ni proteccion
+de rutas antiguas no gestionadas; puente C y una CPU. ASUS fisica pendiente.
+Ver ENTREGA-PERMISOS-PROCESOS.md.

@@ -3,6 +3,23 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.19
+
+- Cuatro permisos por proceso: salida, leer archivos, modificarlos y enviar
+  mensajes. Defaults15 conserva apps anteriores; solo se pueden quitar bits.
+- Consulta y reduccion en INT81/16..17, consola proceso permisos ID MASCARA.
+  Mascara0 e idempotencia validas; escalacion, bits desconocidos e IDs viejos
+  rechazados. Cancelar conserva mascara; nueva generacion empieza15.
+- Servicios de archivos/salida comprueban permiso antes de copiar o modificar;
+  copiar exige lectura+modificacion. IPC inmediato y pendiente valida permiso.
+- Revocar un envio suspendido lo despierta sin entregar ni formar ciclos falsos.
+- NEXTRY restringir_permisos y permisos_actuales(), ejemplo real y editor.
+- 56 pruebas compilador; matriz x86 32/64/128/1024 MiB y regresion x64 superadas.
+  Pruebas de denegacion sin efectos, subconjuntos, revocacion, IDs y memoria.
+- Regresiones resumen, dependencias, IPC y22NXE2 superadas; discos intactos.
+- Permisos por operacion, sin usuarios/ACL por archivo ni proteccion de rutas
+  antiguas sin PCB. Detalle: ENTREGA-PERMISOS-PROCESOS.md.
+
 ## v0.0.18
 
 - API y comando proceso resumen: estados almacenados, pendientes/finalizados,

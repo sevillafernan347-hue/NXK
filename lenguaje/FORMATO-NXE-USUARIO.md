@@ -88,3 +88,9 @@ INT81/EAX15 espera fin: EBXdestino ECXbuffer8{estado,codigo} EDXticks.
 Ambos retornan 0 exito o 1 consulta/plazo; negativos son errores; solo ruta proceso.
 Buffer15 en pila privada; ticks0..7fffffff. La ABI1 y cabecera no cambian.
 INT80 ya acepta el codigo de finalizar NEXTRY. Ver entrega de dependencias.
+
+Desde v0.0.19 INT81/EAX16 EBXmascara reduce permisos del proceso actual:
+0exito,-1contrato,-5recuperacion prohibida. EAX17 retorna mascara0..15.
+Operacion denegada de FS/salida/IPC retorna-5. Defaults15; solo quitarbits.
+La ABI1 y cabecera no cambian. Rutas antiguas sin PCB mantienen su contrato.
+Consulta ENTREGA-PERMISOS-PROCESOS.md para limites y comprobaciones.

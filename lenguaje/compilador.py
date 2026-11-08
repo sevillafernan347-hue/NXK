@@ -32,7 +32,7 @@ PALABRAS = set('funcion fin variable constante si sino mientras repetir veces '
                'mostrar numero llamar volver detener ceder dormir afirmar leer_puerto '
                'escribir_puerto verdadero falso y o no y_bits o_bits xor_bits '
                'memoria_usada proceso_actual enviar_mensaje recibir_mensaje '
-               'enviar_esperando esperar_proceso finalizar '
+               'enviar_esperando esperar_proceso finalizar restringir_permisos permisos_actuales '
                'romper continuar entero logico texto guardar_archivo mostrar_archivo borrar_archivo agregar_archivo renombrar_archivo copiar_archivo'.split())
 ALIAS = {'función': 'funcion', 'número': 'numero'}
 PATRON = re.compile(
@@ -123,7 +123,7 @@ class Analizador:
             izq = ('logico', t, t.tipo == 'verdadero')
         elif t.tipo == 'NOMBRE':
             izq = ('nombre', t, t.texto)
-        elif t.tipo in ('memoria_usada', 'proceso_actual'):
+        elif t.tipo in ('memoria_usada', 'proceso_actual', 'permisos_actuales'):
             self.tomar('('); self.tomar(')')
             izq = (t.tipo, t)
         elif t.texto == '(':
@@ -161,7 +161,7 @@ class Analizador:
                 salida.append((k,t,nombre,self.expresion())); self.linea()
             elif k in ('mostrar_archivo','borrar_archivo'):
                 salida.append((k,t,self.expresion())); self.linea()
-            elif k in ('mostrar', 'numero', 'dormir', 'finalizar', 'afirmar'):
+            elif k in ('mostrar', 'numero', 'dormir', 'finalizar', 'restringir_permisos', 'afirmar'):
                 salida.append((k, t, self.expresion())); self.linea()
             elif k in ('volver', 'detener', 'ceder', 'romper', 'continuar'):
                 salida.append((k, t)); self.linea()
@@ -262,7 +262,7 @@ class Generador:
         if k == 'logico': return 'logico', '1' if e[2] else '0'
         if k == 'nombre':
             tipo, nombre, _ = self.buscar(t); return tipo, nombre
-        if k in ('memoria_usada', 'proceso_actual'): return 'entero', f'nxk_es_{k}()'
+        if k in ('memoria_usada', 'proceso_actual', 'permisos_actuales'): return 'entero', f'nxk_es_{k}()'
         if k == 'unario':
             tipo, a = self.expresion(e[2])
             self.tipo(t, tipo, 'logico' if t.tipo == 'no' else 'entero')
@@ -314,9 +314,9 @@ class Generador:
                     tipo,datos=self.expresion(s[3]); self.tipo(t,tipo,'texto')
                     poner(f'nxk_es_{k}({nombre}, {datos});')
                 else: poner(f'nxk_es_{k}({nombre});')
-            elif k in ('mostrar', 'numero', 'dormir', 'finalizar', 'afirmar'):
+            elif k in ('mostrar', 'numero', 'dormir', 'finalizar', 'restringir_permisos', 'afirmar'):
                 tipo, valor = self.expresion(s[2])
-                esperado = {'mostrar': 'texto', 'numero': 'entero', 'dormir': 'entero', 'finalizar': 'entero', 'afirmar': 'logico'}[k]
+                esperado = {'mostrar': 'texto', 'numero': 'entero', 'dormir': 'entero', 'finalizar': 'entero', 'restringir_permisos': 'entero', 'afirmar': 'logico'}[k]
                 self.tipo(t, tipo, esperado)
                 if k == 'afirmar': poner(f'if (!({valor})) nxk_es_fallo(UINT32_C({t.linea}));')
                 else: poner(f'nxk_es_{k}({valor});')

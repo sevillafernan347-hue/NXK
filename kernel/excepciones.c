@@ -162,6 +162,19 @@ static void usuario_servicio(uint32_t *c) {
     uint32_t servicio=c[11], p=c[8], n=c[10];
     c[11]=0xffffffffu;
     if (!usuario_activo || (c[13]&3)!=3) return;
+    /* Permisos por proceso antes de leer nombres, copiar buffers o modificar
+     * archivos. Las rutas antiguas sin PCB conservan su contrato anterior. */
+    uint32_t requerido=0;
+    if (servicio==1) requerido=NXK_PERM_SALIDA;
+    else if (servicio==3 || servicio==5) requerido=NXK_PERM_LEER_ARCHIVOS;
+    else if (servicio==8) requerido=NXK_PERM_LEER_ARCHIVOS|NXK_PERM_MODIFICAR_ARCHIVOS;
+    else if (servicio==2 || servicio==4 || servicio==6 || servicio==7) requerido=NXK_PERM_MODIFICAR_ARCHIVOS;
+    if (contexto_reanudable && requerido) {
+        uint32_t permisos;
+        if (nxk_proceso_permisos(usuario_id_activo,&permisos) || (permisos&requerido)!=requerido) {
+            c[11]=(uint32_t)-5; return;
+        }
+    }
     char datos[256];
     /* Solo los procesos reanudables habilitan la cesion; ABI anterior rechaza9. */
     if (servicio==9 && contexto_reanudable) {
@@ -199,6 +212,14 @@ static void usuario_servicio(uint32_t *c) {
         nxk_usuario_cs_guardado=c[13]; nxk_usuario_abortar(0);
     }
     if (servicio==13 && contexto_reanudable) { c[11]=usuario_id_activo; return; }
+    if (servicio==16 && contexto_reanudable) {
+        c[11]=(uint32_t)nxk_proceso_restringir_actual(usuario_id_activo,p); return;
+    }
+    if (servicio==17 && contexto_reanudable) {
+        uint32_t permisos;
+        if (!nxk_proceso_permisos(usuario_id_activo,&permisos)) c[11]=permisos;
+        return;
+    }
     if ((servicio==14 || servicio==15) && contexto_reanudable) {
         uint32_t espera=c[9];
         if (espera>0x7fffffffu || (servicio==15 && !usuario_rango(n,8,1))) return;

@@ -56,7 +56,8 @@ def main():
     vacio = (4, 0, 0, 0, 0, 0, 0, 0, 0, 0)
     try:
         m.esperar(0)
-        m.comando('version', b'0.0.18')
+        version = re.search(rb'#define NXK_VERSION "([^"]+)"', (RAIZ/'lib/version.h').read_bytes())[1]
+        m.comando('version', version)
         m.comando('help', b'proceso resumen')
         comprobar(m, vacio)
         m.comando('volumen montar', b'Volumen NXFS montado')

@@ -63,3 +63,8 @@ uint32_t nxk_es_esperar_proceso(uint32_t destino,uint32_t *estado,uint32_t *codi
     (void)destino; (void)estado; (void)codigo; (void)ticks; nxk_es_fallo(0);
 }
 _Noreturn void nxk_es_finalizar(uint32_t codigo) { (void)codigo; nxk_es_fallo(0); }
+
+/* NXE1 se ejecuta en ring0 y no ofrece permisos por proceso. No presentar
+ * una reduccion ficticia como si protegiera archivos o llamadas del kernel. */
+void nxk_es_restringir_permisos(uint32_t mascara) { (void)mascara; nxk_es_fallo(0); }
+uint32_t nxk_es_permisos_actuales(void) { nxk_es_fallo(0); }

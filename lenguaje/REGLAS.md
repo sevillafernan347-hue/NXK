@@ -281,3 +281,15 @@ sigue terminando con0. En kernel NEXTRY requiere una tarea actual; NXE1
 rechaza finalizar por carecer de retorno no local con codigo.
 Ejemplos: proceso_productor.nxf, proceso_consumidor.nxf y proceso_observador.nxf.
 Guia completa: ENTREGA-DEPENDENCIAS-PROCESOS.md.
+
+## Permisos de procesos (v0.0.19)
+
+`permisos_actuales()` es una expresion entero sin argumentos: retorna mascara
+0..15 del PCB actual. `restringir_permisos expresion_entera` retira bits de esa
+mascara. Solo se permite un subconjunto de los permisos actuales; intentar
+recuperarlos o usar bits desconocidos produce error del runtime. Mascara0 es
+valida. Bits1salida,2leer_archivos,4modificar_archivos,8enviar_mensajes.
+Las operaciones prohibidas fallan antes de producir efectos; copiar requiere
+lectura y modificacion. Recibir, dormir, esperar resultados y finalizar siguen
+disponibles. Solo procesos gestionados: NXE1 y puente kernel fallan explicitamente.
+Ejemplo real: ejemplos/proceso_permisos.nxf; contrato en ENTREGA-PERMISOS-PROCESOS.md.

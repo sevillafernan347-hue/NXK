@@ -10,6 +10,11 @@ enum nxk_proceso_estado { NXK_PROCESO_LIBRE, NXK_PROCESO_LISTO,
     NXK_PROCESO_ESPERANDO_ENVIO, NXK_PROCESO_ESPERANDO_FIN };
 #define NXK_PROCESO_ESTADOS (NXK_PROCESO_ESPERANDO_FIN+1u)
 #define NXK_PROCESO_BUZON_MAX 4u
+enum nxk_proceso_permiso {
+    NXK_PERM_SALIDA=1u, NXK_PERM_LEER_ARCHIVOS=2u,
+    NXK_PERM_MODIFICAR_ARCHIVOS=4u, NXK_PERM_ENVIAR_MENSAJES=8u,
+    NXK_PERMISOS_TODOS=15u
+};
 struct nxk_proceso_mensaje { uint32_t origen,valor; };
 struct nxk_proceso_resultado { uint32_t estado,codigo; };
 struct nxk_proceso_info {
@@ -18,7 +23,17 @@ struct nxk_proceso_info {
     uint32_t mensajes,enviados,recibidos,esperas_mensaje,plazos;
     uint32_t esperando,esperas_envio,esperas_fin,ciclos;
     struct nxk_usuario_resultado ultimo;
+    uint32_t permisos;
 };
+/* Mascara propia de cada generacion, inicialmente TODOS. Consultar no resuelve
+ * plazos; -1 ID/buffer/metadatos invalidos, salida intacta al rechazar.
+ * La reduccion solo quita bits: 0 exito, -1 mascara/ID, -2 terminal,
+ * -3 contexto kernel no permitido, -5 intento de recuperar permisos.
+ * Variante actual reservada a INT81: solo el proceso EJECUTANDO con gestor
+ * ocupado; no habilita privilegios nuevos ni actua sobre otro emisor. */
+int nxk_proceso_permisos(uint32_t id,uint32_t *salida);
+int nxk_proceso_restringir(uint32_t id,uint32_t mascara);
+int nxk_proceso_restringir_actual(uint32_t id,uint32_t mascara);
 struct nxk_procesos_resumen {
     uint32_t registrados,pendientes,finalizados,estados[NXK_PROCESO_ESTADOS];
     uint32_t mensajes,referencias_fin;
@@ -44,13 +59,15 @@ int nxk_proceso_paso(uint32_t id);
 int nxk_proceso_enviar(uint32_t destino,uint32_t valor);
 /* Puentes internos de INT81: origen/id debe ser el proceso en EJECUTANDO y
  * el gestor debe estar ocupado. Un error no consume ni modifica salida.
+ * Enviar exige ENVIAR_MENSAJES; -5 si se ha revocado.
  * Recibir: -2 vacio, -1 contrato. Preparar conserva el buffer virtual hasta
  * reanudar; el gestor entrega {origen,valor} antes de retirar de la cola. */
 int nxk_proceso_enviar_desde(uint32_t origen,uint32_t destino,uint32_t valor);
 int nxk_proceso_recibir_actual(uint32_t id,struct nxk_proceso_mensaje *salida);
 int nxk_proceso_preparar_espera(uint32_t id,uint32_t buffer_virtual);
 /* Puentes INT81/14..15: solo proceso actual. 0 exito, 1 consulta/plazo,
- * 2 preparar suspension, -1 contrato/ID, -3 envio a terminal, -4 ciclo.
+ * 2 preparar suspension, -1 contrato/ID, -3 envio a terminal, -4 ciclo,
+ * -5 envio sin permiso (tambien si se revoca durante la espera).
  * El motor guarda marco y plazo absoluto despues de un retorno2. No reservar
  * sitio en la cola al esperar; el siguiente despacho vuelve a comprobarlo. */
 int nxk_proceso_enviar_esperando_actual(uint32_t id,uint32_t destino,uint32_t valor,uint32_t ticks);

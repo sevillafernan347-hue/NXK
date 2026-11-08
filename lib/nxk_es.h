@@ -24,6 +24,10 @@ void nxk_es_enviar_mensaje(uint32_t destino,uint32_t valor);
  * El plazo maximo es 0x7fffffff ticks; cero consulta sin bloquear. */
 uint32_t nxk_es_recibir_mensaje(uint32_t *origen,uint32_t *valor,uint32_t ticks);
 uint32_t nxk_es_proceso_actual(void);
+/* Mascara de proceso: salida1, leer archivos2, modificar archivos4, enviar8.
+ * Solo se pueden retirar bits; nunca recuperarlos durante la misma vida. */
+void nxk_es_restringir_permisos(uint32_t mascara);
+uint32_t nxk_es_permisos_actuales(void);
 /* 0 enviado, 1 plazo/cola llena; errores de ID, destino o ciclo detienen la app. */
 uint32_t nxk_es_enviar_esperando(uint32_t destino,uint32_t valor,uint32_t ticks);
 /* 0 publica estado/codigo terminal; 1 conserva ambas salidas al vencer.

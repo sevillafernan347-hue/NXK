@@ -51,6 +51,21 @@ uint32_t nxk_es_proceso_actual(void) {
     if (!r || r>=UINT32_C(0xfffffffe)) nxk_es_fallo(0);
     return r;
 }
+/* Servicio16 reduce permisos del proceso actual; incluso la mascara0 es
+ * valida. No confundir un permiso denegado con una restriccion aplicada. */
+void nxk_es_restringir_permisos(uint32_t mascara) {
+    uint32_t r=16;
+    __asm__ volatile("int $0x81":"+a"(r):"b"(mascara):"memory","cc");
+    if (r) nxk_es_fallo(0);
+}
+uint32_t nxk_es_permisos_actuales(void) {
+    uint32_t r=17;
+    __asm__ volatile("int $0x81":"+a"(r)::"memory","cc");
+    /* Todos los cuatro bits, y ningun otro. Un servicio no disponible o un
+     * error negativo tampoco debe parecer una mascara de permisos valida. */
+    if (r&~UINT32_C(15)) nxk_es_fallo(0);
+    return r;
+}
 /* Enviar con plazo conserva el valor en el PCB si la cola esta llena.
  * Retornos negativos (incluido ciclo) no se confunden con vencimiento. */
 uint32_t nxk_es_enviar_esperando(uint32_t destino,uint32_t valor,uint32_t ticks) {

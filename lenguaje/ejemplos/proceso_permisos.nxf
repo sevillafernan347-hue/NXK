@@ -1,0 +1,16 @@
+# Compilar NXE2 y cargar por «proceso cargar» para usar permisos por proceso.
+# Bits: salida=1, leer archivos=2, modificar archivos=4, enviar mensajes=8.
+# El kernel concede15 al crear. Esta aplicacion retira escritura y envio.
+funcion inicio
+    afirmar permisos_actuales() == 15
+    restringir_permisos 3
+    afirmar permisos_actuales() == 3
+    # Repetir la misma restriccion es valido, pero recuperar bits se rechaza.
+    restringir_permisos permisos_actuales()
+    mostrar "Permisos: solo salida y lectura"
+    # Tambien puede retirar toda capacidad; consultar y finalizar siguen
+    # disponibles. No intentar mostrar texto despues de retirar salida.
+    restringir_permisos 0
+    afirmar permisos_actuales() == 0
+    finalizar 42
+fin
