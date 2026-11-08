@@ -1,6 +1,6 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.19**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.20**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
 
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de

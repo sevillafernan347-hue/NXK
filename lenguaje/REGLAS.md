@@ -293,3 +293,26 @@ Las operaciones prohibidas fallan antes de producir efectos; copiar requiere
 lectura y modificacion. Recibir, dormir, esperar resultados y finalizar siguen
 disponibles. Solo procesos gestionados: NXE1 y puente kernel fallan explicitamente.
 Ejemplo real: ejemplos/proceso_permisos.nxf; contrato en ENTREGA-PERMISOS-PROCESOS.md.
+
+## Paginas privadas de datos (v0.0.20)
+
+`reservar_pagina()` retorna un entero con la direccion de una pagina nueva de
+4096 bytes en cero, o cero si no hay memoria o ya se reservaron cuatro paginas.
+Cada proceso tiene su propio contenido aunque reciba las mismas direcciones
+virtuales. El rango inicial es 0x402000..0x405fff: cuatro paginas de 4096 bytes.
+`liberar_pagina(direccion)` retorna0 al liberar la pagina exacta, o0xffffffff
+si no estaba reservada o no es una direccion de inicio valida. El tipo entero
+es uint32 sin signo: comparar el estado con0xffffffff, no con un tipo negativo.
+
+`leer_entero(direccion)` lee una palabra uint32. La orden
+`escribir_entero direccion, valor` escribe una palabra uint32. Ambas exigen
+direcciones alineadas a cuatro bytes dentro del rango de datos. El runtime
+rechaza otros rangos o desalineaciones; acceder a una pagina sin reservar o
+ya liberada provoca un fallo CPL3 contenido. El programa debe conservar sus
+direcciones y no usar referencias despues de liberar. No hay seguimiento de
+punteros antiguos si se vuelve a reservar la misma direccion.
+
+Estas funciones requieren proceso gestionado (`proceso cargar`). El runtime
+NXE1 y el puente kernel fallan explicitamente; la cabecera y ABI NXE no cambian.
+La reserva no amplia la pagina de codigo ni la pila. Ejemplo comentado:
+`ejemplos/pagina_memoria.nxf`.

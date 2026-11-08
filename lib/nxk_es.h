@@ -28,6 +28,14 @@ uint32_t nxk_es_proceso_actual(void);
  * Solo se pueden retirar bits; nunca recuperarlos durante la misma vida. */
 void nxk_es_restringir_permisos(uint32_t mascara);
 uint32_t nxk_es_permisos_actuales(void);
+/* Paginas privadas de datos: hasta cuatro, 4096 bytes cada una, solo CPL3.
+ * Reserva devuelve direccion o0; liberar devuelve0 o UINT32_MAX.
+ * Leer/escribir enteros de32bits requiere direccion alineada dentro de datos.
+ * Una pagina no reservada produce fallo contenido en el proceso. */
+uint32_t nxk_es_reservar_pagina(void);
+uint32_t nxk_es_liberar_pagina(uint32_t direccion);
+uint32_t nxk_es_leer_entero(uint32_t direccion);
+void nxk_es_escribir_entero(uint32_t direccion,uint32_t valor);
 /* 0 enviado, 1 plazo/cola llena; errores de ID, destino o ciclo detienen la app. */
 uint32_t nxk_es_enviar_esperando(uint32_t destino,uint32_t valor,uint32_t ticks);
 /* 0 publica estado/codigo terminal; 1 conserva ambas salidas al vencer.

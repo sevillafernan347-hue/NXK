@@ -33,6 +33,7 @@ PALABRAS = set('funcion fin variable constante si sino mientras repetir veces '
                'escribir_puerto verdadero falso y o no y_bits o_bits xor_bits '
                'memoria_usada proceso_actual enviar_mensaje recibir_mensaje '
                'enviar_esperando esperar_proceso finalizar restringir_permisos permisos_actuales '
+               'reservar_pagina liberar_pagina leer_entero escribir_entero '
                'romper continuar entero logico texto guardar_archivo mostrar_archivo borrar_archivo agregar_archivo renombrar_archivo copiar_archivo'.split())
 ALIAS = {'función': 'funcion', 'número': 'numero'}
 PATRON = re.compile(
@@ -123,9 +124,12 @@ class Analizador:
             izq = ('logico', t, t.tipo == 'verdadero')
         elif t.tipo == 'NOMBRE':
             izq = ('nombre', t, t.texto)
-        elif t.tipo in ('memoria_usada', 'proceso_actual', 'permisos_actuales'):
+        elif t.tipo in ('memoria_usada', 'proceso_actual', 'permisos_actuales', 'reservar_pagina'):
             self.tomar('('); self.tomar(')')
             izq = (t.tipo, t)
+        elif t.tipo in ('liberar_pagina', 'leer_entero'):
+            self.tomar('('); direccion = self.expresion(); self.tomar(')')
+            izq = (t.tipo, t, direccion)
         elif t.texto == '(':
             izq = self.expresion(); self.tomar(')')
         elif t.tipo == 'no' or t.texto == '-':
@@ -173,6 +177,9 @@ class Analizador:
             elif k == 'escribir_puerto':
                 puerto = self.expresion(); self.tomar(',')
                 salida.append((k, t, puerto, self.expresion())); self.linea()
+            elif k == 'escribir_entero':
+                direccion = self.expresion(); self.tomar(',')
+                salida.append((k, t, direccion, self.expresion())); self.linea()
             elif k == 'enviar_mensaje':
                 destino = self.expresion(); self.tomar(',')
                 salida.append((k, t, destino, self.expresion())); self.linea()
@@ -262,7 +269,10 @@ class Generador:
         if k == 'logico': return 'logico', '1' if e[2] else '0'
         if k == 'nombre':
             tipo, nombre, _ = self.buscar(t); return tipo, nombre
-        if k in ('memoria_usada', 'proceso_actual', 'permisos_actuales'): return 'entero', f'nxk_es_{k}()'
+        if k in ('memoria_usada', 'proceso_actual', 'permisos_actuales', 'reservar_pagina'): return 'entero', f'nxk_es_{k}()'
+        if k in ('liberar_pagina', 'leer_entero'):
+            tipo, direccion = self.expresion(e[2]); self.tipo(t, tipo, 'entero')
+            return 'entero', f'nxk_es_{k}({direccion})'
         if k == 'unario':
             tipo, a = self.expresion(e[2])
             self.tipo(t, tipo, 'logico' if t.tipo == 'no' else 'entero')
@@ -342,6 +352,10 @@ class Generador:
                 pt, puerto = self.expresion(s[2]); vt, valor = self.expresion(s[3])
                 self.tipo(t, pt, 'entero'); self.tipo(t, vt, 'entero')
                 poner(f'nxk_es_escribir_puerto({puerto}, {valor});')
+            elif k == 'escribir_entero':
+                dt, direccion = self.expresion(s[2]); vt, valor = self.expresion(s[3])
+                self.tipo(t, dt, 'entero'); self.tipo(t, vt, 'entero')
+                poner(f'nxk_es_escribir_entero({direccion}, {valor});')
             elif k == 'enviar_mensaje':
                 dt, destino = self.expresion(s[2]); vt, valor = self.expresion(s[3])
                 self.tipo(t, dt, 'entero'); self.tipo(t, vt, 'entero')

@@ -66,6 +66,35 @@ uint32_t nxk_es_permisos_actuales(void) {
     if (r&~UINT32_C(15)) nxk_es_fallo(0);
     return r;
 }
+/* Servicios18/19 administran solo las paginas privadas del proceso actual.
+ * Cero de reserva y error de liberacion son resultados manejables por la app;
+ * un servicio ausente no debe confundirse con memoria agotada. */
+uint32_t nxk_es_reservar_pagina(void) {
+    uint32_t r=18;
+    __asm__ volatile("int $0x81":"+a"(r)::"memory","cc");
+    if (r && (r<UINT32_C(0x402000) || r>=UINT32_C(0x406000) || (r&4095u))) nxk_es_fallo(0);
+    return r;
+}
+uint32_t nxk_es_liberar_pagina(uint32_t direccion) {
+    uint32_t r=19;
+    __asm__ volatile("int $0x81":"+a"(r):"b"(direccion):"memory","cc");
+    if (r && r!=UINT32_MAX) nxk_es_fallo(0);
+    return r;
+}
+/* El acceso ocurre en CPL3, nunca mediante un puntero confiado al kernel.
+ * Se comprueba alineacion e intervalo completo. Si ya fue liberada, la CPU
+ * provoca fallo de pagina que termina solo esta aplicacion. */
+static void comprobar_entero(uint32_t direccion) {
+    if (direccion<UINT32_C(0x402000) || direccion>UINT32_C(0x405ffc) || (direccion&3u)) nxk_es_fallo(0);
+}
+uint32_t nxk_es_leer_entero(uint32_t direccion) {
+    comprobar_entero(direccion);
+    return *(volatile const uint32_t *)(uintptr_t)direccion;
+}
+void nxk_es_escribir_entero(uint32_t direccion,uint32_t valor) {
+    comprobar_entero(direccion);
+    *(volatile uint32_t *)(uintptr_t)direccion=valor;
+}
 /* Enviar con plazo conserva el valor en el PCB si la cola esta llena.
  * Retornos negativos (incluido ciclo) no se confunden con vencimiento. */
 uint32_t nxk_es_enviar_esperando(uint32_t destino,uint32_t valor,uint32_t ticks) {

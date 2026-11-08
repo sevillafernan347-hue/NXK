@@ -220,6 +220,18 @@ static void usuario_servicio(uint32_t *c) {
         if (!nxk_proceso_permisos(usuario_id_activo,&permisos)) c[11]=permisos;
         return;
     }
+    /* Reserva acotada al espacio que ejecuta: nunca acepta un ID de la app.
+     * El cupo evita que un proceso consuma todas las paginas del sistema.
+     * Los buffers de servicios anteriores conservan codigo/pila como rango. */
+    if (servicio==18 && contexto_reanudable) {
+        uint32_t direccion;
+        c[11]=nxk_espacio_reservar_pagina(usuario_id_activo,&direccion) ? 0 : direccion;
+        return;
+    }
+    if (servicio==19 && contexto_reanudable) {
+        c[11]=nxk_espacio_liberar_pagina(usuario_id_activo,p) ? UINT32_MAX : 0;
+        return;
+    }
     if ((servicio==14 || servicio==15) && contexto_reanudable) {
         uint32_t espera=c[9];
         if (espera>0x7fffffffu || (servicio==15 && !usuario_rango(n,8,1))) return;

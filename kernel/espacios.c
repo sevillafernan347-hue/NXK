@@ -1,7 +1,7 @@
-/* Cuatro directorios privados sin consumir heap. Cada espacio posee cinco
- * paginas fisicas contiguas: PD/PT0/PT1/codigo/pila. Nunca liberar un CR3 activo.
- * Solo las dos paginas virtuales 400000/401000 reciben permiso de usuario.
- * Sin NX (paging x86 no PAE), SMP, concurrencia ni recursos de proceso. */
+/* Cuatro directorios privados sin consumir heap. Cinco paginas contiguas por
+ * espacio: PD/PT0/PT1/codigo/pila, mas hasta cuatro paginas de datos opcionales.
+ * Nunca liberar un CR3 activo. Solo codigo, pila y datos propios son usuario.
+ * Sin NX (paging x86 no PAE), SMP ni concurrencia en el asignador fisico. */
 #include "espacios.h"
 #include "paginas.h"
 #include "tareas.h"
@@ -9,7 +9,7 @@
 #include "procesos.h"
 #if defined(__i386__)
 #define KERNEL_CR3 0x200000u
-struct espacio { uint32_t generacion,id,base; };
+struct espacio { uint32_t generacion,id,base,datos[NXK_ESPACIO_DATOS_MAX]; };
 static struct espacio espacios[NXK_ESPACIOS_MAX];
 static uint32_t cr3(void) { uint32_t n; __asm__ volatile("mov %%cr3,%0":"=r"(n)); return n; }
 static int paginado(void) { uint32_t n; __asm__ volatile("mov %%cr0,%0":"=r"(n)); return (n&0x80000000u)!=0; }
@@ -34,6 +34,8 @@ static void preparar(struct espacio *e) {
     for (unsigned i=0;i<1024;++i) { d[i]&=~4u; baja[i]&=~4u; alta[i]&=~4u; }
     d[0]=(e->base+4096)|3u; d[1]=(e->base+8192)|7u;
     alta[0]=(e->base+12288)|5u; alta[1]=(e->base+16384)|7u;
+    for (unsigned i=0;i<NXK_ESPACIO_DATOS_MAX;++i)
+        if (e->datos[i]) alta[2+i]=e->datos[i]|7u;
 }
 int nxk_espacio_crear(const void *codigo,size_t n,uint32_t *id) {
     if (!codigo || !n || n>4096 || !id) return -1;
@@ -48,24 +50,67 @@ int nxk_espacio_crear(const void *codigo,size_t n,uint32_t *id) {
 }
 int nxk_espacio_consultar(uint32_t id,struct nxk_espacio_info *salida) {
     struct espacio *e=buscar(id); if (!e || !salida) return -1;
-    *salida=(struct nxk_espacio_info){e->id,e->base,e->base+12288,e->base+16384}; return 0;
+    uint32_t cantidad=0;
+    for (unsigned i=0;i<NXK_ESPACIO_DATOS_MAX;++i) cantidad+=!!e->datos[i];
+    *salida=(struct nxk_espacio_info){e->id,e->base,e->base+12288,e->base+16384,cantidad}; return 0;
 }
 int nxk_espacio_enumerar(unsigned slot,struct nxk_espacio_info *salida) {
     if (slot>=NXK_ESPACIOS_MAX || !salida) return -1;
     if (!espacios[slot].base) return -2;
     return nxk_espacio_consultar(espacios[slot].id,salida);
 }
+/* Cambiar una PTE del espacio propio tambien funciona durante INT81: el
+ * kernel conserva acceso supervisor al alias fisico. Otro CR3 privado no
+ * puede reservar ni liberar paginas de este ID. No toca el directorio kernel. */
+static int contexto_datos(const struct espacio *e) {
+    return contexto() && (cr3()==KERNEL_CR3 || cr3()==e->base);
+}
+static void actualizar_dato(struct espacio *e,unsigned i) {
+    uint32_t virtual=NXK_ESPACIO_DATOS+i*4096;
+    uint32_t *tabla=(void *)(uintptr_t)(e->base+8192);
+    /* Al liberar se restaura el mapa supervisor original de esta direccion. */
+    tabla[2+i]=e->datos[i] ? e->datos[i]|7u : ((uint32_t *)0x202000)[2+i]&~4u;
+    if (cr3()==e->base) __asm__ volatile("invlpg (%0)"::"r"(virtual):"memory");
+}
+int nxk_espacio_reservar_pagina(uint32_t id,uint32_t *direccion) {
+    struct espacio *e=buscar(id); if (!e || !direccion) return -1;
+    if (!contexto_datos(e)) return -3;
+    unsigned i;
+    for (i=0;i<NXK_ESPACIO_DATOS_MAX;++i) if (!e->datos[i]) break;
+    if (i==NXK_ESPACIO_DATOS_MAX) return -2;
+    void *pagina=nxk_pagina_reservar(); if (!pagina) return -4;
+    e->datos[i]=(uint32_t)(uintptr_t)pagina; actualizar_dato(e,i);
+    *direccion=NXK_ESPACIO_DATOS+i*4096; return 0;
+}
+int nxk_espacio_liberar_pagina(uint32_t id,uint32_t virtual) {
+    struct espacio *e=buscar(id);
+    if (!e || virtual<NXK_ESPACIO_DATOS || (virtual&4095u) ||
+        virtual>=NXK_ESPACIO_DATOS+NXK_ESPACIO_DATOS_MAX*4096) return -1;
+    unsigned i=(virtual-NXK_ESPACIO_DATOS)/4096;
+    if (!e->datos[i]) return -1;
+    if (!contexto_datos(e)) return -3;
+    if (nxk_pagina_liberar((void *)(uintptr_t)e->datos[i])) return -4;
+    e->datos[i]=0; actualizar_dato(e,i); return 0;
+}
 /* Restar despues de validar el inicio evita overflow de direccion+longitud.
- * Codigo y pila fisicos son contiguos en la reserva propia de cinco paginas. */
+ * Devuelve el alias fisico de la pagina propia; cero identifica un hueco. */
+static uint32_t respaldo(const struct espacio *e,uint32_t virtual) {
+    unsigned pagina=(virtual-NXK_ESPACIO_CODIGO)/4096;
+    return pagina<2 ? e->base+12288+pagina*4096 : e->datos[pagina-2];
+}
 static int copiar(uint32_t id,uint32_t virtual,void *buffer,size_t n,int escritura) {
     struct espacio *e=buscar(id); if (!e || (!buffer && n)) return -1;
     if (!contexto() || cr3()!=KERNEL_CR3) return -3;
     uint32_t minimo=escritura ? NXK_ESPACIO_PILA : NXK_ESPACIO_CODIGO;
-    uint32_t fin=NXK_ESPACIO_PILA+4096;
+    uint32_t fin=NXK_ESPACIO_DATOS+NXK_ESPACIO_DATOS_MAX*4096;
     if (virtual<minimo || virtual>fin || n>fin-virtual) return -2;
-    if (n) {
-        void *fisico=(void *)(uintptr_t)(e->base+12288+virtual-NXK_ESPACIO_CODIGO);
-        if (escritura) memmove(fisico,buffer,n); else memmove(buffer,fisico,n);
+    for (uint32_t p=virtual&~4095u;n && p<virtual+n;p+=4096)
+        if (!respaldo(e,p)) return -2;
+    while (n) {
+        size_t tramo=4096-(virtual&4095u); if (tramo>n) tramo=n;
+        void *fisico=(void *)(uintptr_t)(respaldo(e,virtual)+(virtual&4095u));
+        if (escritura) memmove(fisico,buffer,tramo); else memmove(buffer,fisico,tramo);
+        virtual+=(uint32_t)tramo; buffer=(unsigned char *)buffer+tramo; n-=tramo;
     }
     return 0;
 }
@@ -90,6 +135,10 @@ int nxk_espacio_destruir(uint32_t id) {
     /* Un observador conserva el resultado de este ID hasta consumirlo o
      * cancelar su espera, tambien si entra por la API antigua de espacios. */
     if (nxk_proceso_retenido(id)) return -5;
+    for (unsigned i=0;i<NXK_ESPACIO_DATOS_MAX;++i) if (e->datos[i]) {
+        if (nxk_pagina_liberar((void *)(uintptr_t)e->datos[i])) return -4;
+        e->datos[i]=0;
+    }
     if (nxk_paginas_liberar_bloque((void *)(uintptr_t)e->base,5)) return -4;
     e->base=0; e->id=0; return 0;
 }
@@ -152,6 +201,43 @@ static int probar_copias(uint32_t a,uint32_t b) {
     if (nxk_espacio_restaurar() || r!=-3 || w!=-3) return 5;
     return 0;
 }
+/* Prueba pequena de cuota, copia atomica y CR3 propio. La cobertura extensa
+ * usa NXE externos para conservar el limite de RAM de la imagen de pruebas. */
+static int probar_datos(uint32_t a,uint32_t b) {
+    uint32_t paginas[4]={0},otra=0,salida=0xdeadbeef,libres=nxk_paginas_libres();
+    uint32_t origen[2]={0x11223344,0x55667788},destino[2];
+    int fallo=1;
+    if (nxk_espacio_reservar_pagina(a,&paginas[0]) ||
+        nxk_espacio_reservar_pagina(b,&otra)) goto limpiar;
+    /* La reserva intercalada de b separa fisicamente las dos primeras de a. */
+    for (unsigned i=1;i<4;++i)
+        if (nxk_espacio_reservar_pagina(a,&paginas[i])) goto limpiar;
+    if (nxk_espacio_reservar_pagina(a,&salida)!=-2 || salida!=0xdeadbeef ||
+        nxk_paginas_libres()!=libres-5 ||
+        nxk_espacio_escribir(a,paginas[0]+4092,origen,8) ||
+        nxk_espacio_leer(a,paginas[0]+4092,destino,8) ||
+        destino[0]!=origen[0] || destino[1]!=origen[1] ||
+        nxk_espacio_liberar_pagina(a,paginas[1])) goto limpiar;
+    destino[0]=destino[1]=0xa5a5a5a5;
+    if (nxk_espacio_leer(a,paginas[0]+4092,destino,8)!=-2 ||
+        nxk_espacio_escribir(a,paginas[0]+4092,destino,8)!=-2 ||
+        destino[0]!=0xa5a5a5a5 || destino[1]!=0xa5a5a5a5 ||
+        nxk_espacio_leer(a,paginas[0]+4092,destino,4) || destino[0]!=origen[0] ||
+        nxk_espacio_activar(a) || nxk_espacio_liberar_pagina(b,otra)!=-3 ||
+        nxk_espacio_reservar_pagina(b,&salida)!=-3 ||
+        nxk_espacio_reservar_pagina(a,&salida) || salida!=paginas[1]) goto limpiar;
+    for (unsigned i=0;i<4096;++i)
+        if (((volatile unsigned char *)(uintptr_t)salida)[i]) goto limpiar;
+    fallo=0;
+limpiar:
+    if (nxk_espacio_restaurar()) return 1;
+    for (unsigned i=0;i<4;++i) if (paginas[i]) {
+        int r=nxk_espacio_liberar_pagina(a,paginas[i]); if (r && r!=-1) fallo=1;
+    }
+    if (otra && nxk_espacio_liberar_pagina(b,otra)) fallo=1;
+    if (nxk_paginas_libres()!=libres) fallo=1;
+    return fallo;
+}
 int nxk_espacios_probar(void) {
     uint32_t ids[NXK_ESPACIOS_MAX]={0}, salida=0xdeadbeef, libres=nxk_paginas_libres();
     size_t heap=nxk_heap_used(); unsigned char codigo=0xc3;
@@ -173,10 +259,17 @@ int nxk_espacios_probar(void) {
     }
     if (probar_guarda(ids[0])) return 14;
     if (probar_copias(ids[0],ids[1])) return 15;
+    if (probar_datos(ids[0],ids[1])) return 16;
     uint32_t viejo=ids[0];
+    /* Destruir debe recuperar reservas que el propietario no libero. */
+    if (nxk_espacio_reservar_pagina(ids[0],&salida) ||
+        nxk_espacio_reservar_pagina(ids[1],&salida)) return 17;
     for (unsigned i=0;i<NXK_ESPACIOS_MAX;++i) if (nxk_espacio_destruir(ids[i])) return 10;
     struct nxk_espacio_info info; memset(&info,0xa5,sizeof(info));
-    if (nxk_espacio_enumerar(0,&info)!=-2 || nxk_espacio_enumerar(NXK_ESPACIOS_MAX,&info)!=-1 ||
+    salida=0xdeadbeef;
+    if (nxk_espacio_reservar_pagina(viejo,&salida)!=-1 || salida!=0xdeadbeef ||
+        nxk_espacio_liberar_pagina(viejo,NXK_ESPACIO_DATOS)!=-1 ||
+        nxk_espacio_enumerar(0,&info)!=-2 || nxk_espacio_enumerar(NXK_ESPACIOS_MAX,&info)!=-1 ||
         nxk_espacio_enumerar(0,0)!=-1 || nxk_espacio_consultar(viejo,&info)!=-1 || nxk_espacio_activar(viejo)!=-1 || nxk_espacio_destruir(viejo)!=-1) return 11;
     for (unsigned i=0;i<sizeof(info);++i) if (((unsigned char *)&info)[i]!=0xa5) return 12;
     if (nxk_espacio_crear(&codigo,1,&ids[0]) || ids[0]==viejo || nxk_espacio_destruir(ids[0]) ||
@@ -188,6 +281,8 @@ int nxk_espacios_probar(void) {
 int nxk_espacio_crear(const void *c,size_t n,uint32_t *id) { (void)c;(void)n;(void)id;return -64; }
 int nxk_espacio_consultar(uint32_t id,struct nxk_espacio_info *s) { (void)id;(void)s;return -64; }
 int nxk_espacio_enumerar(unsigned i,struct nxk_espacio_info *s) { (void)i;(void)s;return -64; }
+int nxk_espacio_reservar_pagina(uint32_t id,uint32_t *v) { (void)id;(void)v;return -64; }
+int nxk_espacio_liberar_pagina(uint32_t id,uint32_t v) { (void)id;(void)v;return -64; }
 int nxk_espacio_leer(uint32_t id,uint32_t v,void *p,size_t n) { (void)id;(void)v;(void)p;(void)n;return -64; }
 int nxk_espacio_escribir(uint32_t id,uint32_t v,const void *p,size_t n) { (void)id;(void)v;(void)p;(void)n;return -64; }
 int nxk_espacio_activar(uint32_t id) { (void)id;return -64; }

@@ -3,6 +3,25 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.20
+
+- Hasta cuatro paginas privadas de datos por espacio, reservadas bajo demanda
+  y puestas en cero. Las mismas direcciones virtuales usan respaldos distintos.
+- INT81/18 reserva y19 libera para el proceso actual. Cupo4, direcciones
+  exactas y TLB actualizados; rutas antiguas sin PCB rechazan las extensiones.
+- Las paginas sobreviven a cesion/preempcion y se recuperan al liberar el
+  proceso, incluso tras fallo o cancelacion. Terminar conserva el diagnostico.
+- Copias kernel entre paginas fisicas no contiguas con validacion completa:
+  un hueco rechaza todo el rango sin copiar parcialmente.
+- NEXTRY reservar_pagina(), liberar_pagina(), leer_entero() y escribir_entero;
+  ejemplo comentado, editor y validacion de tipos/alineacion/rangos.
+- 64 pruebas compilador; matriz QEMU x86 32/64/128/1024 MiB y regresion x64
+  superadas. Aislamiento, limpieza, cupos, fallos contenidos y recursos estables.
+- Regresiones de permisos, resumen, dependencias, ejecucion privada y22 casos
+  NXE2 desde disco superadas; discos originales intactos.
+- Puentes C; datos limitados a16KiB, sin malloc por bytes ni NX. Los buffers
+  de archivos/mensajes siguen en codigo/pila. Detalle: ENTREGA-MEMORIA-PROCESOS.md.
+
 ## v0.0.19
 
 - Cuatro permisos por proceso: salida, leer archivos, modificarlos y enviar

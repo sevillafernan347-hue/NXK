@@ -94,3 +94,12 @@ Desde v0.0.19 INT81/EAX16 EBXmascara reduce permisos del proceso actual:
 Operacion denegada de FS/salida/IPC retorna-5. Defaults15; solo quitarbits.
 La ABI1 y cabecera no cambian. Rutas antiguas sin PCB mantienen su contrato.
 Consulta ENTREGA-PERMISOS-PROCESOS.md para limites y comprobaciones.
+
+Desde v0.0.20 INT81/EAX18 reserva una pagina privada de datos de4096bytes:
+retorna una direccion entre0x402000 y0x405000 alineada a4096, o0 si no hay
+cupo/memoria. Maximo cuatro paginas por espacio; inicialmente en cero.
+INT81/EAX19 libera EBX=direccion exacta de la pagina: EAX0 exito o-1 error.
+Solo procesos gestionados; legacy devuelve-2. Los otros registros se conservan.
+Los buffers de archivos y mensajes siguen limitados a codigo/pila; no se
+amplian a datos dinamicos en esta entrega. Cabecera y ABI1 sin cambios.
+Ver ENTREGA-MEMORIA-PROCESOS.md y ejemplo pagina_memoria.nxf.

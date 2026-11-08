@@ -68,3 +68,12 @@ _Noreturn void nxk_es_finalizar(uint32_t codigo) { (void)codigo; nxk_es_fallo(0)
  * una reduccion ficticia como si protegiera archivos o llamadas del kernel. */
 void nxk_es_restringir_permisos(uint32_t mascara) { (void)mascara; nxk_es_fallo(0); }
 uint32_t nxk_es_permisos_actuales(void) { nxk_es_fallo(0); }
+
+/* NXE1 no tiene paginas privadas de proceso. No acceder a estas direcciones
+ * desde ring0 ni simular que una reserva o liberacion tuvo exito. */
+uint32_t nxk_es_reservar_pagina(void) { nxk_es_fallo(0); }
+uint32_t nxk_es_liberar_pagina(uint32_t direccion) { (void)direccion; nxk_es_fallo(0); }
+uint32_t nxk_es_leer_entero(uint32_t direccion) { (void)direccion; nxk_es_fallo(0); }
+void nxk_es_escribir_entero(uint32_t direccion,uint32_t valor) {
+    (void)direccion; (void)valor; nxk_es_fallo(0);
+}

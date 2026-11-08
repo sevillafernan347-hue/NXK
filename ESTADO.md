@@ -1,8 +1,8 @@
 # Estado de NXK
 
-Version actual: 0.0.19. Cuatro procesos CPL3 con memoria privada, preempcion,
-espera temporal, mensajes FIFO, envio con plazo, resultados y permisos por operacion.
-Guia actual y pruebas en ENTREGA-DEPENDENCIAS-PROCESOS.md;
+Version actual: 0.0.20. Cuatro procesos CPL3 con memoria privada, preempcion,
+espera temporal, mensajes FIFO, resultados, permisos y paginas privadas bajo demanda.
+Guia actual y pruebas en ENTREGA-MEMORIA-PROCESOS.md;
 siguientes hitos en PENDIENTES-KERNEL.md.
 
 El registro siguiente conserva las etapas anteriores: cada entrada describe
@@ -469,3 +469,20 @@ Regresiones resumen/dependencias/IPC/22NXE2 superadas. Memoria y discos estables
 Imagen normal73740B/pruebas102412B. Sin ACL por archivo, usuarios ni proteccion
 de rutas antiguas no gestionadas; puente C y una CPU. ASUS fisica pendiente.
 Ver ENTREGA-PERMISOS-PROCESOS.md.
+
+NXK v0.0.20: hasta cuatro paginas de datos privadas bajo demanda por espacio.
+Reserva/liberacion INT81/18..19 para proceso actual; cuota16KiB, cero al
+entregar, huecos sin permiso usuario y TLB invalidado al cambiar mapa activo.
+Activar/reanudar conserva respaldos. Liberar proceso devuelve datos y cinco
+paginas base; cancelar/terminar conserva recursos hasta liberar.
+Copias kernel admiten datos no contiguos, validan todos los respaldos antes
+de copiar y rechazan huecos sin modificacion parcial. usuario listar muestra
+paginas_datos. NEXTRY reservar_pagina/liberar_pagina/leer_entero/escribir_entero,
+ejemplo real y ocho pruebas nuevas:64 del compilador superadas.
+Matriz x86 32/64/128/1024MiB y x64 64MiB superadas. Prueba externa de cupo,
+limites, cero completo, aislamiento, GPR/CF/DF, preempcion y fallos contenidos;
+regresiones de permisos/resumen/dependencias/ejecucion privada y22NXE2 superadas.
+Imagen normal73740B/pruebas102412B. Limite de arranque128KiB conservado.
+Puentes C, cuatro espacios, una CPU, sin malloc por bytes ni NX. Los servicios
+de archivos/IPC conservan buffers codigo/pila. ASUS fisica pendiente.
+Ver ENTREGA-MEMORIA-PROCESOS.md.

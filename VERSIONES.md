@@ -26,6 +26,7 @@ existiendo aunque no reciban una etiqueta propia.
 | v0.0.17 | Envio con espera, resultados retenidos, ciclos y finalizar con codigo |
 | v0.0.18 | Resumen de procesos sin modificar estados ni plazos |
 | v0.0.19 | Permisos por proceso, revocacion de envios y soporte NEXTRY |
+| v0.0.20 | Paginas de datos privadas bajo demanda y operaciones de memoria en NEXTRY |
 
 La serie de etiquetas se inicia el 3 de noviembre de 2026. v0.0.1 identifica
 la entrega previa ya probada; no cambia sus archivos ni fecha del commit.

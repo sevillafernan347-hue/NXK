@@ -158,6 +158,13 @@ uint32_t nxk_es_recibir_mensaje(uint32_t *origen,uint32_t *valor,uint32_t ticks)
 uint32_t nxk_es_proceso_actual(void) { nxk_es_fallo(0); }
 void nxk_es_restringir_permisos(uint32_t mascara) { (void)mascara; nxk_es_fallo(0); }
 uint32_t nxk_es_permisos_actuales(void) { nxk_es_fallo(0); }
+/* La memoria privada requiere la ruta CPL3 gestionada, no tareas ring0. */
+uint32_t nxk_es_reservar_pagina(void) { nxk_es_fallo(0); }
+uint32_t nxk_es_liberar_pagina(uint32_t direccion) { (void)direccion; nxk_es_fallo(0); }
+uint32_t nxk_es_leer_entero(uint32_t direccion) { (void)direccion; nxk_es_fallo(0); }
+void nxk_es_escribir_entero(uint32_t direccion,uint32_t valor) {
+    (void)direccion; (void)valor; nxk_es_fallo(0);
+}
 uint32_t nxk_es_enviar_esperando(uint32_t destino,uint32_t valor,uint32_t ticks) {
     (void)destino; (void)valor; (void)ticks; nxk_es_fallo(0);
 }
@@ -618,7 +625,10 @@ void kernel_main(void) {
                 unsigned n=0;
                 for (unsigned i=0;i<NXK_ESPACIOS_MAX;++i) {
                     struct nxk_espacio_info info;
-                    if (!nxk_espacio_enumerar(i,&info)) { print("Programa privado ID "); number(info.id); put('\n'); ++n; }
+                    if (!nxk_espacio_enumerar(i,&info)) {
+                        print("Programa privado ID "); number(info.id);
+                        print(" paginas_datos "); number(info.paginas_datos); put('\n'); ++n;
+                    }
                 }
                 if (!n) print("Sin programas privados cargados.\n");
             }

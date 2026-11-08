@@ -8,5 +8,6 @@
   "Enviar con plazo": {"prefix": "enviar_esperando", "body": ["enviar_esperando ${1:destino}, ${2:valor}, ${3:resultado}, ${4:100}"], "description": "Esperar espacio en la cola sin descartar mensajes"},
   "Esperar proceso": {"prefix": "esperar_proceso", "body": ["entero ${1:estado} = 0", "entero ${2:codigo} = 0", "entero ${3:resultado} = 0", "esperar_proceso ${4:destino}, ${1:estado}, ${2:codigo}, ${3:resultado}, ${5:100}"], "description": "Observar el resultado de otro proceso sin consumirlo"},
   "Finalizar proceso": {"prefix": "finalizar", "body": ["finalizar ${1:0}"], "description": "Terminar el programa CPL3 con codigo propio"},
-  "Restringir permisos": {"prefix": "restringir_permisos", "body": ["restringir_permisos ${1:3}", "afirmar permisos_actuales() == ${1:3}"], "description": "Retirar permisos: 1 salida, 2 lectura, 4 modificar archivos, 8 enviar mensajes"}
+  "Restringir permisos": {"prefix": "restringir_permisos", "body": ["restringir_permisos ${1:3}", "afirmar permisos_actuales() == ${1:3}"], "description": "Retirar permisos: 1 salida, 2 lectura, 4 modificar archivos, 8 enviar mensajes"},
+  "Pagina privada": {"prefix": "reservar_pagina", "body": ["entero ${1:pagina} = reservar_pagina()", "afirmar ${1:pagina} != 0", "escribir_entero ${1:pagina}, ${2:42}", "afirmar leer_entero(${1:pagina}) == ${2:42}", "afirmar liberar_pagina(${1:pagina}) == 0"], "description": "Reservar una pagina privada de 4096 bytes, usar un entero y devolverla"}
 }

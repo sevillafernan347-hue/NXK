@@ -1,0 +1,26 @@
+# Compilar como NXE2 y cargar con proceso cargar; requiere proceso gestionado.
+# Cada reserva entrega una pagina privada de 4096 bytes puesta en cero.
+funcion inicio
+    entero pagina = reservar_pagina()
+    afirmar pagina != 0
+    afirmar leer_entero(pagina) == 0
+    afirmar leer_entero(pagina + 4092) == 0
+    escribir_entero pagina, 123456
+    escribir_entero pagina + 4092, 0xffffffff
+
+    # El contenido pertenece a este proceso y sobrevive a otro turno.
+    ceder
+    afirmar leer_entero(pagina) == 123456
+    afirmar leer_entero(pagina + 4092) == 0xffffffff
+    afirmar liberar_pagina(pagina) == 0
+    # Una segunda liberacion retorna UINT32_MAX sin afectar otros recursos.
+    afirmar liberar_pagina(pagina) == 0xffffffff
+
+    # La nueva reserva vuelve en cero, incluso si reutiliza la misma pagina.
+    pagina = reservar_pagina()
+    afirmar pagina != 0
+    afirmar leer_entero(pagina) == 0
+    afirmar leer_entero(pagina + 4092) == 0
+    afirmar liberar_pagina(pagina) == 0
+    finalizar 42
+fin

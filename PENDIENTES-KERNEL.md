@@ -1,12 +1,12 @@
 # Trabajo restante del kernel
 
-Estado tras v0.0.19. Son hitos por implementar y verificar, no porcentajes.
+Estado tras v0.0.20. Son hitos por implementar y verificar, no porcentajes.
 
 | Area | Existe | Siguiente evidencia necesaria |
 | --- | --- | --- |
 | Procesos | Cuatro PCB CPL3, memoria privada, mensajes, resultados y permisos por operacion | Espera de E/S, permisos por archivo/canal y recursos por proceso |
 | Planificacion | Tareas kernel, preempcion CPL3, esperas y detector inicial de ciclos | Espera de dispositivos, secciones criticas y pruebas de carreras |
-| Memoria | Paginas fisicas, mapa BIOS, guardas y pool de cuatro espacios privados | Recursos de proceso, mas mapas y agotamiento aislado |
+| Memoria | Paginas fisicas, mapa BIOS, guardas, cuatro espacios y hasta cuatro paginas de datos bajo demanda por espacio | Mapas mayores, asignacion por bytes y buffers dinamicos de E/S |
 | Archivos | RAMFS, NXFS lector, snapshot NXPD1 persistente | Archivos grandes, directorios, montaje y recuperacion mas amplios |
 | Hardware | BIOS, VGA texto, teclado basico, PIT, ATA PIO e inventario PCI | Controladores USB/red/audio/graficos, ECAM/ACPI y pruebas por dispositivo |
 | NEXTRY | Compilador a C y apps protegidas iniciales | Parametros/estructuras/punteros y migracion gradual de puentes C |
