@@ -1,6 +1,6 @@
 # Estado de NXK
 
-Version actual: 0.0.17. Cuatro procesos CPL3 con memoria privada, preempcion,
+Version actual: 0.0.18. Cuatro procesos CPL3 con memoria privada, preempcion,
 espera temporal, mensajes FIFO, envio con plazo, resultados y cancelacion.
 Guia actual y pruebas en ENTREGA-DEPENDENCIAS-PROCESOS.md;
 siguientes hitos en PENDIENTES-KERNEL.md.
@@ -446,3 +446,11 @@ tareas y22NXE2 superadas. Memoria estable y discos originales intactos.
 Imagen normal69644B/pruebas98316B. Puentes C, una CPU, sin ACL, E/S de
 dispositivos ni certificacion ASUS; detector no infiere protocolos implicitos.
 Ver ENTREGA-DEPENDENCIAS-PROCESOS.md y PENDIENTES-KERNEL.md.
+
+NXK v0.0.18: API y consola proceso resumen sin ejecutar ni despertar procesos.
+Cuenta estados almacenados, pendientes/finalizados, mensajes y referencias FIN;
+omite PCB con ID obsoleto sin modificarlos. Salida intacta al rechazar metadatos.
+Matriz x86 32/64/128/1024MiB y regresion x64 superadas. Prueba externa de
+estados mixtos, cola, referencias, plazos sin refrescar, memoria/historial
+estables e IDs antiguos superada; tambien regresion completa de dependencias.
+Imagen normal69644B/pruebas102412B. Ver ENTREGA-RESUMEN-PROCESOS.md.

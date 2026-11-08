@@ -1,6 +1,6 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.17**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.18**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
 
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
@@ -178,3 +178,6 @@ El EXE de demostracion usa solo tres funciones Win32: no hay compatibilidad gene
 `Biblioteca`, herramientas y archivos generados se conservan localmente y no
 forman parte de este repositorio. No se ha definido una licencia de redistribucion
 del codigo propio. Las dependencias conservan sus licencias originales.
+
+`proceso resumen` muestra estados y mensajes sin modificar procesos ni plazos.
+Consulta [el contrato](ENTREGA-RESUMEN-PROCESOS.md).

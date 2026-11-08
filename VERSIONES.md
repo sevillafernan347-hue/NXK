@@ -24,6 +24,7 @@ existiendo aunque no reciban una etiqueta propia.
 | v0.0.15 | Esperas temporizadas de procesos y dormir en NEXTRY |
 | v0.0.16 | Mensajes entre procesos, recepcion con plazo y cancelacion |
 | v0.0.17 | Envio con espera, resultados retenidos, ciclos y finalizar con codigo |
+| v0.0.18 | Resumen de procesos sin modificar estados ni plazos |
 
 La serie de etiquetas se inicia el 3 de noviembre de 2026. v0.0.1 identifica
 la entrega previa ya probada; no cambia sus archivos ni fecha del commit.

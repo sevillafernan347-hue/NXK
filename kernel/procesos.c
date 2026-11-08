@@ -109,6 +109,25 @@ static int terminal(const struct proceso *p) {
     return p->info.estado==NXK_PROCESO_TERMINADO || p->info.estado==NXK_PROCESO_FALLIDO ||
         p->info.estado==NXK_PROCESO_CANCELADO;
 }
+int nxk_procesos_resumen(struct nxk_procesos_resumen *salida) {
+    if (!salida) return -1;
+    if (ocupado || !contexto_kernel()) return -3;
+    struct nxk_procesos_resumen r={0};
+    for (unsigned i=0;i<NXK_ESPACIOS_MAX;++i) {
+        const struct proceso *p=&procesos[i]; struct nxk_espacio_info espacio;
+        /* Consultar el respaldo sin las funciones que retiran PCB o resuelven
+         * plazos. La lectura no cambia el comportamiento del planificador. */
+        if (!p->info.estado || nxk_espacio_consultar(p->info.id,&espacio)) {
+            ++r.estados[NXK_PROCESO_LIBRE]; continue;
+        }
+        if (p->info.estado>=NXK_PROCESO_ESTADOS || (p->info.id&255u)!=i+1u ||
+            p->info.mensajes>NXK_PROCESO_BUZON_MAX || p->fin_pendiente>1u) return -2;
+        ++r.registrados; ++r.estados[p->info.estado];
+        if (terminal(p)) ++r.finalizados; else ++r.pendientes;
+        r.mensajes+=p->info.mensajes; r.referencias_fin+=p->fin_pendiente;
+    }
+    *salida=r; return 0;
+}
 static void limpiar_espera(struct proceso *p) {
     p->buffer_mensaje=0; p->recepcion_pendiente=0; p->info.despertar=0;
     p->envio_pendiente=p->fin_pendiente=p->valor_pendiente=p->buffer_fin=0;
@@ -389,6 +408,18 @@ int nxk_procesos_probar(void) {
     if (nxk_paginas_libres()!=libres-20 || nxk_proceso_crear(salir,sizeof(salir),&salida)!=-2 || salida!=0xdeadbeef) return 4;
     for (unsigned i=0;i<4;++i) if (!nxk_proceso_gestionado(ids[i]) ||
         nxk_proceso_enumerar(i,&info) || info.id!=ids[i] || info.estado!=NXK_PROCESO_LISTO) return 5;
+    struct nxk_procesos_resumen resumen;
+    if (nxk_procesos_resumen(0)!=-1 || nxk_procesos_resumen(&resumen) ||
+        resumen.registrados!=4 || resumen.pendientes!=4 || resumen.finalizados ||
+        resumen.estados[NXK_PROCESO_LISTO]!=4 || resumen.estados[NXK_PROCESO_LIBRE] ||
+        resumen.mensajes || resumen.referencias_fin) return 19;
+    /* La consulta rechazada no debe publicar un acumulado parcial. Restaurar
+     * siempre el metadato sintetico antes de salir de la prueba. */
+    memset(&resumen,0xa5,sizeof(resumen)); procesos[0].info.mensajes=5;
+    int rechazo=nxk_procesos_resumen(&resumen); procesos[0].info.mensajes=0;
+    if (rechazo!=-2) return 20;
+    for (unsigned i=0;i<sizeof(resumen);++i)
+        if (((const unsigned char *)&resumen)[i]!=0xa5) return 21;
     if (nxk_procesos_ejecutar(8)) return 6;
     for (unsigned i=0;i<4;++i) {
         if (nxk_proceso_consultar(ids[i],&info) || info.estado!=NXK_PROCESO_TERMINADO ||
@@ -451,6 +482,7 @@ int nxk_procesos_probar(void) {
 }
 #endif
 #else
+int nxk_procesos_resumen(struct nxk_procesos_resumen *s) { (void)s;return -64; }
 int nxk_proceso_crear(const void *c,size_t n,uint32_t *id) { (void)c;(void)n;(void)id;return -64; }
 int nxk_proceso_cargar_archivo(const char *n,uint32_t *id) { (void)n;(void)id;return -64; }
 int nxk_proceso_consultar(uint32_t id,struct nxk_proceso_info *s) { (void)id;(void)s;return -64; }

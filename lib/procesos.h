@@ -8,6 +8,7 @@ enum nxk_proceso_estado { NXK_PROCESO_LIBRE, NXK_PROCESO_LISTO,
     NXK_PROCESO_EJECUTANDO, NXK_PROCESO_TERMINADO, NXK_PROCESO_FALLIDO, NXK_PROCESO_DORMIDO,
     NXK_PROCESO_ESPERANDO_MENSAJE, NXK_PROCESO_CANCELADO,
     NXK_PROCESO_ESPERANDO_ENVIO, NXK_PROCESO_ESPERANDO_FIN };
+#define NXK_PROCESO_ESTADOS (NXK_PROCESO_ESPERANDO_FIN+1u)
 #define NXK_PROCESO_BUZON_MAX 4u
 struct nxk_proceso_mensaje { uint32_t origen,valor; };
 struct nxk_proceso_resultado { uint32_t estado,codigo; };
@@ -18,6 +19,17 @@ struct nxk_proceso_info {
     uint32_t esperando,esperas_envio,esperas_fin,ciclos;
     struct nxk_usuario_resultado ultimo;
 };
+struct nxk_procesos_resumen {
+    uint32_t registrados,pendientes,finalizados,estados[NXK_PROCESO_ESTADOS];
+    uint32_t mensajes,referencias_fin;
+};
+/* Instantanea de estados almacenados, sin despertar, depurar ni asignar heap.
+ * LIBRE cuenta slots sin PCB vivo, no garantiza espacio para crear: un espacio
+ * sin proceso tambien puede ocupar el pool. referencias_fin cuenta observadores,
+ * no destinos distintos, incluso si estan listos tras vencer su plazo.
+ * Solo kernel original/IF, fuera de tarea y ejecutor. -1 null, -2 metadatos,
+ * -3 contexto. Cualquier error conserva la salida. Omite IDs obsoletos. */
+int nxk_procesos_resumen(struct nxk_procesos_resumen *salida);
 /* Crear/cargar conserva salida al fallar. IDs son los IDs completos del espacio.
  * Rechazos: -1 contrato/ID, -2 estado/pool, -3 contexto; memoria/motor negativos. */
 int nxk_proceso_crear(const void *codigo,size_t longitud,uint32_t *id);

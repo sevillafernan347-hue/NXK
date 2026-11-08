@@ -3,6 +3,17 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.18
+
+- API y comando proceso resumen: estados almacenados, pendientes/finalizados,
+  mensajes en cola y observadores de resultados. Sin asignar heap ni depurar PCB.
+- Omite IDs obsoletos; errores conservan salida. Libre no garantiza un espacio
+  disponible, porque el pool tambien admite espacios sin PCB.
+- Matriz x86 32/64/128/1024 MiB y regresion x64 superadas. Pruebas de estados
+  mixtos, referencias, cola terminal, consultas repetidas y plazos sin despertar.
+- Regresion completa de dependencias/NEXTRY superada; recursos y discos estables.
+- Detalle: ENTREGA-RESUMEN-PROCESOS.md.
+
 ## v0.0.17
 
 - Envio CPL3 con espera de espacio, plazo original y valor retenido en el PCB.
