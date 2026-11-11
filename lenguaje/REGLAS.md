@@ -316,3 +316,32 @@ Estas funciones requieren proceso gestionado (`proceso cargar`). El runtime
 NXE1 y el puente kernel fallan explicitamente; la cabecera y ABI NXE no cambian.
 La reserva no amplia la pagina de codigo ni la pila. Ejemplo comentado:
 `ejemplos/pagina_memoria.nxf`.
+
+## Archivos y mensajes en buffers (v0.0.21)
+
+Estas cinco funciones son expresiones de tipo entero y conservan el estado
+devuelto por el kernel para que el programa decida como tratar un error:
+
+- `leer_archivo_en(nombre, direccion, cantidad, desplazamiento)` lee desde un
+  archivo visible y devuelve cuantos bytes copio, entre0 y256, o un error.
+- `guardar_archivo_desde(nombre, direccion, cantidad)` guarda hasta256bytes
+  en un archivo RAM y retorna0 o un error. No requiere terminador de texto.
+- `mostrar_memoria(direccion, cantidad)` muestra hasta256bytes y retorna la
+  cantidad o un error, sin agregar un salto de linea.
+- `recibir_en_memoria(direccion, ticks)` entrega el registro de8bytes
+  `{origen, valor}`; retorna0 al entregar,1 si esta vacio o vence, o un error.
+- `esperar_en_memoria(destino, direccion, ticks)` entrega `{estado, codigo}`
+  de8bytes del otro proceso; retorna0 al entregar,1 al vencer/consultar, o error.
+
+`nombre` exige texto; los demas argumentos exigen entero. Un error-1 se
+representa0xffffffff porque entero es uint32; permiso denegado-5 es0xfffffffb.
+Servicio no soportado0xfffffffe termina con fallo explicito, no se devuelve
+como lectura vacia. El kernel valida rangos completos, permisos y plazos.
+Si no hay entrega por consulta/plazo/error, no se publican datos en el destino.
+
+El proceso gestionado puede usar pila o paginas de datos reservadas segun el
+servicio; el codigo solo sirve como fuente de lectura, nunca como destino.
+Los mensajes/resultados pendientes retienen las paginas del buffer hasta
+despacharse o cancelarse. No liberar ni reutilizar direcciones de datos antes
+de consumir su resultado. Los ejemplos `buffer_archivos.nxf` y
+`memoria_mensajes.nxf` usan paginas privadas; NXE1 falla explicitamente.

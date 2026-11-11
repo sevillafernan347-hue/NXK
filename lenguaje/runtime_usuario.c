@@ -6,6 +6,36 @@ static uint32_t escribir(const void *p,uint32_t n) {
     __asm__ volatile("int $0x81":"+a"(r):"b"(p),"c"(n):"memory","cc");
     return r;
 }
+/* Estos intrinsecos permiten inspeccionar errores del servicio sin abortar.
+ * Un kernel anterior que no ofrece el servicio si termina explicitamente;
+ * no se debe presentar ese caso como un plazo vencido o una lectura vacia. */
+static uint32_t resultado_buffer(uint32_t resultado) {
+    if (resultado==UINT32_C(0xfffffffe)) nxk_es_fallo(0);
+    return resultado;
+}
+uint32_t nxk_es_mostrar_memoria(uint32_t direccion,uint32_t cantidad) {
+    return resultado_buffer(escribir((const void *)(uintptr_t)direccion,cantidad));
+}
+uint32_t nxk_es_leer_archivo_en(const char *nombre,uint32_t direccion,uint32_t cantidad,uint32_t desplazamiento) {
+    uint32_t r=5;
+    __asm__ volatile("int $0x81":"+a"(r):"b"(nombre),"c"(direccion),"d"(cantidad),"S"(desplazamiento):"memory","cc");
+    return resultado_buffer(r);
+}
+uint32_t nxk_es_guardar_archivo_desde(const char *nombre,uint32_t direccion,uint32_t cantidad) {
+    uint32_t r=2;
+    __asm__ volatile("int $0x81":"+a"(r):"b"(nombre),"c"(direccion),"d"(cantidad):"memory","cc");
+    return resultado_buffer(r);
+}
+uint32_t nxk_es_recibir_en_memoria(uint32_t direccion,uint32_t ticks) {
+    uint32_t r=12;
+    __asm__ volatile("int $0x81":"+a"(r):"b"(direccion),"d"(ticks):"memory","cc");
+    return resultado_buffer(r);
+}
+uint32_t nxk_es_esperar_en_memoria(uint32_t destino,uint32_t direccion,uint32_t ticks) {
+    uint32_t r=15;
+    __asm__ volatile("int $0x81":"+a"(r):"b"(destino),"c"(direccion),"d"(ticks):"memory","cc");
+    return resultado_buffer(r);
+}
 static _Noreturn void terminar(uint32_t n) {
     __asm__ volatile("int $0x80" :: "a"(n) : "memory");
     for (;;) __asm__ volatile("ud2");

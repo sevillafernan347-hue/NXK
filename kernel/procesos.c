@@ -198,7 +198,7 @@ int nxk_proceso_preparar_espera(uint32_t id,uint32_t buffer_virtual) {
     struct proceso *p=buscar(id);
     if (!ocupado || !p || p->info.estado!=NXK_PROCESO_EJECUTANDO ||
         p->recepcion_pendiente || p->envio_pendiente || p->fin_pendiente ||
-        buffer_virtual<NXK_ESPACIO_PILA || buffer_virtual>NXK_ESPACIO_PILA+4096-sizeof(struct nxk_proceso_mensaje))
+        nxk_espacio_validar_rango(id,buffer_virtual,sizeof(struct nxk_proceso_mensaje),1))
         return -1;
     p->buffer_mensaje=buffer_virtual; p->recepcion_pendiente=1; return 0;
 }
@@ -247,8 +247,7 @@ int nxk_proceso_enviar_esperando_actual(uint32_t id,uint32_t destino,uint32_t va
 int nxk_proceso_esperar_fin_actual(uint32_t id,uint32_t destino,uint32_t buffer_virtual,uint32_t intervalo,struct nxk_proceso_resultado *salida) {
     struct proceso *p=referencia(id),*d=referencia(destino);
     if (!ocupado || !p || !d || !salida || p->info.estado!=NXK_PROCESO_EJECUTANDO || pendiente(p) ||
-        intervalo>0x7fffffffu || buffer_virtual<NXK_ESPACIO_PILA ||
-        buffer_virtual>NXK_ESPACIO_PILA+4096-sizeof(*salida)) return -1;
+        intervalo>0x7fffffffu || nxk_espacio_validar_rango(id,buffer_virtual,sizeof(*salida),1)) return -1;
     if (terminal(d)) { *salida=resultado_de(d); return 0; }
     if (!intervalo) return 1;
     if (forma_ciclo(p,d)) { incrementar(&p->info.ciclos); return -4; }
@@ -264,6 +263,16 @@ int nxk_proceso_retenido(uint32_t id) {
         if (p->info.estado && !terminal(p) && p->fin_pendiente && p->info.esperando==id) return 1;
     }
     return 0;
+}
+int nxk_proceso_pagina_retenida(uint32_t id,uint32_t pagina) {
+    if (pagina&4095u) return 0;
+    struct proceso *p=referencia(id);
+    if (!p || terminal(p)) return 0;
+    uint32_t buffer=p->recepcion_pendiente ? p->buffer_mensaje : p->fin_pendiente ? p->buffer_fin : 0;
+    /* Ambos registros tienen ocho bytes. Validacion previa impide overflow;
+     * comprobarlo tambien aqui mantiene acotada una consulta de metadatos. */
+    return buffer && buffer<=UINT32_MAX-7 &&
+        (pagina==(buffer&~4095u) || pagina==((buffer+7)&~4095u));
 }
 int nxk_proceso_cancelar(uint32_t id) {
     if (ocupado || !contexto_kernel()) return -3;
@@ -422,11 +431,28 @@ int nxk_procesos_demo(void) {
     return fallo ? -fallo : 0;
 }
 #ifdef NXK_TEST
-static int intacto(const struct nxk_proceso_info *p) {
+__attribute__((minsize)) static int intacto(const struct nxk_proceso_info *p) {
     for (unsigned i=0;i<sizeof(*p);++i) if (((const unsigned char *)p)[i]!=0xa5) return 0;
     return 1;
 }
-int nxk_procesos_probar(void) {
+/* Metadatos sinteticos acotados: verificar ambas paginas de un buffer8 sin
+ * agrandar la app embebida. Restaurar el PCB antes de las pruebas anteriores. */
+__attribute__((minsize)) static int probar_buffers(uint32_t id) {
+    struct proceso *p=referencia(id);
+    uint32_t a=0,b=0; int fallo=0;
+    if (nxk_espacio_reservar_pagina(id,&a) || nxk_espacio_reservar_pagina(id,&b)) return 1;
+    for (unsigned fin=0;fin<2;++fin) {
+        p->recepcion_pendiente=!fin; p->fin_pendiente=fin;
+        p->buffer_mensaje=p->buffer_fin=a+4093;
+        if (nxk_espacio_liberar_pagina(id,a)!=-5 || nxk_espacio_liberar_pagina(id,b)!=-5) fallo=1;
+    }
+    if (nxk_proceso_cancelar(id) || nxk_espacio_liberar_pagina(id,a) ||
+        nxk_espacio_liberar_pagina(id,b)) fallo=1;
+    p->info.estado=NXK_PROCESO_LISTO; p->info.ultimo.salida=0;
+    return fallo;
+}
+/* Preferir tamano en pruebas de arranque; no modifica la politica del motor. */
+__attribute__((minsize)) int nxk_procesos_probar(void) {
     if (!contexto_kernel()) return 1;
     if (!vencido(3,0xfffffffeu) || vencido(0xfffffffdu,3) || !vencido(0,0) ||
         vencido(0xffffffffu,0) || !vencido(7,7)) return 13;
@@ -443,6 +469,7 @@ int nxk_procesos_probar(void) {
     for (unsigned i=0;i<4;++i) if (!nxk_proceso_gestionado(ids[i]) ||
         nxk_proceso_enumerar(i,&info) || info.id!=ids[i] || info.estado!=NXK_PROCESO_LISTO ||
         info.permisos!=NXK_PERMISOS_TODOS) return 5;
+    if (probar_buffers(ids[0])) return 24;
     /* Quitar permisos no permite recuperarlos, ni siquiera desde la consola.
      * Cero es una mascara valida; no impide terminar por INT80. */
     uint32_t permisos=0xdeadbeefu;
@@ -549,6 +576,7 @@ int nxk_proceso_preparar_espera(uint32_t id,uint32_t b) { (void)id;(void)b;retur
 int nxk_proceso_enviar_esperando_actual(uint32_t id,uint32_t d,uint32_t v,uint32_t t) { (void)id;(void)d;(void)v;(void)t;return -64; }
 int nxk_proceso_esperar_fin_actual(uint32_t id,uint32_t d,uint32_t b,uint32_t t,struct nxk_proceso_resultado *s) { (void)id;(void)d;(void)b;(void)t;(void)s;return -64; }
 int nxk_proceso_retenido(uint32_t id) { (void)id;return 0; }
+int nxk_proceso_pagina_retenida(uint32_t id,uint32_t p) { (void)id;(void)p;return 0; }
 int nxk_proceso_cancelar(uint32_t id) { (void)id;return -64; }
 int nxk_procesos_ejecutar(uint32_t n) { (void)n;return -64; }
 int nxk_proceso_liberar(uint32_t id) { (void)id;return -64; }

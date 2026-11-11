@@ -1,7 +1,10 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.20**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.21**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
+
+La entrega actual permite usar las paginas privadas de datos como buffers de
+archivos, salida y mensajes. Consulta [contrato y ejemplos](ENTREGA-BUFFERS-PROCESOS.md).
 
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
 1 GB de RAM. Incluye lenguaje NEXTRY, ensamblador NEXTRY ASM y formato NXE.
@@ -24,7 +27,7 @@ se documenta aqui; NEXTRY ASM se agrupa como Assembly.
 `lenguaje/ejemplos/usuario.nxf` ya ejecuta texto, numeros y afirmaciones en CPL3.
 En una nueva imagen, usa `usuario nextry`. Para integrar tu propia fuente:
 `./build.ps1 -FuenteUsuario mi_programa.nxf`. En VS Code tambien existe la tarea
-«NXK: Integrar aplicacion NEXTRY protegida actual» para el archivo abierto.
+Â«NXK: Integrar aplicacion NEXTRY protegida actualÂ» para el archivo abierto.
 La app sigue integrada en la imagen, con codigo limitado a 4 KiB y runtime
 inicial; consulta [la entrega](ENTREGA-NEXTRY-USUARIO.md).
 

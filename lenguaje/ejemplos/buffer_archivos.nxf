@@ -1,0 +1,15 @@
+# Cargar como proceso NXE2: usa datos privados como buffer de archivos y salida.
+funcion inicio
+    entero pagina = reservar_pagina()
+    afirmar pagina != 0
+    # x86 guarda primero el byte menos significativo: estos cuatro bytes son hola.
+    escribir_entero pagina, 0x616c6f68
+    afirmar guardar_archivo_desde("buf", pagina, 4) == 0
+    escribir_entero pagina, 0
+    afirmar leer_archivo_en("buf", pagina, 4, 0) == 4
+    afirmar leer_entero(pagina) == 0x616c6f68
+    afirmar mostrar_memoria(pagina, 4) == 4
+    borrar_archivo "buf"
+    afirmar liberar_pagina(pagina) == 0
+    finalizar 42
+fin

@@ -3,6 +3,26 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.21
+
+- Servicios de salida, archivos y buffers IPC en paginas de datos privadas.
+  Validacion completa de rangos, cruces y respaldos antes de copiar o consumir.
+- Retencion de paginas de recepcion/FIN pendiente: liberar individualmente
+  devuelve-5, incluso tras vencer el plazo hasta despachar. Cancelar/consumir
+  retira la retencion; destruir el receptor sigue recuperando sus recursos.
+- Cinco expresiones NEXTRY para leer/guardar archivos, mostrar bytes, recibir
+  mensajes y esperar resultados en memoria. Estados manejables, dos ejemplos,
+  editor y ocho pruebas nuevas de aridad/tipos.
+- 72 pruebas de compilador, matriz QEMU x86 32/64/128/1024MiB y x64 64MiB
+  superadas. Prueba externa de FS1..8, cruces/huecos, permisos, esperas,
+  plazos, resultados y limpieza sin efectos parciales ni cambios en discos.
+- Regresiones de memoria dinamica, permisos, dependencias y22 escenarios
+  NXE2 desde disco superadas.
+- Minimizacion de funciones de prueba y kernel_main x64 conserva los limites
+  BIOS sin retirar aserciones. README normalizado a UTF-8.
+- Experimental, cuatro procesos, una CPU y puentes C; no agrega E/S asincrona
+  de dispositivos ni mensajes de bloques. Ver ENTREGA-BUFFERS-PROCESOS.md.
+
 ## v0.0.20
 
 - Hasta cuatro paginas privadas de datos por espacio, reservadas bajo demanda

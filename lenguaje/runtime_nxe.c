@@ -77,3 +77,19 @@ uint32_t nxk_es_leer_entero(uint32_t direccion) { (void)direccion; nxk_es_fallo(
 void nxk_es_escribir_entero(uint32_t direccion,uint32_t valor) {
     (void)direccion; (void)valor; nxk_es_fallo(0);
 }
+/* NXE1 no dispone de buffers CPL3: no confiar direcciones de la app a ring0. */
+uint32_t nxk_es_leer_archivo_en(const char *nombre,uint32_t direccion,uint32_t cantidad,uint32_t desplazamiento) {
+    (void)nombre; (void)direccion; (void)cantidad; (void)desplazamiento; nxk_es_fallo(0);
+}
+uint32_t nxk_es_guardar_archivo_desde(const char *nombre,uint32_t direccion,uint32_t cantidad) {
+    (void)nombre; (void)direccion; (void)cantidad; nxk_es_fallo(0);
+}
+uint32_t nxk_es_mostrar_memoria(uint32_t direccion,uint32_t cantidad) {
+    (void)direccion; (void)cantidad; nxk_es_fallo(0);
+}
+uint32_t nxk_es_recibir_en_memoria(uint32_t direccion,uint32_t ticks) {
+    (void)direccion; (void)ticks; nxk_es_fallo(0);
+}
+uint32_t nxk_es_esperar_en_memoria(uint32_t destino,uint32_t direccion,uint32_t ticks) {
+    (void)destino; (void)direccion; (void)ticks; nxk_es_fallo(0);
+}

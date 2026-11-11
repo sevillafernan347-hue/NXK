@@ -36,6 +36,14 @@ uint32_t nxk_es_reservar_pagina(void);
 uint32_t nxk_es_liberar_pagina(uint32_t direccion);
 uint32_t nxk_es_leer_entero(uint32_t direccion);
 void nxk_es_escribir_entero(uint32_t direccion,uint32_t valor);
+/* Buffers protegidos: estados uint32 manejables; -1 se compara UINT32_MAX.
+ * Leer/mostrar retorna cantidad, guardar0; recibir/esperar0 entrega u1 plazo.
+ * El kernel comprueba permisos y el rango completo antes de efectos. */
+uint32_t nxk_es_leer_archivo_en(const char *nombre,uint32_t direccion,uint32_t cantidad,uint32_t desplazamiento);
+uint32_t nxk_es_guardar_archivo_desde(const char *nombre,uint32_t direccion,uint32_t cantidad);
+uint32_t nxk_es_mostrar_memoria(uint32_t direccion,uint32_t cantidad);
+uint32_t nxk_es_recibir_en_memoria(uint32_t direccion,uint32_t ticks);
+uint32_t nxk_es_esperar_en_memoria(uint32_t destino,uint32_t direccion,uint32_t ticks);
 /* 0 enviado, 1 plazo/cola llena; errores de ID, destino o ciclo detienen la app. */
 uint32_t nxk_es_enviar_esperando(uint32_t destino,uint32_t valor,uint32_t ticks);
 /* 0 publica estado/codigo terminal; 1 conserva ambas salidas al vencer.

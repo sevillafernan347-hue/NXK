@@ -1,0 +1,12 @@
+# Tras proceso cargar, ejecutar un paso para esperar y enviar desde la consola:
+# proceso enviar ID 42; despues proceso paso ID continua hasta finalizar42.
+funcion inicio
+    entero pagina = reservar_pagina()
+    afirmar pagina != 0
+    afirmar recibir_en_memoria(pagina, 0x7fffffff) == 0
+    # Cada mensaje son ocho bytes: origen en +0 y valor en +4.
+    afirmar leer_entero(pagina) == 0
+    afirmar leer_entero(pagina + 4) == 42
+    afirmar liberar_pagina(pagina) == 0
+    finalizar 42
+fin

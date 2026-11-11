@@ -6,13 +6,13 @@ NEXTRY ASM se presenta como Assembly en las estadisticas de GitHub.
 
 | Lenguaje | Archivos | Bytes |
 | --- | ---: | ---: |
-| C (puentes y runtime) | 46 | 337913 |
+| C (puentes y runtime) | 46 | 345396 |
 | Ensamblador GNU | 6 | 5092 |
-| NEXTRY | 18 | 10608 |
+| NEXTRY | 20 | 11697 |
 | NEXTRY ASM | 13 | 11486 |
 | NXJ (prototipo) | 1 | 590 |
 | PowerShell | 5 | 26733 |
-| Python (compiladores y pruebas) | 37 | 221760 |
+| Python (compiladores y pruebas) | 39 | 240064 |
 | Windows Batch | 12 | 4704 |
 
 Regenerar: `tools/python/python.exe lenguaje/inventario_lenguajes.py`.

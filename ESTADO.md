@@ -1,8 +1,8 @@
 # Estado de NXK
 
-Version actual: 0.0.20. Cuatro procesos CPL3 con memoria privada, preempcion,
-espera temporal, mensajes FIFO, resultados, permisos y paginas privadas bajo demanda.
-Guia actual y pruebas en ENTREGA-MEMORIA-PROCESOS.md;
+Version actual: 0.0.21. Cuatro procesos CPL3 con memoria privada, preempcion,
+espera temporal, mensajes FIFO, resultados, permisos y buffers en datos privados.
+Guia actual y pruebas en ENTREGA-BUFFERS-PROCESOS.md;
 siguientes hitos en PENDIENTES-KERNEL.md.
 
 El registro siguiente conserva las etapas anteriores: cada entrada describe
@@ -486,3 +486,20 @@ Imagen normal73740B/pruebas102412B. Limite de arranque128KiB conservado.
 Puentes C, cuatro espacios, una CPU, sin malloc por bytes ni NX. Los servicios
 de archivos/IPC conservan buffers codigo/pila. ASUS fisica pendiente.
 Ver ENTREGA-MEMORIA-PROCESOS.md.
+
+NXK v0.0.21: los servicios1..8,12 y15 aceptan buffers en datos privados de
+procesos gestionados. Validador comun verifica rango y todos los respaldos
+antes de copiar, modificar archivos o consumir mensajes. Codigo solo lectura;
+pila/datos escribibles. Nombres y buffers pueden cruzar paginas respaldadas.
+Recepcion y FIN retienen ambas paginas de un registro cruzado: API liberar
+individual devuelve-5 hasta consumir/cancelar/retirar la espera, incluso
+LISTO tras plazo. Destruir receptor devuelve reservas; objetivos FIN protegidos.
+Cinco intrinsecos NEXTRY con estados manejables; ejemplos buffer_archivos y
+memoria_mensajes. 72pruebas compilador, matriz x86 32/64/128/1024MiB y x64
+64MiB superadas. Prueba externa de FS, huecos sin efectos, permisos, recepcion,
+resultados inmediatos/suspendidos/plazos, limpieza y ejemplos reales superada.
+Regresiones de memoria, permisos, dependencias y22NXE2 superadas; discos intactos.
+Imagen x86 normal73740B/test102412B; x64 normal24584B/test28680B. minsize
+local para pruebas/kernel_main x64 conserva limites sin retirar aserciones.
+Cuatro procesos, una CPU, puentes C; E/S dispositivos y hardware ASUS pendientes.
+Ver ENTREGA-BUFFERS-PROCESOS.md.

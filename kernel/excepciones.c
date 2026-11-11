@@ -155,6 +155,11 @@ extern _Noreturn void nxk_usuario_abortar(uint32_t resultado);
 extern void nxk_pe_salida(const char *datos,uint32_t n);
 static int usuario_rango(uint32_t p,uint32_t n,int escritura) {
     if (!n) return 1;
+    /* El proceso puede usar sus paginas de datos reservadas. El validador
+     * comprueba todo el rango y todos sus respaldos antes de acceder en ring0.
+     * Las rutas antiguas mantienen el contrato de dos paginas contiguas. */
+    if (contexto_reanudable)
+        return !nxk_espacio_validar_rango(usuario_id_activo,p,n,escritura);
     uintptr_t minimo=usuario_base+(escritura ? 4096 : 0);
     return p>=minimo && p-usuario_base<8192 && n<=8192-(p-usuario_base);
 }
@@ -222,7 +227,7 @@ static void usuario_servicio(uint32_t *c) {
     }
     /* Reserva acotada al espacio que ejecuta: nunca acepta un ID de la app.
      * El cupo evita que un proceso consuma todas las paginas del sistema.
-     * Los buffers de servicios anteriores conservan codigo/pila como rango. */
+     * Los buffers usan solo regiones propias validadas por usuario_rango. */
     if (servicio==18 && contexto_reanudable) {
         uint32_t direccion;
         c[11]=nxk_espacio_reservar_pagina(usuario_id_activo,&direccion) ? 0 : direccion;

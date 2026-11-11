@@ -103,3 +103,14 @@ Solo procesos gestionados; legacy devuelve-2. Los otros registros se conservan.
 Los buffers de archivos y mensajes siguen limitados a codigo/pila; no se
 amplian a datos dinamicos en esta entrega. Cabecera y ABI1 sin cambios.
 Ver ENTREGA-MEMORIA-PROCESOS.md y ejemplo pagina_memoria.nxf.
+
+Desde v0.0.21 las llamadas de procesos gestionados aceptan buffers en paginas
+de datos reservadas: servicios1..8,12 y15. Codigo solo lectura; pila y datos
+escribibles. Se valida todo el rango y cada pagina antes de copiar o consumir;
+un hueco, overflow o escritura en codigo retorna error sin efectos parciales.
+Los nombres de archivos tambien pueden residir en datos privados.
+Recepcion12 y resultado15 retienen las paginas del buffer mientras queda una
+espera sin despachar; liberar una de ellas mediante la API kernel devuelve-5.
+Cancelar/consumir/retirar el receptor elimina la retencion. No se agregan
+servicios ni cambia ABI1; legacy mantiene los rangos anteriores. Consulta
+ENTREGA-BUFFERS-PROCESOS.md para funciones NEXTRY, pruebas y limites.

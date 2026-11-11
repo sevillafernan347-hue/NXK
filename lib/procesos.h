@@ -61,7 +61,9 @@ int nxk_proceso_enviar(uint32_t destino,uint32_t valor);
  * el gestor debe estar ocupado. Un error no consume ni modifica salida.
  * Enviar exige ENVIAR_MENSAJES; -5 si se ha revocado.
  * Recibir: -2 vacio, -1 contrato. Preparar conserva el buffer virtual hasta
- * reanudar; el gestor entrega {origen,valor} antes de retirar de la cola. */
+ * reanudar; el gestor entrega {origen,valor} antes de retirar de la cola.
+ * Buffer de ocho bytes en pila/datos reservados; un cruce retiene ambas
+ * paginas de datos hasta consumir, cancelar o retirar la espera. */
 int nxk_proceso_enviar_desde(uint32_t origen,uint32_t destino,uint32_t valor);
 int nxk_proceso_recibir_actual(uint32_t id,struct nxk_proceso_mensaje *salida);
 int nxk_proceso_preparar_espera(uint32_t id,uint32_t buffer_virtual);
@@ -76,6 +78,10 @@ int nxk_proceso_esperar_fin_actual(uint32_t id,uint32_t destino,uint32_t buffer_
  * liberacion del destino hasta entregar, cancelar o retirar al observador.
  * Solo consulta metadatos y generaciones; no requiere el CR3 del kernel. */
 int nxk_proceso_retenido(uint32_t id);
+/* Retencion de una pagina virtual alineada por el buffer8 de recepcion/FIN
+ * de este proceso vivo. Incluye LISTO tras plazo hasta consumir su espera;
+ * no resuelve plazos. Cancelar/entregar/liberar retira la retencion. */
+int nxk_proceso_pagina_retenida(uint32_t id,uint32_t pagina);
 /* Cancelar LISTO/DORMIDO o cualquier espera: limpia buzon y espera, retiene ID y
  * memoria hasta liberar. -1 ID, -2 estado terminal, -3 contexto/gestor ocupado. */
 int nxk_proceso_cancelar(uint32_t id);
