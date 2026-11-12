@@ -10,6 +10,7 @@ enum nxk_proceso_estado { NXK_PROCESO_LIBRE, NXK_PROCESO_LISTO,
     NXK_PROCESO_ESPERANDO_ENVIO, NXK_PROCESO_ESPERANDO_FIN };
 #define NXK_PROCESO_ESTADOS (NXK_PROCESO_ESPERANDO_FIN+1u)
 #define NXK_PROCESO_BUZON_MAX 4u
+#define NXK_PROCESO_ARCHIVOS_MAX 4u
 enum nxk_proceso_permiso {
     NXK_PERM_SALIDA=1u, NXK_PERM_LEER_ARCHIVOS=2u,
     NXK_PERM_MODIFICAR_ARCHIVOS=4u, NXK_PERM_ENVIAR_MENSAJES=8u,
@@ -24,6 +25,7 @@ struct nxk_proceso_info {
     uint32_t esperando,esperas_envio,esperas_fin,ciclos;
     struct nxk_usuario_resultado ultimo;
     uint32_t permisos;
+    uint32_t archivos_restringidos,archivos_permitidos;
 };
 /* Mascara propia de cada generacion, inicialmente TODOS. Consultar no resuelve
  * plazos; -1 ID/buffer/metadatos invalidos, salida intacta al rechazar.
@@ -34,6 +36,18 @@ struct nxk_proceso_info {
 int nxk_proceso_permisos(uint32_t id,uint32_t *salida);
 int nxk_proceso_restringir(uint32_t id,uint32_t mascara);
 int nxk_proceso_restringir_actual(uint32_t id,uint32_t mascara);
+/* Lista de nombres exactos de1..23 caracteres RAMFS (a-z,0-9,_,-,.).
+ * Sin filtro al crear. La primera lista activa el filtro; despues solo se
+ * aceptan subconjuntos, sin duplicados. cantidad0 admite nombres null y niega
+ * todos. Entradas kernel confiables; se copian antes de modificar la politica.
+ * 0 exito, -1 contrato/ID/metadatos, -2 terminal/ejecutando, -3 contexto,
+ * -5 intento de ampliar. La variante actual solo en el turno EJECUTANDO.
+ * Cancelar conserva la lista; una generacion nueva comienza sin filtro. */
+int nxk_proceso_limitar_archivos(uint32_t id,const char nombres[][24],uint32_t cantidad);
+int nxk_proceso_limitar_archivos_actual(uint32_t id,const char nombres[][24],uint32_t cantidad);
+/* Solo el filtro de nombres, independiente de permisos generales:1 permite,
+ * 0 deniega,-1 ID/nombre/metadatos. No resuelve plazos ni consulta archivos. */
+int nxk_proceso_archivo_permitido(uint32_t id,const char *nombre);
 struct nxk_procesos_resumen {
     uint32_t registrados,pendientes,finalizados,estados[NXK_PROCESO_ESTADOS];
     uint32_t mensajes,referencias_fin;

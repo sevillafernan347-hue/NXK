@@ -13,5 +13,6 @@
   "Leer archivo en memoria": {"prefix": "leer_archivo_en", "body": ["entero ${1:leidos} = leer_archivo_en(\"${2:archivo}\", ${3:pagina}, ${4:256}, ${5:0})"], "description": "Leer bytes en un buffer protegido y conservar el estado del servicio"},
   "Guardar archivo desde memoria": {"prefix": "guardar_archivo_desde", "body": ["afirmar guardar_archivo_desde(\"${1:archivo}\", ${2:pagina}, ${3:4}) == 0"], "description": "Guardar bytes de un buffer protegido"},
   "Recibir en memoria": {"prefix": "recibir_en_memoria", "body": ["entero ${1:resultado} = recibir_en_memoria(${2:pagina}, ${3:100})"], "description": "Recibir el registro origen/valor en memoria; cero confirma entrega"},
-  "Esperar en memoria": {"prefix": "esperar_en_memoria", "body": ["entero ${1:resultado} = esperar_en_memoria(${2:destino}, ${3:pagina}, ${4:100})"], "description": "Esperar estado/codigo de otro proceso en un buffer protegido"}
+  "Esperar en memoria": {"prefix": "esperar_en_memoria", "body": ["entero ${1:resultado} = esperar_en_memoria(${2:destino}, ${3:pagina}, ${4:100})"], "description": "Esperar estado/codigo de otro proceso en un buffer protegido"},
+  "Limitar archivos": {"prefix": "limitar_archivos", "body": ["limitar_archivos \"${1:propio}\", \"${2:copia}\""], "description": "Reducir el acceso a hasta cuatro nombres; sin argumentos impide todos los archivos"}
 }

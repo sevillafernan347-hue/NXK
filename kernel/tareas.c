@@ -175,7 +175,9 @@ int nxk_tareas_bloqueos_demo(void) {
 #ifdef NXK_TEST
 extern int nxk_planificador_probar_pila(uint32_t id);
 extern int nxk_planificador_probar_rechazo(uint32_t id);
-static uint32_t orden[3*NXK_TAREAS_MAX], posicion, errores;
+/* Registro de 96 bytes prestado por la prueba durante las rondas. No hace
+ * falta reservarlo permanentemente en BSS ni en las pilas de las tareas. */
+static uint32_t *orden, posicion, errores;
 static void ronda(void *argumento) {
     struct trabajo *t=argumento; volatile uint32_t local=0xaabb0000u+t->indice;
     if (nxk_tareas_ejecutar(10)!=-1 || nxk_tarea_cancelar(t->id)!=-2 ||
@@ -485,6 +487,7 @@ static int probar_metricas(void) {
     return 0;
 }
 int nxk_tareas_probar_limites(void) {
+    uint32_t registro[3*NXK_TAREAS_MAX]; orden=registro;
     struct nxk_tarea_info info; uint32_t salida=0xdeadbeefu;
     if (nxk_tarea_enumerar(NXK_TAREAS_MAX,&info)!=-1 || nxk_tarea_enumerar(0,0)!=-1 ||
         nxk_tarea_enumerar(0,&info)!=-2 || nxk_tarea_actual() || nxk_tarea_ceder()!=-1 || nxk_tarea_dormir(1)!=-1 ||
@@ -517,6 +520,7 @@ int nxk_tareas_probar_limites(void) {
             info.estado!=NXK_TAREA_TERMINADA || info.activaciones!=4 ||
             nxk_tarea_cancelar(trabajos[i].id)!=-2 || nxk_tarea_liberar(trabajos[i].id)) return 6;
     }
+    orden=0; /* Las ocho tareas ronda ya terminaron y fueron liberadas. */
     uint32_t antiguo=trabajos[0].id, nuevo, contador=0;
     if (nxk_tarea_crear(sumar,&contador,&nuevo) || antiguo==nuevo ||
         nxk_tarea_consultar(antiguo,&info)!=-1 || nxk_tarea_cancelar(antiguo)!=-1 ||

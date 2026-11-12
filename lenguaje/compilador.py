@@ -33,7 +33,7 @@ PALABRAS = set('funcion fin variable constante si sino mientras repetir veces '
                'escribir_puerto verdadero falso y o no y_bits o_bits xor_bits '
                'memoria_usada proceso_actual enviar_mensaje recibir_mensaje '
                'enviar_esperando esperar_proceso finalizar restringir_permisos permisos_actuales '
-               'reservar_pagina liberar_pagina leer_entero escribir_entero '
+               'reservar_pagina liberar_pagina leer_entero escribir_entero limitar_archivos '
                'leer_archivo_en guardar_archivo_desde mostrar_memoria recibir_en_memoria esperar_en_memoria '
                'romper continuar entero logico texto guardar_archivo mostrar_archivo borrar_archivo agregar_archivo renombrar_archivo copiar_archivo'.split())
 # Firmas de las expresiones de buffers: el kernel valida rangos y plazos;
@@ -182,6 +182,17 @@ class Analizador:
                 salida.append((k,t,nombre,self.expresion())); self.linea()
             elif k in ('mostrar_archivo','borrar_archivo'):
                 salida.append((k,t,self.expresion())); self.linea()
+            elif k == 'limitar_archivos':
+                # La lista vacia revoca todo; no implica recuperar acceso general.
+                nombres = []
+                if self.actual.tipo != 'NL':
+                    while True:
+                        nombres.append(self.expresion())
+                        if len(nombres) > 4:
+                            self.error('limitar_archivos admite como maximo cuatro nombres.', t)
+                        if self.actual.texto != ',': break
+                        self.tomar(',')
+                salida.append((k, t, nombres)); self.linea()
             elif k in ('mostrar', 'numero', 'dormir', 'finalizar', 'restringir_permisos', 'afirmar'):
                 salida.append((k, t, self.expresion())); self.linea()
             elif k in ('volver', 'detener', 'ceder', 'romper', 'continuar'):
@@ -347,6 +358,13 @@ class Generador:
                     tipo,datos=self.expresion(s[3]); self.tipo(t,tipo,'texto')
                     poner(f'nxk_es_{k}({nombre}, {datos});')
                 else: poner(f'nxk_es_{k}({nombre});')
+            elif k == 'limitar_archivos':
+                nombres = []
+                for expresion in s[2]:
+                    tipo, nombre = self.expresion(expresion); self.tipo(t, tipo, 'texto')
+                    nombres.append(nombre)
+                argumentos = [f'UINT32_C({len(nombres)})'] + nombres + ['0'] * (4-len(nombres))
+                poner('nxk_es_limitar_archivos(' + ', '.join(argumentos) + ');')
             elif k in ('mostrar', 'numero', 'dormir', 'finalizar', 'restringir_permisos', 'afirmar'):
                 tipo, valor = self.expresion(s[2])
                 esperado = {'mostrar': 'texto', 'numero': 'entero', 'dormir': 'entero', 'finalizar': 'entero', 'restringir_permisos': 'entero', 'afirmar': 'logico'}[k]

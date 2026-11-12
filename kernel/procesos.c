@@ -12,6 +12,7 @@ struct proceso {
     struct nxk_proceso_mensaje buzon[NXK_PROCESO_BUZON_MAX];
     uint32_t primero,buffer_mensaje,recepcion_pendiente;
     uint32_t envio_pendiente,fin_pendiente,valor_pendiente,buffer_fin;
+    char archivos[NXK_PROCESO_ARCHIVOS_MAX][24];
 };
 static struct proceso procesos[NXK_ESPACIOS_MAX];
 static unsigned cursor;
@@ -135,6 +136,65 @@ int nxk_proceso_restringir_actual(uint32_t id,uint32_t mascara) {
     if (!ocupado || !p || p->info.estado!=NXK_PROCESO_EJECUTANDO) return -1;
     return reducir(p,mascara);
 }
+/* Igual al contrato de nombres del RAMFS: comparaciones exactas, no rutas,
+ * comodines ni equivalencias dependientes del volumen montado. */
+__attribute__((minsize)) static int nombre_archivo_valido(const char *nombre) {
+    if (!nombre || !*nombre) return 0;
+    for (unsigned i=0;i<24;++i) {
+        unsigned char c=nombre[i];
+        if (!c) return 1;
+        if (!((c>='a' && c<='z') || (c>='0' && c<='9') || c=='_' || c=='-' || c=='.')) return 0;
+    }
+    return 0;
+}
+__attribute__((minsize)) static int politica_archivos_valida(const struct proceso *p) {
+    if (p->info.archivos_restringidos>1 || p->info.archivos_permitidos>NXK_PROCESO_ARCHIVOS_MAX ||
+        (!p->info.archivos_restringidos && p->info.archivos_permitidos)) return 0;
+    for (unsigned i=0;i<p->info.archivos_permitidos;++i) {
+        if (!nombre_archivo_valido(p->archivos[i])) return 0;
+        for (unsigned j=0;j<i;++j) if (nxk_equal(p->archivos[i],p->archivos[j])) return 0;
+    }
+    return 1;
+}
+__attribute__((minsize)) static int archivo_incluido(const struct proceso *p,const char *nombre) {
+    for (unsigned i=0;i<p->info.archivos_permitidos;++i)
+        if (nxk_equal(p->archivos[i],nombre)) return 1;
+    return 0;
+}
+int nxk_proceso_archivo_permitido(uint32_t id,const char *nombre) {
+    struct proceso *p=referencia(id);
+    if (!p || !nombre_archivo_valido(nombre) || !politica_archivos_valida(p)) return -1;
+    return !p->info.archivos_restringidos || archivo_incluido(p,nombre);
+}
+__attribute__((minsize)) static int limitar_archivos(struct proceso *p,const char nombres[][24],uint32_t cantidad) {
+    if (cantidad>NXK_PROCESO_ARCHIVOS_MAX || (!nombres && cantidad) || !politica_archivos_valida(p)) return -1;
+    /* Validar todas las entradas antes de comprobar la reduccion; ningun
+     * error modifica ni siquiera una parte del filtro anterior. */
+    for (unsigned i=0;i<cantidad;++i) {
+        if (!nombre_archivo_valido(nombres[i])) return -1;
+        for (unsigned j=0;j<i;++j) if (nxk_equal(nombres[i],nombres[j])) return -1;
+    }
+    if (p->info.archivos_restringidos)
+        for (unsigned i=0;i<cantidad;++i) if (!archivo_incluido(p,nombres[i])) return -5;
+    char nuevos[NXK_PROCESO_ARCHIVOS_MAX][24]={{0}};
+    for (unsigned i=0;i<cantidad;++i)
+        for (unsigned j=0;nombres[i][j];++j) nuevos[i][j]=nombres[i][j];
+    memcpy(p->archivos,nuevos,sizeof(nuevos));
+    p->info.archivos_restringidos=1; p->info.archivos_permitidos=cantidad;
+    return 0;
+}
+int nxk_proceso_limitar_archivos(uint32_t id,const char nombres[][24],uint32_t cantidad) {
+    if (!id || cantidad>NXK_PROCESO_ARCHIVOS_MAX || (!nombres && cantidad)) return -1;
+    if (ocupado || !contexto_kernel()) return -3;
+    struct proceso *p=referencia(id); if (!p) return -1;
+    if (terminal(p) || p->info.estado==NXK_PROCESO_EJECUTANDO) return -2;
+    return limitar_archivos(p,nombres,cantidad);
+}
+int nxk_proceso_limitar_archivos_actual(uint32_t id,const char nombres[][24],uint32_t cantidad) {
+    struct proceso *p=referencia(id);
+    if (!ocupado || !p || p->info.estado!=NXK_PROCESO_EJECUTANDO) return -1;
+    return limitar_archivos(p,nombres,cantidad);
+}
 int nxk_procesos_resumen(struct nxk_procesos_resumen *salida) {
     if (!salida) return -1;
     if (ocupado || !contexto_kernel()) return -3;
@@ -148,7 +208,7 @@ int nxk_procesos_resumen(struct nxk_procesos_resumen *salida) {
         }
         if (p->info.estado>=NXK_PROCESO_ESTADOS || (p->info.id&255u)!=i+1u ||
             p->info.mensajes>NXK_PROCESO_BUZON_MAX || p->fin_pendiente>1u ||
-            (p->info.permisos&~NXK_PERMISOS_TODOS)) return -2;
+            (p->info.permisos&~NXK_PERMISOS_TODOS) || !politica_archivos_valida(p)) return -2;
         ++r.registrados; ++r.estados[p->info.estado];
         if (terminal(p)) ++r.finalizados; else ++r.pendientes;
         r.mensajes+=p->info.mensajes; r.referencias_fin+=p->fin_pendiente;
@@ -451,6 +511,34 @@ __attribute__((minsize)) static int probar_buffers(uint32_t id) {
     p->info.estado=NXK_PROCESO_LISTO; p->info.ultimo.salida=0;
     return fallo;
 }
+/* La lista es metadato de esta generacion: rechazos conservan el filtro y
+ * cancelar no puede recuperar nombres ya retirados. No toca archivos reales. */
+__attribute__((minsize)) static int probar_archivos(uint32_t id) {
+    static const char nombres[4][24]={"a","b","c","d"};
+    char peticion[4][24]; struct nxk_proceso_info info;
+    if (nxk_proceso_archivo_permitido(id,"x")!=1 || nxk_proceso_archivo_permitido(id,0)!=-1 ||
+        nxk_proceso_archivo_permitido(0,"a")!=-1 ||
+        nxk_proceso_limitar_archivos(id,nombres,5)!=-1 || nxk_proceso_limitar_archivos(id,0,1)!=-1 ||
+        nxk_proceso_limitar_archivos_actual(id,nombres,1)!=-1) return 1;
+    memcpy(peticion,nombres,sizeof(peticion)); peticion[0][0]='A';
+    if (nxk_proceso_limitar_archivos(id,peticion,4)!=-1 || nxk_proceso_archivo_permitido(id,"x")!=1 ||
+        nxk_proceso_limitar_archivos(id,nombres,4) || nxk_proceso_archivo_permitido(id,"x") ||
+        nxk_proceso_consultar(id,&info) || info.archivos_restringidos!=1 || info.archivos_permitidos!=4) return 2;
+    for (unsigned i=0;i<4;++i) memcpy(peticion[i],nombres[3-i],24);
+    if (nxk_proceso_limitar_archivos(id,peticion,4)) return 3;
+    memcpy(peticion[1],peticion[0],24);
+    if (nxk_proceso_limitar_archivos(id,peticion,4)!=-1 || nxk_proceso_archivo_permitido(id,"b")!=1) return 4;
+    memset(peticion[0],'a',24);
+    if (nxk_proceso_limitar_archivos(id,peticion,1)!=-1 ||
+        nxk_proceso_limitar_archivos(id,nombres+2,2) || nxk_proceso_archivo_permitido(id,"a") ||
+        nxk_proceso_archivo_permitido(id,"c")!=1 || nxk_proceso_limitar_archivos(id,nombres,4)!=-5 ||
+        nxk_proceso_consultar(id,&info) || info.archivos_permitidos!=2 ||
+        nxk_proceso_limitar_archivos(id,0,0) || nxk_proceso_archivo_permitido(id,"c") ||
+        nxk_proceso_limitar_archivos(id,nombres,1)!=-5 || nxk_proceso_cancelar(id) ||
+        nxk_proceso_archivo_permitido(id,"a") || nxk_proceso_limitar_archivos(id,0,0)!=-2) return 5;
+    struct proceso *p=referencia(id); p->info.estado=NXK_PROCESO_LISTO; p->info.ultimo.salida=0;
+    return 0;
+}
 /* Preferir tamano en pruebas de arranque; no modifica la politica del motor. */
 __attribute__((minsize)) int nxk_procesos_probar(void) {
     if (!contexto_kernel()) return 1;
@@ -470,6 +558,7 @@ __attribute__((minsize)) int nxk_procesos_probar(void) {
         nxk_proceso_enumerar(i,&info) || info.id!=ids[i] || info.estado!=NXK_PROCESO_LISTO ||
         info.permisos!=NXK_PERMISOS_TODOS) return 5;
     if (probar_buffers(ids[0])) return 24;
+    if (probar_archivos(ids[0])) return 25;
     /* Quitar permisos no permite recuperarlos, ni siquiera desde la consola.
      * Cero es una mascara valida; no impide terminar por INT80. */
     uint32_t permisos=0xdeadbeefu;
@@ -506,7 +595,9 @@ __attribute__((minsize)) int nxk_procesos_probar(void) {
         nxk_proceso_enumerar(0,&info)!=-2 || !intacto(&info)) return 8;
     /* Liberacion por API de espacio: no conservar PCB ni usar su ID viejo. */
     uint32_t viejo=ids[0];
-    if (nxk_proceso_crear(salir,sizeof(salir),&ids[0]) || ids[0]==viejo ||
+    if (nxk_proceso_archivo_permitido(viejo,"a")!=-1 ||
+        nxk_proceso_crear(salir,sizeof(salir),&ids[0]) || ids[0]==viejo ||
+        nxk_proceso_archivo_permitido(ids[0],"a")!=1 ||
         nxk_espacio_destruir(ids[0]) || nxk_proceso_gestionado(ids[0]) ||
         nxk_proceso_enumerar(0,&info)!=-2 || nxk_proceso_liberar(ids[0])!=-1) return 9;
     static const unsigned char malo[]={0x0f,0x0b};
@@ -560,6 +651,9 @@ __attribute__((minsize)) int nxk_procesos_probar(void) {
 }
 #endif
 #else
+int nxk_proceso_limitar_archivos(uint32_t id,const char n[][24],uint32_t c) { (void)id;(void)n;(void)c;return -64; }
+int nxk_proceso_limitar_archivos_actual(uint32_t id,const char n[][24],uint32_t c) { (void)id;(void)n;(void)c;return -64; }
+int nxk_proceso_archivo_permitido(uint32_t id,const char *n) { (void)id;(void)n;return -64; }
 int nxk_proceso_permisos(uint32_t id,uint32_t *s) { (void)id;(void)s;return -64; }
 int nxk_proceso_restringir(uint32_t id,uint32_t m) { (void)id;(void)m;return -64; }
 int nxk_proceso_restringir_actual(uint32_t id,uint32_t m) { (void)id;(void)m;return -64; }

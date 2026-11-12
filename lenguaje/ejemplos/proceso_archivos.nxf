@@ -1,0 +1,26 @@
+# Cargar como proceso NXE2. El operador puede leer los archivos al terminar.
+funcion inicio
+    guardar_archivo "propio", "hola"
+    guardar_archivo "copia", "viejo"
+    guardar_archivo "ajeno", "intacto"
+    # copiar_archivo exige un destino nuevo: retirar la copia inicial.
+    borrar_archivo "copia"
+    entero pagina = reservar_pagina()
+    afirmar pagina != 0
+
+    limitar_archivos "propio", "copia"
+    afirmar leer_archivo_en("propio", pagina, 4, 0) == 4
+    afirmar leer_entero(pagina) == 0x616c6f68
+    copiar_archivo "propio", "copia"
+    afirmar leer_archivo_en("copia", pagina, 4, 0) == 4
+    # La escritura ajena falla antes de cambiar el contenido del archivo.
+    afirmar guardar_archivo_desde("ajeno", pagina, 4) == 0xfffffffb
+
+    # Retirar copia; ya no puede volver a agregarse durante esta generacion.
+    limitar_archivos "propio"
+    afirmar leer_archivo_en("copia", pagina, 4, 0) == 0xfffffffb
+    limitar_archivos
+    afirmar leer_archivo_en("propio", pagina, 4, 0) == 0xfffffffb
+    afirmar liberar_pagina(pagina) == 0
+    finalizar 42
+fin

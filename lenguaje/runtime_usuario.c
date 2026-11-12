@@ -96,6 +96,26 @@ uint32_t nxk_es_permisos_actuales(void) {
     if (r&~UINT32_C(15)) nxk_es_fallo(0);
     return r;
 }
+/* La tabla se copia a la pila propia; no prestar cadenas de la app al PCB.
+ * El kernel vuelve a validar cada nombre y aplica solo reducciones de lista. */
+void nxk_es_limitar_archivos(uint32_t cantidad,const char *a,const char *b,const char *c,const char *d) {
+    if (cantidad>4) nxk_es_fallo(0);
+    const char *entradas[4]={a,b,c,d};
+    char nombres[4][24];
+    /* Volatile evita introducir una dependencia externa de memset en CPL3. */
+    volatile unsigned char *limpiar=(volatile unsigned char *)nombres;
+    for (unsigned i=0;i<sizeof(nombres);++i) limpiar[i]=0;
+    for (unsigned i=0;i<cantidad;++i) {
+        const char *nombre=entradas[i]; if (!nombre) nxk_es_fallo(0);
+        unsigned j;
+        for (j=0;j<24;++j) { nombres[i][j]=nombre[j]; if (!nombre[j]) break; }
+        if (!j || j==24) nxk_es_fallo(0);
+    }
+    uint32_t resultado=20;
+    const void *tabla=cantidad ? (const void *)nombres : 0;
+    __asm__ volatile("int $0x81":"+a"(resultado):"b"(tabla),"c"(cantidad):"memory","cc");
+    if (resultado) nxk_es_fallo(0);
+}
 /* Servicios18/19 administran solo las paginas privadas del proceso actual.
  * Cero de reserva y error de liberacion son resultados manejables por la app;
  * un servicio ausente no debe confundirse con memoria agotada. */

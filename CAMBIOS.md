@@ -3,6 +3,27 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.22
+
+- Lista de hasta cuatro nombres de archivo por proceso. Sin filtro al crear;
+  despues de activarlo solo se aceptan subconjuntos. Lista vacia irreversible.
+- Servicio INT81/20 y API kernel validan tabla completa, nombres y duplicados
+  antes de modificar la politica. Nombres exactos y copias internas canonicas.
+- FS2..8 exige permisos generales y filtro por nombre. Copiar/renombrar exige
+  ambos nombres antes de consultar o modificar archivos; denegacion devuelve-5.
+- NEXTRY limitar_archivos con0..4 textos, ejemplo comentado y editor. Cancelar
+  conserva el filtro; una generacion nueva comienza sin restricciones.
+- proceso listar muestra si el filtro esta activo y cuantos nombres conserva.
+- 80 pruebas compilador, matriz QEMU x86 32/64/128/1024MiB y regresion x64
+  superadas. Prueba externa de limites, huecos, subconjuntos, permisos, FS2..8,
+  aislamiento, IDs y ejemplo real superada; memoria/discos estables.
+- Regresiones de buffers, permisos, dependencias, resumen y22 escenarios
+  NXE2 desde disco superadas.
+- Registro temporal de rondas en pila de la prueba libera BSS sin eliminar
+  aserciones ni cambiar las pilas de tareas; limite de arranque conservado.
+- Puentes C; filtro por nombres en FS compartido, sin usuarios/propietarios ni
+  ACL por objeto. Detalle: ENTREGA-ARCHIVOS-PROCESOS.md.
+
 ## v0.0.21
 
 - Servicios de salida, archivos y buffers IPC en paginas de datos privadas.

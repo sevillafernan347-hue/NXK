@@ -1,10 +1,12 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.21**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.22**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
 
-La entrega actual permite usar las paginas privadas de datos como buffers de
-archivos, salida y mensajes. Consulta [contrato y ejemplos](ENTREGA-BUFFERS-PROCESOS.md).
+La entrega actual permite restringir cada proceso a una lista de archivos que
+solo puede reducirse. Consulta [contrato y ejemplo](ENTREGA-ARCHIVOS-PROCESOS.md).
+Los [buffers privados de archivos y mensajes](ENTREGA-BUFFERS-PROCESOS.md)
+siguen disponibles.
 
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
 1 GB de RAM. Incluye lenguaje NEXTRY, ensamblador NEXTRY ASM y formato NXE.

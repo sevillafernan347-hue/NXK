@@ -114,3 +114,13 @@ espera sin despachar; liberar una de ellas mediante la API kernel devuelve-5.
 Cancelar/consumir/retirar el receptor elimina la retencion. No se agregan
 servicios ni cambia ABI1; legacy mantiene los rangos anteriores. Consulta
 ENTREGA-BUFFERS-PROCESOS.md para funciones NEXTRY, pruebas y limites.
+
+Desde v0.0.22 INT81/EAX20 reduce archivos permitidos del proceso actual.
+EBX apunta a ECX nombres contiguos de24bytes; ECX0..4, tabla completa legible
+en codigo/pila/datos respaldados. Para ECX0 no se lee EBX. Cada nombre tiene
+1..23 caracteres a-z,0-9,_,-,. y NUL. Se ignoran bytes posteriores al NUL.
+EAX0 exito,-1 contrato,-5 expansion prohibida; legacy devuelve-2.
+El primer filtro restringe, los siguientes deben ser subconjuntos. Cero
+prohibe todos los archivos. FS2..8 exige permisos generales y nombre permitido;
+copiar/renombrar exige ambos nombres. Cabecera/ABI1 se conservan. Consulta
+ENTREGA-ARCHIVOS-PROCESOS.md y ejemplo proceso_archivos.nxf.

@@ -157,6 +157,9 @@ uint32_t nxk_es_recibir_mensaje(uint32_t *origen,uint32_t *valor,uint32_t ticks)
 }
 uint32_t nxk_es_proceso_actual(void) { nxk_es_fallo(0); }
 void nxk_es_restringir_permisos(uint32_t mascara) { (void)mascara; nxk_es_fallo(0); }
+void nxk_es_limitar_archivos(uint32_t cantidad,const char *a,const char *b,const char *c,const char *d) {
+    (void)cantidad; (void)a; (void)b; (void)c; (void)d; nxk_es_fallo(0);
+}
 uint32_t nxk_es_permisos_actuales(void) { nxk_es_fallo(0); }
 /* La memoria privada requiere la ruta CPL3 gestionada, no tareas ring0. */
 uint32_t nxk_es_reservar_pagina(void) { nxk_es_fallo(0); }
@@ -602,7 +605,9 @@ void kernel_main(void) {
                         print("Proceso "); number(p.id); print(" estado "); number(p.estado);
                         print(" turnos "); number(p.turnos); print(" cesiones "); number(p.cesiones); print(" preempciones "); number(p.preempciones); print(" dormidas "); number(p.dormidas); print(" despertar "); number(p.despertar);
                         print(" mensajes "); number(p.mensajes); print(" enviados "); number(p.enviados); print(" recibidos "); number(p.recibidos); print(" esperas "); number(p.esperas_mensaje); print(" plazos "); number(p.plazos);
-                        print(" esperando "); number(p.esperando); print(" esperas_envio "); number(p.esperas_envio); print(" esperas_fin "); number(p.esperas_fin); print(" ciclos "); number(p.ciclos); print(" permisos "); number(p.permisos); put('\n');
+                        print(" esperando "); number(p.esperando); print(" esperas_envio "); number(p.esperas_envio); print(" esperas_fin "); number(p.esperas_fin); print(" ciclos "); number(p.ciclos); print(" permisos "); number(p.permisos);
+                        print(" archivos_restringidos "); number(p.archivos_restringidos);
+                        print(" archivos_permitidos "); number(p.archivos_permitidos); put('\n');
                         if (p.estado==NXK_PROCESO_CANCELADO) print("Cancelado; recursos retenidos hasta liberar.\n");
                         else if (p.error_motor) { print("Error de motor "); number(p.error_motor); put('\n'); }
                         else if (p.turnos) usuario_resultado(&p.ultimo);

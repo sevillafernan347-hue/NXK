@@ -163,6 +163,14 @@ static int usuario_rango(uint32_t p,uint32_t n,int escritura) {
     uintptr_t minimo=usuario_base+(escritura ? 4096 : 0);
     return p>=minimo && p-usuario_base<8192 && n<=8192-(p-usuario_base);
 }
+/* El nombre ya es una copia kernel terminada. El filtro no consulta el FS,
+ * por lo que una denegacion no revela existencia ni modifica archivos. */
+static int usuario_archivo_autorizado(uint32_t *c,const char *nombre) {
+    if (!contexto_reanudable) return 1;
+    int r=nxk_proceso_archivo_permitido(usuario_id_activo,nombre);
+    if (r==1) return 1;
+    c[11]=r==0 ? (uint32_t)-5 : UINT32_MAX; return 0;
+}
 static void usuario_servicio(uint32_t *c) {
     uint32_t servicio=c[11], p=c[8], n=c[10];
     c[11]=0xffffffffu;
@@ -237,6 +245,18 @@ static void usuario_servicio(uint32_t *c) {
         c[11]=nxk_espacio_liberar_pagina(usuario_id_activo,p) ? UINT32_MAX : 0;
         return;
     }
+    if (servicio==20 && contexto_reanudable) {
+        if (n>NXK_PROCESO_ARCHIVOS_MAX) return;
+        char nombres[NXK_PROCESO_ARCHIVOS_MAX][24];
+        if (n) {
+            /* Validacion completa antes de copiar: un hueco no aplica una
+             * lista parcial. Cantidad0 no desreferencia el puntero. */
+            if (!usuario_rango(p,n*24u,0)) return;
+            memcpy(nombres,(const void *)(uintptr_t)p,n*24u);
+        }
+        c[11]=(uint32_t)nxk_proceso_limitar_archivos_actual(usuario_id_activo,n ? nombres : 0,n);
+        return;
+    }
     if ((servicio==14 || servicio==15) && contexto_reanudable) {
         uint32_t espera=c[9];
         if (espera>0x7fffffffu || (servicio==15 && !usuario_rango(n,8,1))) return;
@@ -276,11 +296,13 @@ static void usuario_servicio(uint32_t *c) {
             if (!nuevo[j]) break;
         }
         if (j==24) return;
+        if (!usuario_archivo_autorizado(c,nombre) || !usuario_archivo_autorizado(c,nuevo)) return;
         /* Ambos nombres ya son copias kernel: no se usan cadenas CPL3 dentro del FS. */
         int r=servicio==8 ? nxk_archivo_copiar(nombre,nuevo) : nxk_archivo_renombrar(nombre,nuevo);
         if (!r) c[11]=0;
         return;
     }
+    if (!usuario_archivo_autorizado(c,nombre)) return;
     if (servicio==4) { if (!nxk_archivo_borrar(nombre)) c[11]=0; return; }
     if (cantidad>256 || !usuario_rango(buffer,cantidad,servicio==3 || servicio==5)) return;
     if (servicio==2 || servicio==6) {

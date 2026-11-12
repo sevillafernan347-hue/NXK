@@ -1,8 +1,8 @@
 # Estado de NXK
 
-Version actual: 0.0.21. Cuatro procesos CPL3 con memoria privada, preempcion,
-espera temporal, mensajes FIFO, resultados, permisos y buffers en datos privados.
-Guia actual y pruebas en ENTREGA-BUFFERS-PROCESOS.md;
+Version actual: 0.0.22. Cuatro procesos CPL3 con memoria privada, preempcion,
+esperas, mensajes, resultados, permisos y listas de archivos por proceso.
+Guia actual y pruebas en ENTREGA-ARCHIVOS-PROCESOS.md;
 siguientes hitos en PENDIENTES-KERNEL.md.
 
 El registro siguiente conserva las etapas anteriores: cada entrada describe
@@ -503,3 +503,19 @@ Imagen x86 normal73740B/test102412B; x64 normal24584B/test28680B. minsize
 local para pruebas/kernel_main x64 conserva limites sin retirar aserciones.
 Cuatro procesos, una CPU, puentes C; E/S dispositivos y hardware ASUS pendientes.
 Ver ENTREGA-BUFFERS-PROCESOS.md.
+
+NXK v0.0.22: lista por proceso de hasta cuatro nombres exactos de archivo.
+Primera lista activa filtro; despues solo subconjuntos y0niega todos. INT81/20
+valida tabla/nombres completos y rechaza duplicados sin modificar politica.
+FS2..8 comprueba permisos generales antes de punteros y nombres permitidos
+antes de datos/FS; copiar/renombrar requiere ambos. Denegacion-5, contrato-1.
+NEXTRY limitar_archivos, ejemplo, editor y diagnostico de filtro/cantidad.
+Cancelacion conserva politica; nuevoID vuelve sin filtro. 80pruebas compilador,
+matriz x86 32/64/128/1024MiB y x64 64MiB superadas. Prueba externa de tablas
+RO/cruzadas/huecos, limites, subconjuntos/0, FS2..8, aislamiento y ejemplo real
+superada; heap/paginas/discos estables. Sin cambios en cabecera NXE2 ABI1.
+Regresiones de buffers, permisos, dependencias, resumen y22NXE2 superadas.
+Imagen x86 normal73740B/test102412B; x64 normal24584B/test28680B. Registro de
+rondas ahora local al llamador de prueba, conservando128KiB y las aserciones.
+Filtro de nombres, sin usuarios/propietarios/ACL de objeto; puentes C, una CPU.
+Ver ENTREGA-ARCHIVOS-PROCESOS.md.

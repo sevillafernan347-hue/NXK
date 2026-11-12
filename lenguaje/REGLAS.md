@@ -345,3 +345,21 @@ Los mensajes/resultados pendientes retienen las paginas del buffer hasta
 despacharse o cancelarse. No liberar ni reutilizar direcciones de datos antes
 de consumir su resultado. Los ejemplos `buffer_archivos.nxf` y
 `memoria_mensajes.nxf` usan paginas privadas; NXE1 falla explicitamente.
+
+## Lista de archivos permitidos (v0.0.22)
+
+`limitar_archivos "propio", "copia"` limita el proceso a esos nombres exactos.
+Admite hasta cuatro expresiones de tipo texto, separadas por comas. La orden
+`limitar_archivos` sin argumentos impide todo acceso a archivos. Los nombres
+deben contener de1 a23bytes; el kernel rechaza duplicados y nombres invalidos.
+
+La primera lista activa el filtro; las siguientes solo pueden conservar o
+retirar nombres de la lista actual, nunca agregar otros ni recuperar acceso
+general. Cada operacion tambien exige sus permisos globales correspondientes.
+Copiar y renombrar requieren que ambos nombres esten permitidos. El filtro
+no altera salida, mensajes, memoria ni el permiso global actual.
+
+Un error al limitar termina la aplicacion NEXTRY; no continua fingiendo que
+se aplico la restriccion. NXE1 falla explicitamente. La ruta CPL3 usa servicio20
+con una tabla de filas de24bytes y cantidad0..4; ABI1 no cambia. Consulta el
+ejemplo comentado `ejemplos/proceso_archivos.nxf`.
