@@ -8,7 +8,13 @@
 #define NXK_ESPACIO_PILA 0x401000u
 #define NXK_ESPACIO_DATOS 0x402000u
 #define NXK_ESPACIO_DATOS_MAX 4u
-struct nxk_espacio_info { uint32_t id, directorio, codigo_fisico, pila_fisica, paginas_datos; };
+struct nxk_espacio_info { uint32_t id, directorio, codigo_fisico, pila_fisica, paginas_datos, cuota_datos; };
+/* Cuota inicial4 por generacion, solo reducciones0..4; no retira paginas.
+ * 0 exito,-1 ID/contrato,-2 inferior al uso,-3 contexto,-5 ampliacion.
+ * Solo CR3 kernel o propio, fuera de tarea/IRQ. Consulta conserva salida
+ * al fallar;0 es una cuota valida. No incluye las cinco paginas base. */
+int nxk_espacio_limitar_datos(uint32_t id,uint32_t cuota);
+int nxk_espacio_cuota(uint32_t id,uint32_t *salida);
 /* Crear: 1..4096 bytes, codigo RO, pila RW en cero; salida intacta al fallar.
  * 0 exito; -1 contrato/ID; -2 tabla llena/activo al destruir;
  * -3 contexto no permitido; -4 memoria fisica insuficiente. */

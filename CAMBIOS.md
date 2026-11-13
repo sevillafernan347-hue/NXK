@@ -3,6 +3,19 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.24
+
+- Cuotas de paginas de datos por espacio, inicial4, solo reducciones0..4.
+  Rechazar un limite inferior al uso no libera ni modifica datos. Liberar
+  paginas no recupera cuota; una generacion nueva comienza4.
+- Servicios21/22, consola proceso memoria ID LIMITE y cuota_datos en listar.
+- NEXTRY limitar_memoria/cuota_memoria(), ejemplo y editor actualizados.
+- 85 pruebas compilador, matriz x86 32/64/128/1024MiB y regresion x64 superadas.
+- Prueba externa de cuatro cuotas distintas, limites, IPC pendiente, consola,
+  cancelacion, reciclaje y NEXTRY. Regresiones memoria/archivos superadas.
+- Sin cambios en ABI1 NXE2 ni reserva anticipada de paginas. Puentes C;
+  detalles y limites en ENTREGA-CUOTAS-MEMORIA.md.
+
 ## v0.0.23
 
 - Nuevo comando proceso archivos ID lista, hasta cuatro nombres separados por

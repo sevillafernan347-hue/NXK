@@ -124,3 +124,9 @@ El primer filtro restringe, los siguientes deben ser subconjuntos. Cero
 prohibe todos los archivos. FS2..8 exige permisos generales y nombre permitido;
 copiar/renombrar exige ambos nombres. Cabecera/ABI1 se conservan. Consulta
 ENTREGA-ARCHIVOS-PROCESOS.md y ejemplo proceso_archivos.nxf.
+
+Desde v0.0.24 INT81/EAX21, EBX=cuota0..4, reduce paginas de datos del proceso
+gestionado actual:0 exito,-1 contrato,-2 inferior al uso,-5 ampliacion.
+INT81/EAX22 devuelve cuota0..4. Legacy devuelve-2 (no soportado). Una nueva
+generacion comienza4; liberar paginas no aumenta cuota. ABI1 sin cambios.
+Consulta ENTREGA-CUOTAS-MEMORIA.md y ejemplo cuota_memoria.nxf.

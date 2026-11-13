@@ -28,6 +28,9 @@ uint32_t nxk_es_proceso_actual(void);
  * Solo se pueden retirar bits; nunca recuperarlos durante la misma vida. */
 void nxk_es_restringir_permisos(uint32_t mascara);
 uint32_t nxk_es_permisos_actuales(void);
+/* Cuota de paginas privadas0..4, monotona y nunca inferior al uso. */
+void nxk_es_limitar_memoria(uint32_t cuota);
+uint32_t nxk_es_cuota_memoria(void);
 /* Lista monotona de hasta cuatro nombres. Cantidad0 impide todos los archivos;
  * cualquier error o servicio ausente termina explicitamente la aplicacion. */
 void nxk_es_limitar_archivos(uint32_t cantidad,const char *a,const char *b,const char *c,const char *d);

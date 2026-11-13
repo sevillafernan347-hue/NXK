@@ -1,0 +1,21 @@
+# Reservas bajo un limite propio de dos paginas; liberar no aumenta la cuota.
+funcion inicio
+    afirmar cuota_memoria() == 4
+    limitar_memoria 2
+    entero primera = reservar_pagina()
+    entero segunda = reservar_pagina()
+    afirmar primera != 0 y segunda != 0
+    afirmar reservar_pagina() == 0
+    escribir_entero primera, 123
+    ceder
+    afirmar cuota_memoria() == 2
+    afirmar leer_entero(primera) == 123
+    afirmar liberar_pagina(segunda) == 0
+    limitar_memoria 1
+    afirmar reservar_pagina() == 0
+    afirmar liberar_pagina(primera) == 0
+    limitar_memoria 0
+    afirmar cuota_memoria() == 0
+    afirmar reservar_pagina() == 0
+    finalizar 42
+fin

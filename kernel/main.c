@@ -178,6 +178,8 @@ void nxk_es_limitar_archivos(uint32_t cantidad,const char *a,const char *b,const
     (void)cantidad; (void)a; (void)b; (void)c; (void)d; nxk_es_fallo(0);
 }
 uint32_t nxk_es_permisos_actuales(void) { nxk_es_fallo(0); }
+void nxk_es_limitar_memoria(uint32_t cuota) { (void)cuota; nxk_es_fallo(0); }
+uint32_t nxk_es_cuota_memoria(void) { nxk_es_fallo(0); }
 /* La memoria privada requiere la ruta CPL3 gestionada, no tareas ring0. */
 uint32_t nxk_es_reservar_pagina(void) { nxk_es_fallo(0); }
 uint32_t nxk_es_liberar_pagina(uint32_t direccion) { (void)direccion; nxk_es_fallo(0); }
@@ -494,7 +496,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | espacios | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nproceso resumen | proceso dependencias | proceso dormir | proceso preempcion | proceso demo | proceso cargar nombre.nxe | proceso listar | proceso paso ID\nproceso ejecutar | proceso liberar ID\nproceso enviar ID VALOR | proceso cancelar ID\nproceso permisos ID MASCARA\nproceso archivos ID [nombre1,nombre2]\nusuario espacios | usuario listar | usuario cargar archivo.nxe | usuario turno ID | usuario liberar ID\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | espacios | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nproceso resumen | proceso dependencias | proceso dormir | proceso preempcion | proceso demo | proceso cargar nombre.nxe | proceso listar | proceso paso ID\nproceso ejecutar | proceso liberar ID\nproceso enviar ID VALOR | proceso cancelar ID\nproceso permisos ID MASCARA\nproceso memoria ID LIMITE\nproceso archivos ID [nombre1,nombre2]\nusuario espacios | usuario listar | usuario cargar archivo.nxe | usuario turno ID | usuario liberar ID\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -660,6 +662,11 @@ void kernel_main(void) {
                     nxk_proceso_limitar_archivos(id,nombres,cantidad) ?
                     "No se pudo restringir archivos.\n" : "Archivos restringidos.\n");
             }
+            else if (prefijo(line,"proceso memoria ")) {
+                uint32_t id,cuota;
+                print(!leer_par(line+16,&id,&cuota) || !nxk_proceso_gestionado(id) ||
+                    nxk_espacio_limitar_datos(id,cuota) ? "No se pudo reducir cuota.\n" : "Cuota reducida.\n");
+            }
             else if (prefijo(line,"proceso cancelar ")) {
                 uint32_t id;
                 print(!leer_id(line+17,&id) || nxk_proceso_cancelar(id) ? "No se pudo cancelar proceso.\n" : "Proceso cancelado.\n");
@@ -676,7 +683,8 @@ void kernel_main(void) {
                     struct nxk_espacio_info info;
                     if (!nxk_espacio_enumerar(i,&info)) {
                         print("Programa privado ID "); number(info.id);
-                        print(" paginas_datos "); number(info.paginas_datos); put('\n'); ++n;
+                        print(" paginas_datos "); number(info.paginas_datos);
+                        print(" cuota_datos "); number(info.cuota_datos); put('\n'); ++n;
                     }
                 }
                 if (!n) print("Sin programas privados cargados.\n");

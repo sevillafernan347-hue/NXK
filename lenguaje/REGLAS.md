@@ -363,3 +363,13 @@ Un error al limitar termina la aplicacion NEXTRY; no continua fingiendo que
 se aplico la restriccion. NXE1 falla explicitamente. La ruta CPL3 usa servicio20
 con una tabla de filas de24bytes y cantidad0..4; ABI1 no cambia. Consulta el
 ejemplo comentado `ejemplos/proceso_archivos.nxf`.
+
+## Cuotas de paginas privadas (v0.0.24)
+
+`cuota_memoria()` retorna un entero0..4. `limitar_memoria expresion_entera`
+reduce esa cuota; aumentarla o bajarla por debajo de las paginas ya reservadas
+termina la app con error, sin cambiar el limite ni liberar datos. El valor
+inicial es4 y cada pagina tiene4096bytes; no incluye codigo, pila ni tablas.
+Liberar paginas no aumenta el limite. Cuota0 impide toda nueva reserva;
+`reservar_pagina()` devuelve0 al agotarla. Las rutas sin soporte fallan
+explicitamente. Ejemplo completo: `ejemplos/cuota_memoria.nxf`.

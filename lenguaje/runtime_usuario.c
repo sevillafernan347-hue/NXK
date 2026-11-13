@@ -96,6 +96,17 @@ uint32_t nxk_es_permisos_actuales(void) {
     if (r&~UINT32_C(15)) nxk_es_fallo(0);
     return r;
 }
+void nxk_es_limitar_memoria(uint32_t cuota) {
+    uint32_t r=21;
+    __asm__ volatile("int $0x81":"+a"(r):"b"(cuota):"memory","cc");
+    if (r) nxk_es_fallo(0);
+}
+uint32_t nxk_es_cuota_memoria(void) {
+    uint32_t r=22;
+    __asm__ volatile("int $0x81":"+a"(r)::"memory","cc");
+    if (r>4) nxk_es_fallo(0);
+    return r;
+}
 /* La tabla se copia a la pila propia; no prestar cadenas de la app al PCB.
  * El kernel vuelve a validar cada nombre y aplica solo reducciones de lista. */
 void nxk_es_limitar_archivos(uint32_t cantidad,const char *a,const char *b,const char *c,const char *d) {

@@ -257,6 +257,14 @@ static void usuario_servicio(uint32_t *c) {
         c[11]=(uint32_t)nxk_proceso_limitar_archivos_actual(usuario_id_activo,n ? nombres : 0,n);
         return;
     }
+    if (servicio==21 && contexto_reanudable) {
+        c[11]=(uint32_t)nxk_espacio_limitar_datos(usuario_id_activo,p); return;
+    }
+    if (servicio==22 && contexto_reanudable) {
+        uint32_t cuota;
+        if (!nxk_espacio_cuota(usuario_id_activo,&cuota)) c[11]=cuota;
+        return;
+    }
     if ((servicio==14 || servicio==15) && contexto_reanudable) {
         uint32_t espera=c[9];
         if (espera>0x7fffffffu || (servicio==15 && !usuario_rango(n,8,1))) return;

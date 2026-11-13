@@ -11,6 +11,14 @@
 #define KERNEL_CR3 0x200000u
 struct espacio { uint32_t generacion,id,base,datos[NXK_ESPACIO_DATOS_MAX]; };
 static struct espacio espacios[NXK_ESPACIOS_MAX];
+/* Tres bits por slot: cuotas0..4. No altera el ID ni su generacion. */
+_Static_assert(NXK_ESPACIOS_MAX*3<=16 && NXK_ESPACIO_DATOS_MAX<8,"Cuotas fuera de rango");
+static uint16_t cuotas;
+static uint32_t limite(const struct espacio *e) { return (cuotas>>(3*(e-espacios)))&7u; }
+static void poner_limite(const struct espacio *e,uint32_t n) {
+    unsigned desplazamiento=3*(unsigned)(e-espacios);
+    cuotas=(uint16_t)((cuotas&~(7u<<desplazamiento))|(n<<desplazamiento));
+}
 static uint32_t cr3(void) { uint32_t n; __asm__ volatile("mov %%cr3,%0":"=r"(n)); return n; }
 static int paginado(void) { uint32_t n; __asm__ volatile("mov %%cr0,%0":"=r"(n)); return (n&0x80000000u)!=0; }
 static struct espacio *buscar(uint32_t id) {
@@ -46,13 +54,16 @@ int nxk_espacio_crear(const void *codigo,size_t n,uint32_t *id) {
     void *reserva=nxk_paginas_reservar_bloque(5,1); if (!reserva) return -4;
     struct espacio *e=&espacios[i]; e->base=(uint32_t)(uintptr_t)reserva;
     memcpy((void *)(uintptr_t)(e->base+12288),codigo,n); preparar(e);
+    poner_limite(e,NXK_ESPACIO_DATOS_MAX);
     ++e->generacion; e->id=(e->generacion<<8)|(i+1); *id=e->id; return 0;
 }
 int nxk_espacio_consultar(uint32_t id,struct nxk_espacio_info *salida) {
     struct espacio *e=buscar(id); if (!e || !salida) return -1;
     uint32_t cantidad=0;
     for (unsigned i=0;i<NXK_ESPACIO_DATOS_MAX;++i) cantidad+=!!e->datos[i];
-    *salida=(struct nxk_espacio_info){e->id,e->base,e->base+12288,e->base+16384,cantidad}; return 0;
+    uint32_t cuota=limite(e);
+    if (cuota>NXK_ESPACIO_DATOS_MAX || cantidad>cuota) return -1;
+    *salida=(struct nxk_espacio_info){e->id,e->base,e->base+12288,e->base+16384,cantidad,cuota}; return 0;
 }
 int nxk_espacio_enumerar(unsigned slot,struct nxk_espacio_info *salida) {
     if (slot>=NXK_ESPACIOS_MAX || !salida) return -1;
@@ -72,9 +83,27 @@ static void actualizar_dato(struct espacio *e,unsigned i) {
     tabla[2+i]=e->datos[i] ? e->datos[i]|7u : ((uint32_t *)0x202000)[2+i]&~4u;
     if (cr3()==e->base) __asm__ volatile("invlpg (%0)"::"r"(virtual):"memory");
 }
+int nxk_espacio_cuota(uint32_t id,uint32_t *salida) {
+    struct espacio *e=buscar(id); if (!e || !salida || limite(e)>NXK_ESPACIO_DATOS_MAX) return -1;
+    *salida=limite(e); return 0;
+}
+int nxk_espacio_limitar_datos(uint32_t id,uint32_t cuota) {
+    struct espacio *e=buscar(id); if (!e || cuota>NXK_ESPACIO_DATOS_MAX) return -1;
+    if (!contexto_datos(e)) return -3;
+    uint32_t anterior=limite(e),usadas=0;
+    if (anterior>NXK_ESPACIO_DATOS_MAX) return -1;
+    if (cuota>anterior) return -5;
+    for (unsigned i=0;i<NXK_ESPACIO_DATOS_MAX;++i) usadas+=!!e->datos[i];
+    if (cuota<usadas) return -2;
+    poner_limite(e,cuota); return 0;
+}
 int nxk_espacio_reservar_pagina(uint32_t id,uint32_t *direccion) {
     struct espacio *e=buscar(id); if (!e || !direccion) return -1;
     if (!contexto_datos(e)) return -3;
+    uint32_t usadas=0,cuota=limite(e);
+    if (cuota>NXK_ESPACIO_DATOS_MAX) return -1;
+    for (unsigned j=0;j<NXK_ESPACIO_DATOS_MAX;++j) usadas+=!!e->datos[j];
+    if (usadas>=cuota) return -2;
     unsigned i;
     for (i=0;i<NXK_ESPACIO_DATOS_MAX;++i) if (!e->datos[i]) break;
     if (i==NXK_ESPACIO_DATOS_MAX) return -2;
@@ -147,7 +176,7 @@ int nxk_espacio_destruir(uint32_t id) {
         e->datos[i]=0;
     }
     if (nxk_paginas_liberar_bloque((void *)(uintptr_t)e->base,5)) return -4;
-    e->base=0; e->id=0; return 0;
+    poner_limite(e,0); e->base=0; e->id=0; return 0;
 }
 /* Demostracion kernel: cuatro pilas en la misma VA, contenido independiente.
  * Toda salida de error restaura CR3 y devuelve reservas adquiridas. */
@@ -285,6 +314,8 @@ __attribute__((minsize)) int nxk_espacios_probar(void) {
 }
 #endif
 #else
+int nxk_espacio_limitar_datos(uint32_t id,uint32_t n) { (void)id;(void)n;return -64; }
+int nxk_espacio_cuota(uint32_t id,uint32_t *n) { (void)id;(void)n;return -64; }
 int nxk_espacio_crear(const void *c,size_t n,uint32_t *id) { (void)c;(void)n;(void)id;return -64; }
 int nxk_espacio_consultar(uint32_t id,struct nxk_espacio_info *s) { (void)id;(void)s;return -64; }
 int nxk_espacio_enumerar(unsigned i,struct nxk_espacio_info *s) { (void)i;(void)s;return -64; }

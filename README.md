@@ -1,6 +1,6 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.23**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.24**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
 
 La entrega actual permite restringir cada proceso a una lista de archivos que
@@ -11,6 +11,10 @@ siguen disponibles.
 La consola permite confinar una aplicacion antes de ejecutarla con
 `proceso archivos ID nombre1,nombre2`. Sin lista retira todo acceso.
 Consulta [uso y pruebas](ENTREGA-CONSOLA-ARCHIVOS.md).
+
+Cuotas de datos: `proceso memoria ID LIMITE` reduce el maximo de paginas
+privadas0..4. NEXTRY ofrece `limitar_memoria` y `cuota_memoria()`.
+Consulta [contrato, ejemplo y pruebas](ENTREGA-CUOTAS-MEMORIA.md).
 
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
 1 GB de RAM. Incluye lenguaje NEXTRY, ensamblador NEXTRY ASM y formato NXE.

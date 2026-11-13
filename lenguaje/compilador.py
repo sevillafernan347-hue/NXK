@@ -33,7 +33,7 @@ PALABRAS = set('funcion fin variable constante si sino mientras repetir veces '
                'escribir_puerto verdadero falso y o no y_bits o_bits xor_bits '
                'memoria_usada proceso_actual enviar_mensaje recibir_mensaje '
                'enviar_esperando esperar_proceso finalizar restringir_permisos permisos_actuales '
-               'reservar_pagina liberar_pagina leer_entero escribir_entero limitar_archivos '
+               'reservar_pagina liberar_pagina leer_entero escribir_entero limitar_archivos limitar_memoria cuota_memoria '
                'leer_archivo_en guardar_archivo_desde mostrar_memoria recibir_en_memoria esperar_en_memoria '
                'romper continuar entero logico texto guardar_archivo mostrar_archivo borrar_archivo agregar_archivo renombrar_archivo copiar_archivo'.split())
 # Firmas de las expresiones de buffers: el kernel valida rangos y plazos;
@@ -134,7 +134,7 @@ class Analizador:
             izq = ('logico', t, t.tipo == 'verdadero')
         elif t.tipo == 'NOMBRE':
             izq = ('nombre', t, t.texto)
-        elif t.tipo in ('memoria_usada', 'proceso_actual', 'permisos_actuales', 'reservar_pagina'):
+        elif t.tipo in ('memoria_usada', 'proceso_actual', 'permisos_actuales', 'reservar_pagina', 'cuota_memoria'):
             self.tomar('('); self.tomar(')')
             izq = (t.tipo, t)
         elif t.tipo in ('liberar_pagina', 'leer_entero'):
@@ -193,7 +193,7 @@ class Analizador:
                         if self.actual.texto != ',': break
                         self.tomar(',')
                 salida.append((k, t, nombres)); self.linea()
-            elif k in ('mostrar', 'numero', 'dormir', 'finalizar', 'restringir_permisos', 'afirmar'):
+            elif k in ('mostrar', 'numero', 'dormir', 'finalizar', 'restringir_permisos', 'limitar_memoria', 'afirmar'):
                 salida.append((k, t, self.expresion())); self.linea()
             elif k in ('volver', 'detener', 'ceder', 'romper', 'continuar'):
                 salida.append((k, t)); self.linea()
@@ -297,7 +297,7 @@ class Generador:
         if k == 'logico': return 'logico', '1' if e[2] else '0'
         if k == 'nombre':
             tipo, nombre, _ = self.buscar(t); return tipo, nombre
-        if k in ('memoria_usada', 'proceso_actual', 'permisos_actuales', 'reservar_pagina'): return 'entero', f'nxk_es_{k}()'
+        if k in ('memoria_usada', 'proceso_actual', 'permisos_actuales', 'reservar_pagina', 'cuota_memoria'): return 'entero', f'nxk_es_{k}()'
         if k in ('liberar_pagina', 'leer_entero'):
             tipo, direccion = self.expresion(e[2]); self.tipo(t, tipo, 'entero')
             return 'entero', f'nxk_es_{k}({direccion})'
@@ -365,9 +365,9 @@ class Generador:
                     nombres.append(nombre)
                 argumentos = [f'UINT32_C({len(nombres)})'] + nombres + ['0'] * (4-len(nombres))
                 poner('nxk_es_limitar_archivos(' + ', '.join(argumentos) + ');')
-            elif k in ('mostrar', 'numero', 'dormir', 'finalizar', 'restringir_permisos', 'afirmar'):
+            elif k in ('mostrar', 'numero', 'dormir', 'finalizar', 'restringir_permisos', 'limitar_memoria', 'afirmar'):
                 tipo, valor = self.expresion(s[2])
-                esperado = {'mostrar': 'texto', 'numero': 'entero', 'dormir': 'entero', 'finalizar': 'entero', 'restringir_permisos': 'entero', 'afirmar': 'logico'}[k]
+                esperado = {'mostrar': 'texto', 'numero': 'entero', 'dormir': 'entero', 'finalizar': 'entero', 'restringir_permisos': 'entero', 'limitar_memoria': 'entero', 'afirmar': 'logico'}[k]
                 self.tipo(t, tipo, esperado)
                 if k == 'afirmar': poner(f'if (!({valor})) nxk_es_fallo(UINT32_C({t.linea}));')
                 else: poner(f'nxk_es_{k}({valor});')

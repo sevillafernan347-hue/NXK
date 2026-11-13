@@ -1,8 +1,8 @@
 # Estado de NXK
 
-Version actual: 0.0.23. Cuatro procesos CPL3 con memoria privada, preempcion,
+Version actual: 0.0.24. Cuatro procesos CPL3 con memoria privada, preempcion,
 esperas, mensajes, resultados, permisos y listas de archivos por proceso.
-Guia actual y pruebas en ENTREGA-ARCHIVOS-PROCESOS.md;
+Guia actual y pruebas en ENTREGA-CUOTAS-MEMORIA.md;
 siguientes hitos en PENDIENTES-KERNEL.md.
 
 El registro siguiente conserva las etapas anteriores: cada entrada describe
@@ -526,3 +526,15 @@ de sintaxis no cambian politica; conserva subconjuntos y validacion de ID.
 Matriz x86 32/64/128/1024MiB, x64 64MiB y prueba externa completa de archivos
 por proceso superadas. Memoria/discos estables. Puente C; ABI sin cambios.
 Ver ENTREGA-CONSOLA-ARCHIVOS.md.
+
+NXK v0.0.24: cuota de paginas de datos por espacio, inicial4, solo reducciones.
+Rechaza limite inferior al uso sin retirar datos; liberar no recupera cuota.
+Generacion nueva vuelve4. INT81/21 reduce y22 consulta; legacy no soportado.
+NEXTRY limitar_memoria/cuota_memoria(), consola proceso memoria ID LIMITE,
+cuota_datos en usuario listar. Metadatos compactos16bits para cuatro cuotas.
+85pruebas compilador, matriz x86 32/64/128/1024MiB y x64 64MiB superadas.
+Prueba externa de cuotas distintas, consola, permisos0, datos conservados,
+espera IPC, cancelacion, IDs y NEXTRY superada. Regresiones memoria y archivos
+superadas, recursos y discos estables. Imagen x86 normal77836B/test102412B;
+x64 normal24584B/test28680B. Puentes C, sin reserva anticipada de RAM ni swap.
+Ver ENTREGA-CUOTAS-MEMORIA.md.

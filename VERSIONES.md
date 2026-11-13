@@ -30,6 +30,7 @@ existiendo aunque no reciban una etiqueta propia.
 | v0.0.21 | Buffers de archivos/IPC en memoria privada y retencion de paginas pendientes |
 | v0.0.22 | Listas de archivos por proceso que solo pueden reducirse y limitar_archivos |
 | v0.0.23 | Configuracion de archivos permitidos desde consola antes de ejecutar |
+| v0.0.24 | Cuotas de paginas de datos, consola y soporte NEXTRY |
 
 La serie de etiquetas se inicia el 3 de noviembre de 2026. v0.0.1 identifica
 la entrega previa ya probada; no cambia sus archivos ni fecha del commit.
