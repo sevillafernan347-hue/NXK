@@ -242,6 +242,28 @@ def main():
         m.comando('borrar calentar')
         memoria = m.comando('mem')
 
+        # El operador puede confinar antes de que el programa ejecute codigo.
+        id = m.cargar('fin.nxe')
+        for lista in ('a,b,c,d,e', 'a,', ',a', 'a,,b', 'a,a', 'A', 'x'*24):
+            m.comando(f'proceso archivos {id} {lista}', b'No se pudo restringir archivos.')
+            assert politica(m, id) == (0, 0)
+        m.comando(f'proceso archivos {id} a,b,c,d', b'Archivos restringidos.')
+        assert politica(m, id) == (1, 4)
+        m.comando(f'proceso archivos {id} d,b', b'Archivos restringidos.')
+        m.comando(f'proceso archivos {id} a', b'No se pudo restringir archivos.')
+        assert politica(m, id) == (1, 2)
+        m.comando(f'proceso archivos {id}', b'Archivos restringidos.')
+        assert politica(m, id) == (1, 0)
+        m.paso(id, 3, 42)
+        m.comando(f'proceso archivos {id}', b'No se pudo restringir archivos.')
+        m.liberar(id)
+        m.comando(f'proceso archivos {id}', b'No se pudo restringir archivos.')
+        m.comando('proceso archivos 4294967296 a', b'No se pudo restringir archivos.')
+        id = m.cargar('fin.nxe')
+        assert politica(m, id) == (0, 0)
+        m.liberar(id)
+        assert m.comando('mem') == memoria
+
         id = m.cargar('listas.nxe')
         assert politica(m, id) == (0, 0)
         for esperado in ((0, 0), (1, 4), (1, 2), (1, 1)):

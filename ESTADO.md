@@ -1,6 +1,6 @@
 # Estado de NXK
 
-Version actual: 0.0.22. Cuatro procesos CPL3 con memoria privada, preempcion,
+Version actual: 0.0.23. Cuatro procesos CPL3 con memoria privada, preempcion,
 esperas, mensajes, resultados, permisos y listas de archivos por proceso.
 Guia actual y pruebas en ENTREGA-ARCHIVOS-PROCESOS.md;
 siguientes hitos en PENDIENTES-KERNEL.md.
@@ -519,3 +519,10 @@ Imagen x86 normal73740B/test102412B; x64 normal24584B/test28680B. Registro de
 rondas ahora local al llamador de prueba, conservando128KiB y las aserciones.
 Filtro de nombres, sin usuarios/propietarios/ACL de objeto; puentes C, una CPU.
 Ver ENTREGA-ARCHIVOS-PROCESOS.md.
+
+NXK v0.0.23: consola proceso archivos ID lista permite confinar antes del
+primer turno. Hasta cuatro nombres por comas; sin lista niega todos. Errores
+de sintaxis no cambian politica; conserva subconjuntos y validacion de ID.
+Matriz x86 32/64/128/1024MiB, x64 64MiB y prueba externa completa de archivos
+por proceso superadas. Memoria/discos estables. Puente C; ABI sin cambios.
+Ver ENTREGA-CONSOLA-ARCHIVOS.md.

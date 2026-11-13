@@ -132,6 +132,23 @@ static int leer_id(const char *s,uint32_t *id) {
 }
 #if defined(__i386__)
 /* Dos enteros completos: ID no nulo y valor o mascara que admite cero. */
+static int leer_archivos(const char *s,uint32_t *id,char nombres[4][24],uint32_t *cantidad) {
+    char numero[11]; unsigned i=0;
+    while (*s && *s!=' ') { if (i==10) return 0; numero[i++]=*s++; }
+    numero[i]=0; if (!leer_id(numero,id)) return 0;
+    *cantidad=0; if (!*s) return 1;
+    ++s; unsigned n=0,j=0;
+    for (;;) {
+        if (n==4) return 0;
+        if (!*s || *s==',') {
+            if (!j) return 0;
+            nombres[n++][j]=0; j=0;
+            if (!*s) break;
+        } else { if (j==23) return 0; nombres[n][j++]=*s; }
+        ++s;
+    }
+    *cantidad=n; return 1;
+}
 static int leer_par(const char *s,uint32_t *id,uint32_t *valor) {
     char texto[11]; unsigned i=0;
     while (*s && *s!=' ') { if (i==10) return 0; texto[i++]=*s++; }
@@ -477,7 +494,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | espacios | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nproceso resumen | proceso dependencias | proceso dormir | proceso preempcion | proceso demo | proceso cargar nombre.nxe | proceso listar | proceso paso ID\nproceso ejecutar | proceso liberar ID\nproceso enviar ID VALOR | proceso cancelar ID\nproceso permisos ID MASCARA\nusuario espacios | usuario listar | usuario cargar archivo.nxe | usuario turno ID | usuario liberar ID\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | espacios | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nproceso resumen | proceso dependencias | proceso dormir | proceso preempcion | proceso demo | proceso cargar nombre.nxe | proceso listar | proceso paso ID\nproceso ejecutar | proceso liberar ID\nproceso enviar ID VALOR | proceso cancelar ID\nproceso permisos ID MASCARA\nproceso archivos ID [nombre1,nombre2]\nusuario espacios | usuario listar | usuario cargar archivo.nxe | usuario turno ID | usuario liberar ID\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -636,6 +653,12 @@ void kernel_main(void) {
             else if (prefijo(line,"proceso permisos ")) {
                 uint32_t id,mascara;
                 print(!leer_par(line+17,&id,&mascara) || nxk_proceso_restringir(id,mascara) ? "No se pudo restringir permisos.\n" : "Permisos restringidos.\n");
+            }
+            else if (prefijo(line,"proceso archivos ")) {
+                uint32_t id,cantidad; char nombres[4][24];
+                print(!leer_archivos(line+17,&id,nombres,&cantidad) ||
+                    nxk_proceso_limitar_archivos(id,nombres,cantidad) ?
+                    "No se pudo restringir archivos.\n" : "Archivos restringidos.\n");
             }
             else if (prefijo(line,"proceso cancelar ")) {
                 uint32_t id;

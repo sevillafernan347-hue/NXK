@@ -3,6 +3,16 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.23
+
+- Nuevo comando proceso archivos ID lista, hasta cuatro nombres separados por
+  comas. Sin lista retira todo acceso. Permite confinar antes del primer turno.
+- Analizador acotado de ID/nombres; errores de sintaxis no aplican filtros.
+- Conserva reduccion irreversible, rechazo de terminales e IDs obsoletos.
+- Prueba externa ampliada con configuracion del operador y rechazos sin efectos.
+- No cambia ABI, servicios ni capacidades del compilador. Puente C de consola.
+- Contrato y evidencia: ENTREGA-CONSOLA-ARCHIVOS.md.
+
 ## v0.0.22
 
 - Lista de hasta cuatro nombres de archivo por proceso. Sin filtro al crear;
