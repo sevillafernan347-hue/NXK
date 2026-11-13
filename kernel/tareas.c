@@ -486,7 +486,8 @@ static int probar_metricas(void) {
         nxk_tarea_liberar(nuevo)) return 3;
     return 0;
 }
-int nxk_tareas_probar_limites(void) {
+/* Conservar todas las aserciones dentro de la imagen BIOS de pruebas. */
+__attribute__((minsize)) int nxk_tareas_probar_limites(void) {
     uint32_t registro[3*NXK_TAREAS_MAX]; orden=registro;
     struct nxk_tarea_info info; uint32_t salida=0xdeadbeefu;
     if (nxk_tarea_enumerar(NXK_TAREAS_MAX,&info)!=-1 || nxk_tarea_enumerar(0,0)!=-1 ||

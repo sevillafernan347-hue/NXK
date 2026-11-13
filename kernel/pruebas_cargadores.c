@@ -9,7 +9,7 @@ extern const unsigned char nxe_demo_inicio[], nxe_demo_fin[];
 extern const unsigned char pe_demo_inicio[], pe_demo_fin[];
 #endif
 static void copiar(unsigned char *a, const unsigned char *b, size_t n) { while (n--) *a++=*b++; }
-int nxk_probar_formatos(void) {
+__attribute__((minsize)) int nxk_probar_formatos(void) {
     unsigned char copia[4096];
     size_t n=(uintptr_t)nxe_demo_fin-(uintptr_t)nxe_demo_inicio;
     if (n>sizeof(copia)) return 1;

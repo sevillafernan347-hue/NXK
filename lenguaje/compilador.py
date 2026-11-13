@@ -33,12 +33,14 @@ PALABRAS = set('funcion fin variable constante si sino mientras repetir veces '
                'escribir_puerto verdadero falso y o no y_bits o_bits xor_bits '
                'memoria_usada proceso_actual enviar_mensaje recibir_mensaje '
                'enviar_esperando esperar_proceso finalizar restringir_permisos permisos_actuales '
-               'reservar_pagina liberar_pagina leer_entero escribir_entero limitar_archivos limitar_memoria cuota_memoria '
+               'reservar_pagina liberar_pagina reservar_paginas liberar_paginas leer_entero escribir_entero limitar_archivos limitar_memoria cuota_memoria '
                'leer_archivo_en guardar_archivo_desde mostrar_memoria recibir_en_memoria esperar_en_memoria '
                'romper continuar entero logico texto guardar_archivo mostrar_archivo borrar_archivo agregar_archivo renombrar_archivo copiar_archivo'.split())
-# Firmas de las expresiones de buffers: el kernel valida rangos y plazos;
+# Firmas de las expresiones de buffers/memoria: el kernel valida rangos y plazos;
 # el compilador comprueba aridad y tipos sin convertir un texto en direccion.
 INTRINSECOS_BUFFER = {
+    'reservar_paginas': ('entero',),
+    'liberar_paginas': ('entero', 'entero'),
     'leer_archivo_en': ('texto', 'entero', 'entero', 'entero'),
     'guardar_archivo_desde': ('texto', 'entero', 'entero'),
     'mostrar_memoria': ('entero', 'entero'),

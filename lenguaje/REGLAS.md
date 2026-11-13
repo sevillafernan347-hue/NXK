@@ -373,3 +373,15 @@ inicial es4 y cada pagina tiene4096bytes; no incluye codigo, pila ni tablas.
 Liberar paginas no aumenta el limite. Cuota0 impide toda nueva reserva;
 `reservar_pagina()` devuelve0 al agotarla. Las rutas sin soporte fallan
 explicitamente. Ejemplo completo: `ejemplos/cuota_memoria.nxf`.
+
+## Rangos de paginas privadas (v0.0.25)
+
+`reservar_paginas(cantidad)` retorna base de1..4 paginas virtuales contiguas,
+o0 si no puede completar la peticion. Cada pagina comienza en cero. Respeta
+cuota y necesita un rango contiguo libre; tener huecos separados no basta.
+`liberar_paginas(base,cantidad)` retorna0 o0xffffffff al rechazar el rango;
+0xfffffffb identifica una retencion IPC. Un error de rango/hueco/retencion
+no libera parcialmente. Sin identidad de bloque: se pueden liberar juntas
+paginas contiguas reservadas por llamadas diferentes. La cantidad0 es invalida.
+Ambas son expresiones entero. Rutas antiguas sin soporte fallan explicitamente.
+Ejemplo: `ejemplos/paginas_lote.nxf`.

@@ -265,6 +265,16 @@ static void usuario_servicio(uint32_t *c) {
         if (!nxk_espacio_cuota(usuario_id_activo,&cuota)) c[11]=cuota;
         return;
     }
+    if (servicio==23 && contexto_reanudable) {
+        uint32_t direccion;
+        c[11]=nxk_espacio_reservar_paginas(usuario_id_activo,p,&direccion) ? 0 : direccion;
+        return;
+    }
+    if (servicio==24 && contexto_reanudable) {
+        int r=nxk_espacio_liberar_paginas(usuario_id_activo,p,n);
+        c[11]=r==-5 ? (uint32_t)-5 : r ? UINT32_MAX : 0;
+        return;
+    }
     if ((servicio==14 || servicio==15) && contexto_reanudable) {
         uint32_t espera=c[9];
         if (espera>0x7fffffffu || (servicio==15 && !usuario_rango(n,8,1))) return;

@@ -27,6 +27,12 @@ int nxk_espacio_enumerar(unsigned slot,struct nxk_espacio_info *salida);
  * 0 exito; -1 ID/null, -2 cuota, -3 contexto, -4 sin memoria fisica.
  * Solo CR3 kernel o el de este ID, fuera de tareas/IRQ; no hay reservas implicitas. */
 int nxk_espacio_reservar_pagina(uint32_t id,uint32_t *direccion);
+/* Lote1..4 en VA contigua (fisicas independientes), sin publicacion parcial.
+ * Mismos errores de reservar_pagina; -2 incluye fragmentacion virtual/cuota.
+ * Salida intacta al fallar. Liberar valida todo antes de tocar mapas/datos;
+ * -1 rango/hueco,-3 contexto,-4 asignador corrupto,-5 alguna pagina retenida. */
+int nxk_espacio_reservar_paginas(uint32_t id,uint32_t cantidad,uint32_t *direccion);
+int nxk_espacio_liberar_paginas(uint32_t id,uint32_t direccion,uint32_t cantidad);
 /* Direccion inicial exacta de una pagina reservada; -1 ID/direccion/reserva,
  * -3 contexto, -4 fallo del gestor fisico, -5 buffer IPC pendiente sobre ella.
  * Invalida el TLB antes de devolver. */

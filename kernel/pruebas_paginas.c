@@ -1,6 +1,6 @@
 /* Casos sinteticos y agotamiento real. Solo se enlaza en la imagen de pruebas. */
 #include "paginas.h"
-int nxk_probar_paginas(void) {
+__attribute__((minsize)) int nxk_probar_paginas(void) {
 #if defined(__i386__)
     struct nxk_region_ram mapa[]={
         {0x600000,0x600000,1}, /* RAM hasta 12 MiB. */

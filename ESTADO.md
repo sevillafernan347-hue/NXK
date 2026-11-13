@@ -1,8 +1,8 @@
 # Estado de NXK
 
-Version actual: 0.0.24. Cuatro procesos CPL3 con memoria privada, preempcion,
+Version actual: 0.0.25. Cuatro procesos CPL3 con memoria privada, preempcion,
 esperas, mensajes, resultados, permisos y listas de archivos por proceso.
-Guia actual y pruebas en ENTREGA-CUOTAS-MEMORIA.md;
+Guia actual y pruebas en ENTREGA-PAGINAS-LOTES.md;
 siguientes hitos en PENDIENTES-KERNEL.md.
 
 El registro siguiente conserva las etapas anteriores: cada entrada describe
@@ -538,3 +538,17 @@ espera IPC, cancelacion, IDs y NEXTRY superada. Regresiones memoria y archivos
 superadas, recursos y discos estables. Imagen x86 normal77836B/test102412B;
 x64 normal24584B/test28680B. Puentes C, sin reserva anticipada de RAM ni swap.
 Ver ENTREGA-CUOTAS-MEMORIA.md.
+
+NXK v0.0.25: reservar/liberar1..4 paginas privadas en lote, VA contigua y
+respaldos independientes en cero. Cuota y rango comprobados antes de adquirir;
+falta de RAM devuelve temporales sin publicar PTE. Liberar valida todos los
+miembros y retenciones antes de retirar uno. Las API individuales delegan.
+INT81/23..24 y NEXTRY reservar_paginas/liberar_paginas, ejemplo comentado.
+90pruebas compilador y matriz x86 32/64/128/1024MiB superadas; x64 64MiB
+superada. Agotamiento real con una pagina disponible probado en32MiB; rechazo
+de rango con segunda pagina retenida por IPC conserva ambas. Prueba externa
+de huecos, cuotas, aislamiento, cancelacion, limpieza y NEXTRY superada.
+Regresiones de memoria y cuotas superadas; memoria y discos estables.
+Imagen x86 normal77836B/test102412B; x64 normal24584B/test28680B. Puentes C,
+cuatro paginas maximas, una CPU, sin asignacion por bytes ni memoria compartida.
+Ver ENTREGA-PAGINAS-LOTES.md.

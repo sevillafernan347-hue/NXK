@@ -83,11 +83,11 @@ static void actualizar_dato(struct espacio *e,unsigned i) {
     tabla[2+i]=e->datos[i] ? e->datos[i]|7u : ((uint32_t *)0x202000)[2+i]&~4u;
     if (cr3()==e->base) __asm__ volatile("invlpg (%0)"::"r"(virtual):"memory");
 }
-int nxk_espacio_cuota(uint32_t id,uint32_t *salida) {
+__attribute__((minsize)) int nxk_espacio_cuota(uint32_t id,uint32_t *salida) {
     struct espacio *e=buscar(id); if (!e || !salida || limite(e)>NXK_ESPACIO_DATOS_MAX) return -1;
     *salida=limite(e); return 0;
 }
-int nxk_espacio_limitar_datos(uint32_t id,uint32_t cuota) {
+__attribute__((minsize)) int nxk_espacio_limitar_datos(uint32_t id,uint32_t cuota) {
     struct espacio *e=buscar(id); if (!e || cuota>NXK_ESPACIO_DATOS_MAX) return -1;
     if (!contexto_datos(e)) return -3;
     uint32_t anterior=limite(e),usadas=0;
@@ -97,30 +97,58 @@ int nxk_espacio_limitar_datos(uint32_t id,uint32_t cuota) {
     if (cuota<usadas) return -2;
     poner_limite(e,cuota); return 0;
 }
-int nxk_espacio_reservar_pagina(uint32_t id,uint32_t *direccion) {
-    struct espacio *e=buscar(id); if (!e || !direccion) return -1;
+__attribute__((minsize)) int nxk_espacio_reservar_paginas(uint32_t id,uint32_t cantidad,uint32_t *direccion) {
+    struct espacio *e=buscar(id);
+    if (!e || !direccion || !cantidad || cantidad>NXK_ESPACIO_DATOS_MAX) return -1;
     if (!contexto_datos(e)) return -3;
     uint32_t usadas=0,cuota=limite(e);
     if (cuota>NXK_ESPACIO_DATOS_MAX) return -1;
     for (unsigned j=0;j<NXK_ESPACIO_DATOS_MAX;++j) usadas+=!!e->datos[j];
-    if (usadas>=cuota) return -2;
+    if (usadas>cuota || cantidad>cuota-usadas) return -2;
     unsigned i;
-    for (i=0;i<NXK_ESPACIO_DATOS_MAX;++i) if (!e->datos[i]) break;
-    if (i==NXK_ESPACIO_DATOS_MAX) return -2;
-    void *pagina=nxk_pagina_reservar(); if (!pagina) return -4;
-    e->datos[i]=(uint32_t)(uintptr_t)pagina; actualizar_dato(e,i);
+    for (i=0;i<=NXK_ESPACIO_DATOS_MAX-cantidad;++i) {
+        unsigned j=0; while (j<cantidad && !e->datos[i+j]) ++j;
+        if (j==cantidad) break;
+    }
+    if (i>NXK_ESPACIO_DATOS_MAX-cantidad) return -2;
+    uint32_t temporales[NXK_ESPACIO_DATOS_MAX];
+    unsigned adquiridas=0;
+    while (adquiridas<cantidad) {
+        void *pagina=nxk_pagina_reservar();
+        if (!pagina) {
+            /* Ninguna PTE publicada todavia; restaurar el asignador. */
+            while (adquiridas) nxk_pagina_liberar((void *)(uintptr_t)temporales[--adquiridas]);
+            return -4;
+        }
+        temporales[adquiridas++]=(uint32_t)(uintptr_t)pagina;
+    }
+    for (unsigned j=0;j<cantidad;++j) {
+        e->datos[i+j]=temporales[j]; actualizar_dato(e,i+j);
+    }
     *direccion=NXK_ESPACIO_DATOS+i*4096; return 0;
 }
-int nxk_espacio_liberar_pagina(uint32_t id,uint32_t virtual) {
+int nxk_espacio_reservar_pagina(uint32_t id,uint32_t *direccion) {
+    return nxk_espacio_reservar_paginas(id,1,direccion);
+}
+__attribute__((minsize)) int nxk_espacio_liberar_paginas(uint32_t id,uint32_t virtual,uint32_t cantidad) {
     struct espacio *e=buscar(id);
-    if (!e || virtual<NXK_ESPACIO_DATOS || (virtual&4095u) ||
+    if (!e || !cantidad || cantidad>NXK_ESPACIO_DATOS_MAX || virtual<NXK_ESPACIO_DATOS || (virtual&4095u) ||
         virtual>=NXK_ESPACIO_DATOS+NXK_ESPACIO_DATOS_MAX*4096) return -1;
     unsigned i=(virtual-NXK_ESPACIO_DATOS)/4096;
-    if (!e->datos[i]) return -1;
+    if (cantidad>NXK_ESPACIO_DATOS_MAX-i) return -1;
     if (!contexto_datos(e)) return -3;
-    if (nxk_proceso_pagina_retenida(id,virtual)) return -5;
-    if (nxk_pagina_liberar((void *)(uintptr_t)e->datos[i])) return -4;
-    e->datos[i]=0; actualizar_dato(e,i); return 0;
+    for (unsigned j=0;j<cantidad;++j) {
+        if (!e->datos[i+j]) return -1;
+        if (nxk_proceso_pagina_retenida(id,virtual+j*4096)) return -5;
+    }
+    for (unsigned j=0;j<cantidad;++j) {
+        if (nxk_pagina_liberar((void *)(uintptr_t)e->datos[i+j])) return -4;
+        e->datos[i+j]=0; actualizar_dato(e,i+j);
+    }
+    return 0;
+}
+int nxk_espacio_liberar_pagina(uint32_t id,uint32_t virtual) {
+    return nxk_espacio_liberar_paginas(id,virtual,1);
 }
 /* Restar despues de validar el inicio evita overflow de direccion+longitud.
  * Devuelve el alias fisico de la pagina propia; cero identifica un hueco. */
@@ -201,6 +229,27 @@ int nxk_espacios_demo(void) {
     return r || nxk_paginas_libres()!=libres || nxk_heap_used()!=heap ? -1 : 0;
 }
 #ifdef NXK_TEST
+/* Agotar RAM solo en configuraciones pequenas: deja una pagina fisica libre
+ * y pide dos. El fallo debe devolver la temporal sin publicar ninguna PTE. */
+__attribute__((minsize)) static int probar_lote_sin_ram(uint32_t id) {
+    uint32_t libres=nxk_paginas_libres(),cabeza=0,salida=0xdeadbeef;
+    if (libres>8192) return 0;
+    void *pagina;
+    while ((pagina=nxk_pagina_reservar())) {
+        *(uint32_t *)pagina=cabeza; cabeza=(uint32_t)(uintptr_t)pagina;
+    }
+    if (!cabeza) return 1;
+    uint32_t unica=cabeza; cabeza=*(uint32_t *)(uintptr_t)cabeza;
+    int fallo=nxk_pagina_liberar((void *)(uintptr_t)unica);
+    if (nxk_espacio_reservar_paginas(id,2,&salida)!=-4 || salida!=0xdeadbeef ||
+        nxk_paginas_libres()!=1 || nxk_espacio_validar_rango(id,NXK_ESPACIO_DATOS,1,1)!=-2) fallo=1;
+    while (cabeza) {
+        uint32_t siguiente=*(uint32_t *)(uintptr_t)cabeza;
+        if (nxk_pagina_liberar((void *)(uintptr_t)cabeza)) fallo=1;
+        cabeza=siguiente;
+    }
+    return fallo || nxk_paginas_libres()!=libres;
+}
 /* Inyecta una guarda posterior a crear el espacio y la restaura siempre.
  * No accede al contenido de esa pagina; solo compara PTEs. */
 __attribute__((minsize)) static int probar_guarda(uint32_t id) {
@@ -296,6 +345,7 @@ __attribute__((minsize)) int nxk_espacios_probar(void) {
     if (probar_guarda(ids[0])) return 14;
     if (probar_copias(ids[0],ids[1])) return 15;
     if (probar_datos(ids[0],ids[1])) return 16;
+    if (probar_lote_sin_ram(ids[0])) return 18;
     uint32_t viejo=ids[0];
     /* Destruir debe recuperar reservas que el propietario no libero. */
     if (nxk_espacio_reservar_pagina(ids[0],&salida) ||
@@ -314,6 +364,8 @@ __attribute__((minsize)) int nxk_espacios_probar(void) {
 }
 #endif
 #else
+int nxk_espacio_reservar_paginas(uint32_t id,uint32_t n,uint32_t *p) { (void)id;(void)n;(void)p;return -64; }
+int nxk_espacio_liberar_paginas(uint32_t id,uint32_t p,uint32_t n) { (void)id;(void)p;(void)n;return -64; }
 int nxk_espacio_limitar_datos(uint32_t id,uint32_t n) { (void)id;(void)n;return -64; }
 int nxk_espacio_cuota(uint32_t id,uint32_t *n) { (void)id;(void)n;return -64; }
 int nxk_espacio_crear(const void *c,size_t n,uint32_t *id) { (void)c;(void)n;(void)id;return -64; }

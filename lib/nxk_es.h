@@ -39,6 +39,8 @@ void nxk_es_limitar_archivos(uint32_t cantidad,const char *a,const char *b,const
  * Leer/escribir enteros de32bits requiere direccion alineada dentro de datos.
  * Una pagina no reservada produce fallo contenido en el proceso. */
 uint32_t nxk_es_reservar_pagina(void);
+uint32_t nxk_es_reservar_paginas(uint32_t cantidad);
+uint32_t nxk_es_liberar_paginas(uint32_t direccion,uint32_t cantidad);
 uint32_t nxk_es_liberar_pagina(uint32_t direccion);
 uint32_t nxk_es_leer_entero(uint32_t direccion);
 void nxk_es_escribir_entero(uint32_t direccion,uint32_t valor);

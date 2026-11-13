@@ -5,7 +5,7 @@
     {"name": "string.quoted.double.nxk", "begin": "\"", "end": "\"", "patterns": [{"name": "constant.character.escape.nxk", "match": "\\\\."}]},
     {"name": "keyword.control.nxk", "match": "\\b(funcion|función|fin|variable|constante|si|sino|mientras|repetir|veces|llamar|volver|detener|finalizar|afirmar|romper|continuar|ceder|dormir|restringir_permisos|limitar_archivos|limitar_memoria)\\b"},
     {"name": "storage.type.nxk", "match": "\\b(entero|logico|texto)\\b"},
-    {"name": "support.function.nxk", "match": "\\b(mostrar|numero|número|memoria_usada|proceso_actual|permisos_actuales|cuota_memoria|reservar_pagina|liberar_pagina|leer_entero|escribir_entero|leer_archivo_en|guardar_archivo_desde|mostrar_memoria|recibir_en_memoria|esperar_en_memoria|enviar_mensaje|recibir_mensaje|enviar_esperando|esperar_proceso|leer_puerto|escribir_puerto|guardar_archivo|mostrar_archivo|borrar_archivo|agregar_archivo|renombrar_archivo|copiar_archivo)\\b"},
+    {"name": "support.function.nxk", "match": "\\b(mostrar|numero|número|memoria_usada|proceso_actual|permisos_actuales|cuota_memoria|reservar_pagina|reservar_paginas|liberar_paginas|liberar_pagina|leer_entero|escribir_entero|leer_archivo_en|guardar_archivo_desde|mostrar_memoria|recibir_en_memoria|esperar_en_memoria|enviar_mensaje|recibir_mensaje|enviar_esperando|esperar_proceso|leer_puerto|escribir_puerto|guardar_archivo|mostrar_archivo|borrar_archivo|agregar_archivo|renombrar_archivo|copiar_archivo)\\b"},
     {"name": "constant.language.nxk", "match": "\\b(verdadero|falso)\\b"},
     {"name": "keyword.operator.nxk", "match": "\\b(y|o|no|y_bits|o_bits|xor_bits)\\b|==|!=|<=|>=|<<|>>|[=+*/%<>-]"},
     {"name": "constant.numeric.nxk", "match": "\\b(0[xX][0-9a-fA-F]+|[0-9]+)\\b"}

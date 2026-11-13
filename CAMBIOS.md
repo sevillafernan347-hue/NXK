@@ -3,6 +3,21 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.25
+
+- Reservas1..4 de paginas privadas con VA contigua y rollback si falta RAM.
+  Cuota y fragmentacion se comprueban antes de publicar paginas.
+- Liberacion de rangos valida todos los miembros y retenciones antes de retirar
+  uno; las API individuales reutilizan el mismo motor.
+- Servicios23/24, NEXTRY reservar_paginas/liberar_paginas, ejemplo y editor.
+- 90 pruebas compilador, matriz x86 32/64/128/1024MiB y x64 64MiB superadas.
+- Agotamiento real en32MiB, rechazo atomico por IPC y prueba externa de lotes,
+  cuotas, huecos, aislamiento, cancelacion, limpieza y NEXTRY superados.
+- Regresiones de memoria y cuotas superadas; recursos y discos estables.
+- Funciones de prueba optimizadas para tamano conservan todas sus aserciones
+  y limites BIOS. Sin heap nuevo, swap ni asignacion por bytes.
+- Detalles: ENTREGA-PAGINAS-LOTES.md.
+
 ## v0.0.24
 
 - Cuotas de paginas de datos por espacio, inicial4, solo reducciones0..4.

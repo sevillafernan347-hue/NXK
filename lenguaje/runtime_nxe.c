@@ -78,6 +78,8 @@ void nxk_es_limitar_archivos(uint32_t cantidad,const char *a,const char *b,const
 /* NXE1 no tiene paginas privadas de proceso. No acceder a estas direcciones
  * desde ring0 ni simular que una reserva o liberacion tuvo exito. */
 uint32_t nxk_es_reservar_pagina(void) { nxk_es_fallo(0); }
+uint32_t nxk_es_reservar_paginas(uint32_t n) { (void)n; nxk_es_fallo(0); }
+uint32_t nxk_es_liberar_paginas(uint32_t p,uint32_t n) { (void)p;(void)n; nxk_es_fallo(0); }
 uint32_t nxk_es_liberar_pagina(uint32_t direccion) { (void)direccion; nxk_es_fallo(0); }
 uint32_t nxk_es_leer_entero(uint32_t direccion) { (void)direccion; nxk_es_fallo(0); }
 void nxk_es_escribir_entero(uint32_t direccion,uint32_t valor) {

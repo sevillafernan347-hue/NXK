@@ -136,6 +136,19 @@ uint32_t nxk_es_reservar_pagina(void) {
     if (r && (r<UINT32_C(0x402000) || r>=UINT32_C(0x406000) || (r&4095u))) nxk_es_fallo(0);
     return r;
 }
+uint32_t nxk_es_reservar_paginas(uint32_t cantidad) {
+    uint32_t r=23;
+    __asm__ volatile("int $0x81":"+a"(r):"b"(cantidad):"memory","cc");
+    if (r && (!cantidad || cantidad>4 || (r&4095u) || r<0x402000u ||
+        r>0x406000u-cantidad*4096u)) nxk_es_fallo(0);
+    return r;
+}
+uint32_t nxk_es_liberar_paginas(uint32_t direccion,uint32_t cantidad) {
+    uint32_t r=24;
+    __asm__ volatile("int $0x81":"+a"(r):"b"(direccion),"c"(cantidad):"memory","cc");
+    if (r && r!=UINT32_MAX && r!=(uint32_t)-5) nxk_es_fallo(0);
+    return r;
+}
 uint32_t nxk_es_liberar_pagina(uint32_t direccion) {
     uint32_t r=19;
     __asm__ volatile("int $0x81":"+a"(r):"b"(direccion):"memory","cc");

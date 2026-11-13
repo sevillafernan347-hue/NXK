@@ -130,3 +130,9 @@ gestionado actual:0 exito,-1 contrato,-2 inferior al uso,-5 ampliacion.
 INT81/EAX22 devuelve cuota0..4. Legacy devuelve-2 (no soportado). Una nueva
 generacion comienza4; liberar paginas no aumenta cuota. ABI1 sin cambios.
 Consulta ENTREGA-CUOTAS-MEMORIA.md y ejemplo cuota_memoria.nxf.
+
+Desde v0.0.25 INT81/23 EBX=cantidad1..4 reserva un rango de datos virtualmente
+contiguo: EAXbase o0, sin reservas parciales. INT81/24 EBXbase ECXcantidad
+libera:0 exito,-1 rango/hueco,-5 retencion IPC, sin efectos parciales al rechazar.
+Legacy devuelve-2. La cuota se conserva y ABI1/cabecera no cambian.
+Ver ENTREGA-PAGINAS-LOTES.md y ejemplo paginas_lote.nxf.

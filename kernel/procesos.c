@@ -505,6 +505,9 @@ __attribute__((minsize)) static int probar_buffers(uint32_t id) {
         p->recepcion_pendiente=!fin; p->fin_pendiente=fin;
         p->buffer_mensaje=p->buffer_fin=a+4093;
         if (nxk_espacio_liberar_pagina(id,a)!=-5 || nxk_espacio_liberar_pagina(id,b)!=-5) fallo=1;
+        p->buffer_mensaje=p->buffer_fin=b+8;
+        if (nxk_espacio_liberar_paginas(id,a,2)!=-5 ||
+            nxk_espacio_validar_rango(id,a,8192,1)) fallo=1;
     }
     if (nxk_proceso_cancelar(id) || nxk_espacio_liberar_pagina(id,a) ||
         nxk_espacio_liberar_pagina(id,b)) fallo=1;

@@ -151,7 +151,7 @@ int nxk_archivos_importar(const struct nxk_archivo_imagen *entrada) {
 #ifdef NXK_TEST
 /* Buffers de prueba estaticos: no forzar las pilas pequenas del kernel. */
 static struct nxk_archivo_imagen prueba_imagen[8], prueba_salida[8];
-static int probar_imagen(void) {
+__attribute__((minsize)) static int probar_imagen(void) {
     size_t usado=nxk_heap_used();
     memset(prueba_imagen,0,sizeof(prueba_imagen));
     if (nxk_archivos_exportar(0)!=-1 || nxk_archivos_importar(0)!=-1 ||

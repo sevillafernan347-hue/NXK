@@ -1,0 +1,21 @@
+# Un rango virtual de tres paginas, sujeto a la cuota del proceso.
+funcion inicio
+    entero base = reservar_paginas(3)
+    afirmar base != 0
+    entero indice = 0
+    repetir 3 veces
+        afirmar leer_entero(base + indice * 4096) == 0
+        escribir_entero base + indice * 4096, indice + 100
+        indice = indice + 1
+    fin
+    ceder
+    indice = 0
+    repetir 3 veces
+        afirmar leer_entero(base + indice * 4096) == indice + 100
+        indice = indice + 1
+    fin
+    afirmar liberar_paginas(base, 3) == 0
+    # No hay paginas reservadas: rechaza todo el rango sin efectos.
+    afirmar liberar_paginas(base, 3) == 0xffffffff
+    finalizar 42
+fin
