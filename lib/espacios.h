@@ -37,14 +37,21 @@ int nxk_espacio_liberar_paginas(uint32_t id,uint32_t direccion,uint32_t cantidad
  * -3 contexto, -4 fallo del gestor fisico, -5 buffer IPC pendiente sobre ella.
  * Invalida el TLB antes de devolver. */
 int nxk_espacio_liberar_pagina(uint32_t id,uint32_t direccion);
+/* Solo datos reservados: escritura0 RO,1 RW; rango alineado1..4 paginas.
+ * Valida todo antes de tocar permisos.0 exito,-1 ID/rango/hueco/bandera,
+ * -3 contexto,-5 si retirar escritura afecta una salida IPC retenida.
+ * Solo CR3 kernel o propio, fuera de tareas/IRQ. Sin asignaciones ni copia.
+ * Consulta exige direccion exacta de pagina y conserva salida al rechazar. */
+int nxk_espacio_proteger_paginas(uint32_t id,uint32_t direccion,uint32_t cantidad,uint32_t escritura);
+int nxk_espacio_escritura(uint32_t id,uint32_t direccion,uint32_t *salida);
 /* Comprueba todo el rango sin copiar ni modificar datos. Solo CR3 kernel o
  * el del mismo espacio, fuera de tarea/IRQ; escritura debe ser0 o1.
- * 0 exito; -1 ID/bandera, -2 rango/hueco, -3 contexto. n0 permite huecos
+ * 0 exito; -1 ID/bandera, -2 rango/hueco/escritura en RO, -3 contexto. n0 permite huecos
  * desde el minimo (codigo para leer/pila para escribir) hasta0x406000. */
 int nxk_espacio_validar_rango(uint32_t id,uint32_t virtual,size_t longitud,int escritura);
 /* Copias solo desde CR3 kernel, buffers kernel confiables sin solaparse con
  * tablas ni codigo del espacio, ni con sus paginas adicionales. Leer codigo,
- * pila o datos reservados; escribir pila o datos. Valida tambien todos los
+ * pila o datos reservados; escribir pila o datos RW. Valida tambien todos los
  * huecos antes de copiar, aunque el respaldo fisico no sea contiguo.
  * 0 exito, -1 ID/buffer, -2 rango, -3 contexto. Rechazo no copia parcialmente.
  * Longitud cero admite null y cualquier inicio desde el minimo permitido

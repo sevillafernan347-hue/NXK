@@ -41,6 +41,10 @@ void nxk_es_limitar_archivos(uint32_t cantidad,const char *a,const char *b,const
 uint32_t nxk_es_reservar_pagina(void);
 uint32_t nxk_es_reservar_paginas(uint32_t cantidad);
 uint32_t nxk_es_liberar_paginas(uint32_t direccion,uint32_t cantidad);
+/* Escritura0 RO/1 RW, sin cambiar los bytes.0 exito,-1 contrato,-5 IPC.
+ * La consulta retorna0 RO/1 RW o-1; solo paginas de datos reservadas. */
+uint32_t nxk_es_proteger_paginas(uint32_t direccion,uint32_t cantidad,uint32_t escritura);
+uint32_t nxk_es_escritura_pagina(uint32_t direccion);
 uint32_t nxk_es_liberar_pagina(uint32_t direccion);
 uint32_t nxk_es_leer_entero(uint32_t direccion);
 void nxk_es_escribir_entero(uint32_t direccion,uint32_t valor);

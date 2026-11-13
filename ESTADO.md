@@ -1,8 +1,9 @@
 # Estado de NXK
 
-Version actual: 0.0.25. Cuatro procesos CPL3 con memoria privada, preempcion,
+Version actual: 0.0.26. Cuatro procesos CPL3 con memoria privada, preempcion,
 esperas, mensajes, resultados, permisos y listas de archivos por proceso.
-Guia actual y pruebas en ENTREGA-PAGINAS-LOTES.md;
+Datos privados con proteccion RO/RW por pagina y validacion de buffers.
+Guia actual y pruebas en ENTREGA-PROTECCION-PAGINAS.md;
 siguientes hitos en PENDIENTES-KERNEL.md.
 
 El registro siguiente conserva las etapas anteriores: cada entrada describe

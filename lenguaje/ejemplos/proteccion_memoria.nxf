@@ -1,0 +1,22 @@
+# Datos propios: preparar el contenido y conservarlo solo para lectura.
+funcion inicio
+    entero base = reservar_paginas(2)
+    afirmar base != 0
+    escribir_entero base, 1234
+    escribir_entero base + 4096, 5678
+    afirmar escritura_pagina(base) == 1
+    afirmar proteger_paginas(base, 2, 0) == 0
+    ceder
+    afirmar escritura_pagina(base) == 0
+    afirmar escritura_pagina(base + 4096) == 0
+    afirmar leer_entero(base) == 1234
+    afirmar leer_entero(base + 4096) == 5678
+    # Reabrir solo la segunda pagina y modificarla sin tocar la primera.
+    afirmar proteger_paginas(base + 4096, 1, 1) == 0
+    escribir_entero base + 4096, 9999
+    afirmar leer_entero(base + 4096) == 9999
+    afirmar escritura_pagina(base) == 0
+    afirmar liberar_paginas(base, 2) == 0
+    afirmar escritura_pagina(base) == 0xffffffff
+    finalizar 42
+fin

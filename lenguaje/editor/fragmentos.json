@@ -16,5 +16,6 @@
   "Esperar en memoria": {"prefix": "esperar_en_memoria", "body": ["entero ${1:resultado} = esperar_en_memoria(${2:destino}, ${3:pagina}, ${4:100})"], "description": "Esperar estado/codigo de otro proceso en un buffer protegido"},
   "Limitar archivos": {"prefix": "limitar_archivos", "body": ["limitar_archivos \"${1:propio}\", \"${2:copia}\""], "description": "Reducir el acceso a hasta cuatro nombres; sin argumentos impide todos los archivos"},
   "Limitar memoria": {"prefix":"limitar_memoria","body":["limitar_memoria ${1:2}","afirmar cuota_memoria() == ${1:2}"],"description":"Reducir la cuota de paginas de datos sin retirar reservas existentes"},
-  "Lote de paginas": {"prefix":"reservar_paginas","body":["entero ${1:base} = reservar_paginas(${2:2})","afirmar ${1:base} != 0","afirmar liberar_paginas(${1:base}, ${2:2}) == 0"],"description":"Reservar y liberar un rango virtual completo sin efectos parciales al rechazar"}
+  "Lote de paginas": {"prefix":"reservar_paginas","body":["entero ${1:base} = reservar_paginas(${2:2})","afirmar ${1:base} != 0","afirmar liberar_paginas(${1:base}, ${2:2}) == 0"],"description":"Reservar y liberar un rango virtual completo sin efectos parciales al rechazar"},
+  "Proteger datos": {"prefix":"proteger_paginas","body":["afirmar proteger_paginas(${1:base}, ${2:1}, ${3:0}) == 0","afirmar escritura_pagina(${1:base}) == ${3:0}"],"description":"Cambiar escritura de datos reservados: 0 solo lectura, 1 lectura y escritura"}
 }

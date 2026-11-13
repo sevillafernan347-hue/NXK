@@ -32,6 +32,7 @@ existiendo aunque no reciban una etiqueta propia.
 | v0.0.23 | Configuracion de archivos permitidos desde consola antes de ejecutar |
 | v0.0.24 | Cuotas de paginas de datos, consola y soporte NEXTRY |
 | v0.0.25 | Lotes atomicos de paginas privadas y soporte NEXTRY |
+| v0.0.26 | Proteccion RO/RW de datos, validacion de buffers, consola y NEXTRY |
 
 La serie de etiquetas se inicia el 3 de noviembre de 2026. v0.0.1 identifica
 la entrega previa ya probada; no cambia sus archivos ni fecha del commit.

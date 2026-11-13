@@ -1,9 +1,9 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.25**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.26**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
 
-La entrega actual permite restringir cada proceso a una lista de archivos que
+Se puede restringir cada proceso a una lista de archivos que
 solo puede reducirse. Consulta [contrato y ejemplo](ENTREGA-ARCHIVOS-PROCESOS.md).
 Los [buffers privados de archivos y mensajes](ENTREGA-BUFFERS-PROCESOS.md)
 siguen disponibles.
@@ -18,6 +18,11 @@ Consulta [contrato, ejemplo y pruebas](ENTREGA-CUOTAS-MEMORIA.md).
 
 NEXTRY tambien permite reservar rangos completos con `reservar_paginas(n)`
 y liberarlos con `liberar_paginas(base,n)`. Consulta [lotes y atomicidad](ENTREGA-PAGINAS-LOTES.md).
+
+La entrega actual agrega proteccion de escritura a los datos privados:
+`proteger_paginas(base,n,0)` los vuelve solo lectura y `escritura_pagina(base)`
+consulta su permiso. El operador dispone de `proceso proteger ID BASE N ESCRITURA`
+con numeros decimales. Consulta [contrato, ejemplo y pruebas](ENTREGA-PROTECCION-PAGINAS.md).
 
 Kernel original experimental para x86 de 32 bits, con objetivo de equipos de
 1 GB de RAM. Incluye lenguaje NEXTRY, ensamblador NEXTRY ASM y formato NXE.
@@ -100,7 +105,8 @@ La API tambien permite reservar/publicar lotes completos de permisos sin
 reservas parciales; consulta [el contrato de lotes](ENTREGA-LOTES-SEMAFOROS.md).
 
 El arranque NEXTRY ASM x86 admite imagenes de hasta 120 KiB en tres lecturas
-sin cruzar fronteras fisicas de 64 KiB; imagen y variables quedan bajo 128 KiB.
+sin cruzar fronteras fisicas de 64 KiB; archivo hasta120KiB y reserva de
+imagen/variables hasta192KiB desde0x10000. Consulta [mapa actual](MAPA-MEMORIA.md).
 
 ## Mutex con propietario
 

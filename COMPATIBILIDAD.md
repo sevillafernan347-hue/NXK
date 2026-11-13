@@ -8,7 +8,16 @@ La variante principal del prototipo arranca en una PC virtual BIOS x86 de 32 bit
 
 Resultado del 31 de octubre de 2026: la variante de 32 bits supero las cuatro configuraciones, incluido el modulo del lenguaje, la aplicacion NXE y el EXE Win32 de demostracion. El tamano actual del kernel se informa al compilar; no representa su uso total de RAM. La variante x64 tambien supero una prueba de regresion con 64 MiB y la aplicacion NXE.
 
-La variante x86 usa segmentos planos de 32 bits, sin activar paginacion. La variante x64 mapea inicialmente los primeros 2 MiB. Ambas contienen un heap fijo de laboratorio de 512 KiB. Todavia no descubren el mapa fisico de RAM ni administran toda la memoria instalada. La prueba verifica el arranque y el uso basico del heap; no mide toda la RAM, aplicaciones, tiempos de respuesta ni autonomia.
+Estado v0.0.26: x86 usa segmentos planos y paginacion supervisor por identidad
+hasta1GiB, mapa BIOS E820 y asignador de paginas desde8MiB. Cuatro procesos
+CPL3 tienen memoria privada, datos RO/RW, cuotas, preempcion y esperas. El heap
+de laboratorio sigue siendo512KiB incremental; no equivale a toda la memoria
+disponible. La variante x64 conserva su arranque inicial y mapa de2MiB, sin
+las capacidades de procesos x86. Consulta [mapa de memoria](MAPA-MEMORIA.md).
+
+La entrega actual supero QEMU x86 con32/64/128/1024MiB y x64 con64MiB. Ademas
+del arranque se prueban asignacion, procesos y servicios de x86; no es una
+medicion completa de respuesta, autonomia ni compatibilidad fisica.
 
 El cargador NXE reserva su region de laboratorio en `0x180000` (hasta 128 KiB). El puente Win32 de x86 usa `0x400000` (hasta 128 KiB). Son regiones fijas para estas pruebas, todavia no asignaciones gestionadas a partir del mapa de memoria real de la ASUS.
 
@@ -36,4 +45,6 @@ No se ha probado NXK en la ASUS ni se ha preparado un instalador para su disco. 
 
 ## Proxima implementacion
 
-IDT y excepciones; despues mapa de memoria del firmware, asignador de paginas y medicion del uso real de RAM. Esos componentes permitiran controlar el consumo conforme crezca el sistema.
+Los proximos hitos incluyen espera de dispositivos, controladores y pruebas
+fisicas, ademas de ampliar recursos de procesos. El [trabajo pendiente](PENDIENTES-KERNEL.md)
+distingue estas capacidades del prototipo ya probado.

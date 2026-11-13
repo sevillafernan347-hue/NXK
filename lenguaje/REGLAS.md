@@ -385,3 +385,21 @@ no libera parcialmente. Sin identidad de bloque: se pueden liberar juntas
 paginas contiguas reservadas por llamadas diferentes. La cantidad0 es invalida.
 Ambas son expresiones entero. Rutas antiguas sin soporte fallan explicitamente.
 Ejemplo: `ejemplos/paginas_lote.nxf`.
+
+## Proteccion de escritura (v0.0.26)
+
+`proteger_paginas(base,cantidad,escritura)` cambia datos privados reservados:
+0 solo lectura,1 lectura/escritura. La base debe estar alineada a4096 y la
+cantidad ser1..4. Retorna0 exito,0xffffffff contrato o0xfffffffb si al retirar
+escritura encuentra un buffer IPC retenido. Valida todo antes de cambiar nada.
+`escritura_pagina(base)` consulta una pagina:0 RO,1 RW o0xffffffff si no existe
+o la direccion es invalida. Ambas expresiones retornan entero; la bandera es
+un entero0/1. No afectan codigo/pila ni retiran la capacidad de leer datos.
+
+Se conserva el contenido y la proteccion tras ceder/dormir/preempcion. Una
+reserva nueva comienza RW y en cero. Los servicios que escriben en memoria
+rechazan un destino RO antes de copiar o consumir mensajes. Leer y guardar
+archivos desde datos RO sigue permitido. Escribir directamente en RO produce
+un fallo de pagina que termina la aplicacion. RO no impide ejecutar: NX sigue
+pendiente. Rutas sin soporte fallan explicitamente. Ejemplo comentado:
+`ejemplos/proteccion_memoria.nxf`.

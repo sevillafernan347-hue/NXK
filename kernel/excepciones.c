@@ -275,6 +275,18 @@ static void usuario_servicio(uint32_t *c) {
         c[11]=r==-5 ? (uint32_t)-5 : r ? UINT32_MAX : 0;
         return;
     }
+    /* Solo datos del emisor real. La API valida todo el rango y las salidas
+     * IPC retenidas antes de retirar escritura o cambiar la primera PTE. */
+    if (servicio==25 && contexto_reanudable) {
+        int r=nxk_espacio_proteger_paginas(usuario_id_activo,p,n,c[9]);
+        c[11]=r==-5 ? (uint32_t)-5 : r ? UINT32_MAX : 0;
+        return;
+    }
+    if (servicio==26 && contexto_reanudable) {
+        uint32_t escritura;
+        if (!nxk_espacio_escritura(usuario_id_activo,p,&escritura)) c[11]=escritura;
+        return;
+    }
     if ((servicio==14 || servicio==15) && contexto_reanudable) {
         uint32_t espera=c[9];
         if (espera>0x7fffffffu || (servicio==15 && !usuario_rango(n,8,1))) return;

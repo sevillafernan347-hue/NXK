@@ -3,6 +3,22 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.26
+
+- Proteccion RO/RW de rangos de datos privados y consulta por pagina; persiste
+  al reactivar y limpia permisos al reciclar. Validacion atomica y TLB actualizado.
+- Copias y servicios FS/IPC respetan RO antes de escribir o consumir mensajes.
+  Los buffers IPC pendientes no pueden perder escritura, incluso tras el plazo.
+- Servicios25/26, NEXTRY proteger_paginas/escritura_pagina, consola y editor;
+  ejemplo comentado y diagnostico de fallos CPU contenido.
+- Reserva de imagen+BSS x86 ampliada a192KiB tras revisar solapamientos; el
+  archivo BIOS conserva120KiB. Mapa de memoria y barreras de linker probadas.
+- 95 pruebas compilador, matriz QEMU x86 y regresion x64 superadas; pruebas
+  externas de proteccion, memoria, buffers y lotes con recursos/discos estables.
+- Imagen x86 normal77836B/test106508B; x64 normal24584B/test28680B.
+- Puentes C, una CPU, sin NX ni memoria compartida. Detalles y comandos:
+  ENTREGA-PROTECCION-PAGINAS.md y MAPA-MEMORIA.md.
+
 ## v0.0.25
 
 - Reservas1..4 de paginas privadas con VA contigua y rollback si falta RAM.

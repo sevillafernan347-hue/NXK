@@ -155,6 +155,20 @@ uint32_t nxk_es_liberar_pagina(uint32_t direccion) {
     if (r && r!=UINT32_MAX) nxk_es_fallo(0);
     return r;
 }
+/* No aceptar negativos desconocidos como permisos:0 tambien es un resultado
+ * correcto (solo lectura). Los servicios ausentes terminan explicitamente. */
+uint32_t nxk_es_proteger_paginas(uint32_t direccion,uint32_t cantidad,uint32_t escritura) {
+    uint32_t r=25;
+    __asm__ volatile("int $0x81":"+a"(r):"b"(direccion),"c"(cantidad),"d"(escritura):"memory","cc");
+    if (r && r!=UINT32_MAX && r!=(uint32_t)-5) nxk_es_fallo(0);
+    return r;
+}
+uint32_t nxk_es_escritura_pagina(uint32_t direccion) {
+    uint32_t r=26;
+    __asm__ volatile("int $0x81":"+a"(r):"b"(direccion):"memory","cc");
+    if (r>1 && r!=UINT32_MAX) nxk_es_fallo(0);
+    return r;
+}
 /* El acceso ocurre en CPL3, nunca mediante un puntero confiado al kernel.
  * Se comprueba alineacion e intervalo completo. Si ya fue liberada, la CPU
  * provoca fallo de pagina que termina solo esta aplicacion. */

@@ -136,3 +136,13 @@ contiguo: EAXbase o0, sin reservas parciales. INT81/24 EBXbase ECXcantidad
 libera:0 exito,-1 rango/hueco,-5 retencion IPC, sin efectos parciales al rechazar.
 Legacy devuelve-2. La cuota se conserva y ABI1/cabecera no cambian.
 Ver ENTREGA-PAGINAS-LOTES.md y ejemplo paginas_lote.nxf.
+
+Desde v0.0.26 INT81/25 EBX=base ECX=cantidad EDX=escritura0|1 cambia la
+escritura de1..4 paginas de datos reservadas:0 exito,-1 contrato/rango,-5 buffer
+IPC retenido al retirar escritura. Validacion completa antes de efectos.
+INT81/26 EBX=base devuelve0 RO,1 RW o-1 direccion invalida. Solo bases exactas
+de datos reservados; codigo y pila conservan sus permisos. Legacy devuelve-2.
+Los servicios de salida/archivos pueden leer datos RO; leer archivos, recibir
+mensajes y esperar resultados necesitan todo el destino escribible. El rechazo
+no copia parcialmente ni consume mensajes. ABI1/cabecera siguen iguales.
+Consulta ENTREGA-PROTECCION-PAGINAS.md y ejemplo proteccion_memoria.nxf.
