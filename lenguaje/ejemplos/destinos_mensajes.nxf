@@ -1,0 +1,14 @@
+# El operador envia el ID del receptor antes del primer turno.
+funcion inicio
+    entero destino = 0
+    entero origen = 0
+    entero resultado = 0
+    recibir_mensaje destino, origen, resultado, 0
+    afirmar resultado == 0
+    limitar_destinos destino
+    enviar_mensaje destino, 42
+    ceder
+    # Retirar todos los destinos es irreversible para este proceso.
+    limitar_destinos
+    finalizar 42
+fin

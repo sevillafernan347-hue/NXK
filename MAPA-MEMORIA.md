@@ -10,6 +10,7 @@ El extremo derecho de cada intervalo es exclusivo.
 | Archivo kernel | 0x10000 | 0x2e000 | Maximo120KiB leidos en32+32+56KiB |
 | Imagen y variables kernel | 0x10000 | 0x40000 | Reserva192KiB; linker exige fin menor |
 | Pila inicial | 0x80000 | 0x90000 | ESP inicial90000; intervalo aceptado por puente PE |
+| VGA grafico optativo | 0xa0000 | 0xafa00 | Framebuffer320x200, solo supervisor |
 | Heap de laboratorio | 0x100000 | 0x180000 | Incremental512KiB, pilas y buffers kernel |
 | Aplicacion NXE1 | 0x180000 | 0x1a0000 | Laboratorio ring0, hasta128KiB |
 | Directorio/tablas kernel | 0x200000 | 0x301000 | Identidad supervisor hasta1GiB |

@@ -1,5 +1,5 @@
 # Compila una aplicacion NEXTRY para la prueba CPL3 de una pagina.
-param([string]$Fuente='lenguaje/ejemplos/usuario.nxf',[string]$Salida='')
+param([string]$Fuente='lenguaje/ejemplos/usuario.nxf',[string]$Salida='', [string]$DirectorioTrabajo='')
 $ErrorActionPreference='Stop'
 Set-Location $PSScriptRoot
 $dir='build/x86/usuario-nxf'
@@ -8,6 +8,7 @@ if ($Salida) {
     if (!$carpeta) { $carpeta='.' }
     $dir=Join-Path $carpeta (([IO.Path]::GetFileNameWithoutExtension($Salida))+'-usuario-intermedios')
 }
+if ($DirectorioTrabajo) { $dir=$DirectorioTrabajo }
 New-Item -ItemType Directory -Force $dir | Out-Null
 $zig=Join-Path $PSScriptRoot 'tools/zig/zig.exe'
 $python=Join-Path $PSScriptRoot 'tools/python/python.exe'

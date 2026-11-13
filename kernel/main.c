@@ -20,6 +20,9 @@
 #include "pci.h"
 #include "espacios.h"
 #include "procesos.h"
+#ifdef NXK_INTERFAZ
+#include "interfaz.h"
+#endif
 #if defined(__i386__)
 #define NXK_ARCH_TEXT "x86 de 32 bits"
 #define NXK_MODE_MARKER "NXK: PROTECTED MODE 32 OK\n"
@@ -52,6 +55,9 @@ static void put(char ch) {
        Al llegar abajo, las filas suben y queda libre la ultima fila. */
     while (!(in8(0x3fd) & 0x20)) {}
     out8(0x3f8, (uint8_t)ch);
+#ifdef NXK_INTERFAZ
+    nxk_interfaz_caracter(ch); return;
+#endif
     volatile uint16_t *vga = (volatile uint16_t *)0xb8000;
     if (ch == '\b') { if (column) { --column; vga[row*80+column] = 0x0b20; } }
     else if (ch == '\n') { column = 0; ++row; }
@@ -155,6 +161,25 @@ static int leer_par(const char *s,uint32_t *id,uint32_t *valor) {
     texto[i]=0;
     return *s==' ' && leer_id(texto,id) && leer_valor(s+1,valor);
 }
+/* ID y hasta cuatro destinos decimales separados por comas. La lista vacia
+ * es valida; ninguna entrada se publica hasta comprobar el comando entero. */
+static int leer_destinos(const char *s,uint32_t *id,uint32_t destinos[4],uint32_t *cantidad) {
+    char texto[11]; unsigned i=0;
+    while (*s && *s!=' ') { if (i==10) return 0; texto[i++]=*s++; }
+    texto[i]=0; if (!leer_id(texto,id)) return 0;
+    *cantidad=0; if (!*s) return 1;
+    ++s;
+    for (;;) {
+        if (*cantidad==4) return 0;
+        i=0;
+        while (*s && *s!=',') { if (i==10) return 0; texto[i++]=*s++; }
+        texto[i]=0;
+        if (!leer_id(texto,&destinos[*cantidad])) return 0;
+        ++*cantidad;
+        if (!*s) return 1;
+        ++s;
+    }
+}
 /* Cuatro valores decimales exactos: primero analizar todos y solo entonces
  * modificar permisos. Rechaza signos, overflow, campos vacios y sobrantes. */
 static int leer_proteccion(const char *s,uint32_t valores[4]) {
@@ -195,6 +220,9 @@ void nxk_es_limitar_memoria(uint32_t cuota) { (void)cuota; nxk_es_fallo(0); }
 uint32_t nxk_es_cuota_memoria(void) { nxk_es_fallo(0); }
 /* La memoria privada requiere la ruta CPL3 gestionada, no tareas ring0. */
 uint32_t nxk_es_reservar_pagina(void) { nxk_es_fallo(0); }
+void nxk_es_limitar_destinos(uint32_t n,uint32_t a,uint32_t b,uint32_t c,uint32_t d) {
+    (void)n;(void)a;(void)b;(void)c;(void)d;nxk_es_fallo(0);
+}
 uint32_t nxk_es_reservar_paginas(uint32_t n) { (void)n; nxk_es_fallo(0); }
 uint32_t nxk_es_liberar_paginas(uint32_t p,uint32_t n) { (void)p;(void)n; nxk_es_fallo(0); }
 uint32_t nxk_es_proteger_paginas(uint32_t p,uint32_t n,uint32_t e) { (void)p;(void)n;(void)e; nxk_es_fallo(0); }
@@ -299,6 +327,9 @@ void kernel_main(void) {
     /* Recorrido del arranque: consola -> excepciones -> memoria -> NEXTRY.
        La imagen de pruebas ejecuta comprobaciones; la normal abre la consola. */
     serial_init();
+#ifdef NXK_INTERFAZ
+    nxk_interfaz_iniciar();
+#endif
     extern void nxk_excepciones_iniciar(void);
     nxk_excepciones_iniciar();
 #if defined(__i386__)
@@ -503,7 +534,19 @@ void kernel_main(void) {
     print("NXK: BOOT PASS\n");
     out8(0xf4, 0x10);
 #endif
+#ifdef NXK_INTERFAZ
+    nxk_interfaz_limpiar();
+    print("Bienvenido a MINI NXK " NXK_VERSION "\n\n");
+    print("Sistema original en una maquina virtual.\n");
+    print("Escribe comandos y pulsa Enter:\n\n");
+    print("  version        Version del nucleo\n");
+    print("  mem            Memoria disponible\n");
+    print("  archivos       Archivos en RAM\n");
+    print("  proceso demo   Ejecutar procesos\n");
+    print("  usuario nextry Probar nuestro lenguaje\n\n");
+#else
     print("Escribe help y pulsa Enter. Teclado basico sin Shift.\n");
+#endif
     char line[80]; unsigned length = 0;
     /* Bucle de comandos: recoge una linea y ejecuta una accion al pulsar Enter.
        No es un planificador: aqui todavia corre una sola tarea del kernel. */
@@ -513,7 +556,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | espacios | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nproceso resumen | proceso dependencias | proceso dormir | proceso preempcion | proceso demo | proceso cargar nombre.nxe | proceso listar | proceso paso ID\nproceso ejecutar | proceso liberar ID\nproceso enviar ID VALOR | proceso cancelar ID\nproceso permisos ID MASCARA\nproceso memoria ID LIMITE\nproceso proteger ID BASE CANTIDAD ESCRITURA\nproceso archivos ID [nombre1,nombre2]\nusuario espacios | usuario listar | usuario cargar archivo.nxe | usuario turno ID | usuario liberar ID\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | espacios | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nproceso resumen | proceso dependencias | proceso dormir | proceso preempcion | proceso demo | proceso cargar nombre.nxe | proceso listar | proceso paso ID\nproceso ejecutar | proceso liberar ID\nproceso enviar ID VALOR | proceso cancelar ID\nproceso permisos ID MASCARA\nproceso memoria ID LIMITE\nproceso proteger ID BASE CANTIDAD ESCRITURA\nproceso destinos ID [ID1,ID2]\nproceso archivos ID [nombre1,nombre2]\nusuario espacios | usuario listar | usuario cargar archivo.nxe | usuario turno ID | usuario liberar ID\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -643,7 +686,9 @@ void kernel_main(void) {
                         print(" mensajes "); number(p.mensajes); print(" enviados "); number(p.enviados); print(" recibidos "); number(p.recibidos); print(" esperas "); number(p.esperas_mensaje); print(" plazos "); number(p.plazos);
                         print(" esperando "); number(p.esperando); print(" esperas_envio "); number(p.esperas_envio); print(" esperas_fin "); number(p.esperas_fin); print(" ciclos "); number(p.ciclos); print(" permisos "); number(p.permisos);
                         print(" archivos_restringidos "); number(p.archivos_restringidos);
-                        print(" archivos_permitidos "); number(p.archivos_permitidos); put('\n');
+                        print(" archivos_permitidos "); number(p.archivos_permitidos);
+                        print(" destinos_restringidos "); number(p.destinos_restringidos);
+                        print(" destinos_permitidos "); number(p.destinos_permitidos); put('\n');
                         if (p.estado==NXK_PROCESO_CANCELADO) print("Cancelado; recursos retenidos hasta liberar.\n");
                         else if (p.error_motor) { print("Error de motor "); number(p.error_motor); put('\n'); }
                         else if (p.turnos) usuario_resultado(&p.ultimo);
@@ -678,6 +723,12 @@ void kernel_main(void) {
                 print(!leer_archivos(line+17,&id,nombres,&cantidad) ||
                     nxk_proceso_limitar_archivos(id,nombres,cantidad) ?
                     "No se pudo restringir archivos.\n" : "Archivos restringidos.\n");
+            }
+            else if (prefijo(line,"proceso destinos ")) {
+                uint32_t id,cantidad,destinos[4];
+                print(!leer_destinos(line+17,&id,destinos,&cantidad) ||
+                    nxk_proceso_limitar_destinos(id,destinos,cantidad) ?
+                    "No se pudo restringir destinos.\n" : "Destinos restringidos.\n");
             }
             else if (prefijo(line,"proceso memoria ")) {
                 uint32_t id,cuota;

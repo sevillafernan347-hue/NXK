@@ -11,6 +11,7 @@ enum nxk_proceso_estado { NXK_PROCESO_LIBRE, NXK_PROCESO_LISTO,
 #define NXK_PROCESO_ESTADOS (NXK_PROCESO_ESPERANDO_FIN+1u)
 #define NXK_PROCESO_BUZON_MAX 4u
 #define NXK_PROCESO_ARCHIVOS_MAX 4u
+#define NXK_PROCESO_DESTINOS_MAX 4u
 enum nxk_proceso_permiso {
     NXK_PERM_SALIDA=1u, NXK_PERM_LEER_ARCHIVOS=2u,
     NXK_PERM_MODIFICAR_ARCHIVOS=4u, NXK_PERM_ENVIAR_MENSAJES=8u,
@@ -26,6 +27,7 @@ struct nxk_proceso_info {
     struct nxk_usuario_resultado ultimo;
     uint32_t permisos;
     uint32_t archivos_restringidos,archivos_permitidos;
+    uint32_t destinos_restringidos,destinos_permitidos;
 };
 /* Mascara propia de cada generacion, inicialmente TODOS. Consultar no resuelve
  * plazos; -1 ID/buffer/metadatos invalidos, salida intacta al rechazar.
@@ -36,6 +38,20 @@ struct nxk_proceso_info {
 int nxk_proceso_permisos(uint32_t id,uint32_t *salida);
 int nxk_proceso_restringir(uint32_t id,uint32_t mascara);
 int nxk_proceso_restringir_actual(uint32_t id,uint32_t mascara);
+/* Filtro saliente de hasta cuatro IDs completos (generacion y slot), sin
+ * exigir que esten vivos ni retener sus recursos. Inicialmente sin filtro;
+ * primera lista lo activa y despues solo permite subconjuntos sin duplicados.
+ * Cantidad0 acepta null y niega todo envio. Cancelar conserva la politica,
+ * una nueva generacion comienza sin filtro. No retira mensajes ya encolados.
+ * 0 exito,-1 contrato/ID/metadatos,-2 terminal/ejecutando,-3 contexto,
+ * -5 ampliacion. Variante actual solo en INT81 del proceso EJECUTANDO.
+ * Entradas kernel confiables, copiadas antes de publicar. */
+int nxk_proceso_limitar_destinos(uint32_t id,const uint32_t *destinos,uint32_t cantidad);
+int nxk_proceso_limitar_destinos_actual(uint32_t id,const uint32_t *destinos,uint32_t cantidad);
+/* Solo filtro:1 permite,0 niega,-1 ID/sintaxis/metadatos. Sin resolver plazos
+ * ni consultar vida del destino. El permiso general ENVIAR tambien se exige
+ * al enviar. Un ID obsoleto permitido nunca autoriza otra generacion. */
+int nxk_proceso_destino_permitido(uint32_t id,uint32_t destino);
 /* Lista de nombres exactos de1..23 caracteres RAMFS (a-z,0-9,_,-,.).
  * Sin filtro al crear. La primera lista activa el filtro; despues solo se
  * aceptan subconjuntos, sin duplicados. cantidad0 admite nombres null y niega
@@ -73,7 +89,7 @@ int nxk_proceso_paso(uint32_t id);
 int nxk_proceso_enviar(uint32_t destino,uint32_t valor);
 /* Puentes internos de INT81: origen/id debe ser el proceso en EJECUTANDO y
  * el gestor debe estar ocupado. Un error no consume ni modifica salida.
- * Enviar exige ENVIAR_MENSAJES; -5 si se ha revocado.
+ * Enviar exige ENVIAR_MENSAJES y destino permitido; -5 si se ha revocado.
  * Recibir: -2 vacio, -1 contrato. Preparar conserva el buffer virtual hasta
  * reanudar; el gestor entrega {origen,valor} antes de retirar de la cola.
  * Buffer de ocho bytes en pila/datos reservados; un cruce retiene ambas

@@ -5,6 +5,7 @@ param(
     [string]$FuenteApp = 'lenguaje/ejemplos/hola.nxf',
     [string]$FuenteUsuario = 'lenguaje/ejemplos/usuario.nxf',
     [switch]$Test,
+    [switch]$Interfaz,
     [switch]$ExceptionTest,
     [ValidateSet(3,6,13,14,114,214,314,414,514,614)][int]$ExceptionVector = 3,
     [ValidateSet('x86','x64')][string]$Architecture = 'x86'
@@ -15,7 +16,8 @@ $zig = Join-Path $PSScriptRoot 'tools\zig\zig.exe'
 $python = Join-Path $PSScriptRoot 'tools\python\python.exe'
 if (!(Test-Path $zig)) { throw 'Falta tools\zig\zig.exe. Consulta LEEME.md.' }
 if (!(Test-Path $python)) { throw 'Falta el compilador de NXK Espanol: tools\python\python.exe.' }
-$buildDir = if ($Architecture -eq 'x86') { 'build/x86' } else { 'build' }
+if ($Interfaz -and $Architecture -ne 'x86') { throw 'Interfaz experimental disponible solo en x86.' }
+$buildDir = if ($Interfaz) { 'build/x86-interfaz' } elseif ($Architecture -eq 'x86') { 'build/x86' } else { 'build' }
 $target = if ($Architecture -eq 'x86') { 'x86-freestanding-none' } else { 'x86_64-freestanding-none' }
 $bootSource = if ($Architecture -eq 'x86') { 'boot/boot32.S' } else { 'boot/boot.S' }
 $entrySource = if ($Architecture -eq 'x86') { 'kernel/entry32.S' } else { 'kernel/entry.S' }
@@ -24,14 +26,14 @@ New-Item -ItemType Directory -Force $buildDir | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'NXK Espanol encontro errores. Corrige kernel\inicio.nxf.' }
 & "$PSScriptRoot/compilar-app.ps1" -Fuente $FuenteApp -Architecture $Architecture -Salida "$buildDir/hola.nxe"
 if ($Architecture -eq 'x86') {
-    & "$PSScriptRoot/compilar-usuario.ps1" -Fuente $FuenteUsuario
+    & "$PSScriptRoot/compilar-usuario.ps1" -Fuente $FuenteUsuario -DirectorioTrabajo "$buildDir/usuario-nxf"
     & $zig cc -target x86-windows-gnu -ffreestanding -fno-stack-protector -fno-builtin -mno-sse -mno-sse2 -Os -nostdlib compatibilidad/windows/hola.c '-Wl,--entry,inicio' '-Wl,--subsystem,console' '-Wl,--image-base,0x400000' -lkernel32 -o "$buildDir/hola.exe"
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear el EXE Win32 de prueba.' }
 }
 $asm = ".section .rodata`n.global nxe_demo_inicio, nxe_demo_fin`nnxe_demo_inicio:`n.incbin `"$buildDir/hola.nxe`"`nnxe_demo_fin:`n.section .note.GNU-stack,`"`",@progbits`n"
 if ($Architecture -eq 'x86') {
-    $asm += ".section .rodata`n.global usuario_nxf_inicio, usuario_nxf_fin`nusuario_nxf_inicio:`n.incbin `"build/x86/usuario-nxf/programa.bin`"`nusuario_nxf_fin:`n"
-    $asm += '# USUARIO NXF ' + (Get-FileHash 'build/x86/usuario-nxf/programa.bin' -Algorithm SHA256).Hash + "`n"
+    $asm += ".section .rodata`n.global usuario_nxf_inicio, usuario_nxf_fin`nusuario_nxf_inicio:`n.incbin `"$buildDir/usuario-nxf/programa.bin`"`nusuario_nxf_fin:`n"
+    $asm += '# USUARIO NXF ' + (Get-FileHash "$buildDir/usuario-nxf/programa.bin" -Algorithm SHA256).Hash + "`n"
 }
 if ($Architecture -eq 'x86') { $asm += ".section .rodata`n.global pe_demo_inicio, pe_demo_fin`npe_demo_inicio:`n.incbin `"$buildDir/hola.exe`"`npe_demo_fin:`n" }
 if ($Architecture -eq 'x86') {
@@ -75,7 +77,14 @@ if ($Architecture -eq 'x86') {
 [IO.File]::WriteAllText((Join-Path $PSScriptRoot "$buildDir/app_embebida.S"), $asm)
 function Invoke-Zig { & $zig @args; if ($LASTEXITCODE -ne 0) { throw "Zig fallo: $args" } }
 if ($Architecture -eq 'x86') {
-    & $python lenguaje/ensamblador.py boot/arranque32.nxa -o "$buildDir/boot.bin"
+    $arranque='boot/arranque32.nxa'
+    if ($Interfaz) {
+        $arranque="$buildDir/arranque-interfaz.nxa"
+        $fuente=[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'boot/arranque32.nxa'))
+        $fuente=$fuente.Replace('ram_invalida:',"ram_invalida:`ncargar16 ax, 0x0013`ninterrupcion 0x10`ncero ax`nsegmento ds, ax`nsegmento es, ax")
+        [IO.File]::WriteAllText((Join-Path $PSScriptRoot $arranque),$fuente)
+    }
+    & $python lenguaje/ensamblador.py $arranque -o "$buildDir/boot.bin"
     if ($LASTEXITCODE -ne 0) { throw 'Error en NEXTRY ASM.' }
 } else {
     Invoke-Zig cc -target $target -c $bootSource -o "$buildDir/boot.o"
@@ -93,6 +102,7 @@ Invoke-Zig cc -target $target -c $entrySource -o "$buildDir/entry.o"
 $flags = @('-target',$target,'-ffreestanding','-fno-stack-protector','-fno-pic','-mno-sse','-mno-sse2','-mno-mmx','-fno-vectorize','-fno-slp-vectorize','-Os','-Wall','-Wextra','-Werror','-Ilib')
 if ($Architecture -eq 'x64') { $flags += '-mno-red-zone' }
 if ($Test) { $flags += '-DNXK_TEST' }
+if ($Interfaz) { $flags += '-DNXK_INTERFAZ' }
 if ($ExceptionTest) { $flags += '-DNXK_EXCEPTION_TEST' }
 if ($ExceptionTest) { $flags += "-DNXK_EXCEPTION_VECTOR=$ExceptionVector" }
 Invoke-Zig cc @flags -c kernel/planificador.c -o "$buildDir/planificador.o"
@@ -140,6 +150,10 @@ $objects += "$buildDir/dependencias_demo.o"
 $objects += "$buildDir/ram.o"
 $objects += "$buildDir/paginacion.o"
 $objects += "$buildDir/paginas.o"
+if ($Interfaz) {
+    Invoke-Zig cc @flags -c kernel/interfaz.c -o "$buildDir/interfaz.o"
+    $objects += "$buildDir/interfaz.o"
+}
 if ($Architecture -eq 'x86') {
     Invoke-Zig cc -target $target -c compatibilidad/windows/retorno32.S -o "$buildDir/pe_retorno.o"
     $objects += "$buildDir/pe_retorno.o"

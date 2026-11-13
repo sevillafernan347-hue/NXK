@@ -386,6 +386,16 @@ paginas contiguas reservadas por llamadas diferentes. La cantidad0 es invalida.
 Ambas son expresiones entero. Rutas antiguas sin soporte fallan explicitamente.
 Ejemplo: `ejemplos/paginas_lote.nxf`.
 
+## Destinos de mensajes (v0.0.27)
+
+`limitar_destinos id1, id2` acepta0..4 expresiones entero. La primera lista
+activa el filtro; las siguientes solo retiran IDs. Sin argumentos prohibe todo
+envio. Se exige ademas el permiso general de enviar. Un ID incluye generacion:
+reutilizar el slot no autoriza a su nuevo ocupante. No retiene destinatarios ni
+borra mensajes encolados; no restringe recepcion ni espera de resultados.
+Un rechazo o servicio ausente termina la app explicitamente. Ejemplo comentado:
+`ejemplos/destinos_mensajes.nxf`.
+
 ## Proteccion de escritura (v0.0.26)
 
 `proteger_paginas(base,cantidad,escritura)` cambia datos privados reservados:

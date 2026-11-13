@@ -3,6 +3,19 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.27
+
+- Filtro saliente monotono de hasta cuatro IDs completos, sin transferir
+  permisos a otro proceso al reciclar slots. Revocar envios pendientes devuelve
+  -5 sin encolar ni conservar dependencias falsas. Origen kernel0 conservado.
+- INT81/27, NEXTRY limitar_destinos y consola proceso destinos; listas completas
+  validadas antes de aplicar. Consulta y contadores visibles por proceso.
+- MINI NXK grafico optativo: fuente propia, framebuffer VGA, terminal real,
+  teclado y scroll. VER-MINI-NXK.cmd abre QEMU; salida build/x86-interfaz.
+- 100 pruebas compilador, matriz x86 y regresion x64; pruebas de destinos y
+  de interfaz con captura, teclado PS2, archivos, NEXTRY y procesos.
+- Puentes C; paneles fijos sin raton/gestor de ventanas. Sin porcentaje de Windows.
+
 ## v0.0.26
 
 - Proteccion RO/RW de rangos de datos privados y consulta por pagina; persiste

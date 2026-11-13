@@ -146,3 +146,10 @@ Los servicios de salida/archivos pueden leer datos RO; leer archivos, recibir
 mensajes y esperar resultados necesitan todo el destino escribible. El rechazo
 no copia parcialmente ni consume mensajes. ABI1/cabecera siguen iguales.
 Consulta ENTREGA-PROTECCION-PAGINAS.md y ejemplo proteccion_memoria.nxf.
+
+Desde v0.0.27 INT81/27 EBX=tabla de DWORD, ECX=cantidad0..4 limita destinos
+de mensajes del proceso actual. Valida todo el rango legible antes de copiar;
+cantidad0 ignora EBX. Retorna0 exito,-1 contrato/IDs/duplicados,-5 ampliacion;
+legacy-2. Sin filtro inicial; despues solo subconjuntos de IDs completos. No
+exige destinatarios vivos al configurar. Revocar envios pendientes devuelve-5
+al despachar, incluso tras plazo. Cabecera/ABI1 se conservan. Consulta entrega.

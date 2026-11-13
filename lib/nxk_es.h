@@ -34,6 +34,9 @@ uint32_t nxk_es_cuota_memoria(void);
 /* Lista monotona de hasta cuatro nombres. Cantidad0 impide todos los archivos;
  * cualquier error o servicio ausente termina explicitamente la aplicacion. */
 void nxk_es_limitar_archivos(uint32_t cantidad,const char *a,const char *b,const char *c,const char *d);
+/* Lista monotona de IDs completos a los que enviar. Cero niega todos;
+ * el filtro no retiene destinos ni cambia mensajes ya encolados. */
+void nxk_es_limitar_destinos(uint32_t cantidad,uint32_t a,uint32_t b,uint32_t c,uint32_t d);
 /* Paginas privadas de datos: hasta cuatro, 4096 bytes cada una, solo CPL3.
  * Reserva devuelve direccion o0; liberar devuelve0 o UINT32_MAX.
  * Leer/escribir enteros de32bits requiere direccion alineada dentro de datos.

@@ -1,7 +1,15 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.26**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.27**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
+
+**Prueba grafica:** abre `VER-MINI-NXK.cmd`. [MINI NXK](experimentos/mini-so/README.md)
+ofrece una pantalla propia y terminal conectada al kernel, dentro de QEMU.
+Se controla con teclado; paneles fijos, sin raton ni ventanas movibles.
+
+Los procesos tambien pueden restringir sus destinos de mensajes con
+`limitar_destinos` y `proceso destinos ID lista`. Consulta
+[contrato y pruebas](ENTREGA-DESTINOS-PROCESOS.md).
 
 Se puede restringir cada proceso a una lista de archivos que
 solo puede reducirse. Consulta [contrato y ejemplo](ENTREGA-ARCHIVOS-PROCESOS.md).

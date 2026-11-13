@@ -287,6 +287,16 @@ static void usuario_servicio(uint32_t *c) {
         if (!nxk_espacio_escritura(usuario_id_activo,p,&escritura)) c[11]=escritura;
         return;
     }
+    if (servicio==27 && contexto_reanudable) {
+        if (n>NXK_ESPACIOS_MAX) return;
+        uint32_t destinos[NXK_ESPACIOS_MAX];
+        if (n) {
+            if (!usuario_rango(p,n*sizeof(uint32_t),0)) return;
+            memcpy(destinos,(const void *)(uintptr_t)p,n*sizeof(uint32_t));
+        }
+        c[11]=(uint32_t)nxk_proceso_limitar_destinos_actual(usuario_id_activo,n ? destinos : 0,n);
+        return;
+    }
     if ((servicio==14 || servicio==15) && contexto_reanudable) {
         uint32_t espera=c[9];
         if (espera>0x7fffffffu || (servicio==15 && !usuario_rango(n,8,1))) return;

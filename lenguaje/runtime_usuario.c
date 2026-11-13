@@ -127,6 +127,14 @@ void nxk_es_limitar_archivos(uint32_t cantidad,const char *a,const char *b,const
     __asm__ volatile("int $0x81":"+a"(resultado):"b"(tabla),"c"(cantidad):"memory","cc");
     if (resultado) nxk_es_fallo(0);
 }
+/* La tabla vive en la pila privada; el kernel copia los IDs y valida toda
+ * la reduccion antes de publicar. Un servicio ausente no parece exito. */
+void nxk_es_limitar_destinos(uint32_t cantidad,uint32_t a,uint32_t b,uint32_t c,uint32_t d) {
+    if (cantidad>4) nxk_es_fallo(0);
+    const uint32_t destinos[4]={a,b,c,d}; uint32_t r=27;
+    __asm__ volatile("int $0x81":"+a"(r):"b"(cantidad ? destinos : 0),"c"(cantidad):"memory","cc");
+    if (r) nxk_es_fallo(0);
+}
 /* Servicios18/19 administran solo las paginas privadas del proceso actual.
  * Cero de reserva y error de liberacion son resultados manejables por la app;
  * un servicio ausente no debe confundirse con memoria agotada. */
