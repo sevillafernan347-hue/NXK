@@ -17,6 +17,12 @@ int nxk_paginas_reservar_region(uint32_t inicio, uint32_t longitud);
  * Solo una CPU, fuera de IRQ; no ofrece sincronizacion concurrente. */
 void *nxk_paginas_reservar_bloque(uint32_t cantidad,uint32_t alineacion);
 int nxk_paginas_liberar_bloque(void *inicio,uint32_t cantidad);
+/* Lista de 1..32 direcciones fisicas, sin exigir contiguidad. Copia y valida
+ * toda la lista antes de borrar paginas; el rechazo no tiene efectos.
+ * La lista kernel confiable puede residir dentro de una pagina que libera.
+ * 0 exito; -1 null/cantidad/direccion/duplicados, -2 alguna no prestada,
+ * -3 no iniciado, -64 x64. Una CPU, sin concurrencia ni llamadas desde IRQ. */
+int nxk_paginas_liberar_lista(const uint32_t *paginas,uint32_t cantidad);
 uint32_t nxk_paginas_libres(void);
 uint32_t nxk_paginas_total(void);
 /* Instantanea en paginas de 4 KiB. total es la capacidad inicial; excluidas

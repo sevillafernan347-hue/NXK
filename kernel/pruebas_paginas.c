@@ -10,10 +10,13 @@ static int diagnostico_error(int esperado) {
     return 0;
 }
 int nxk_probar_paginas_preinicio(void) {
+    uint32_t pagina=0x800000;
 #if defined(__i386__)
-    return diagnostico_error(-3) || nxk_paginas_diagnostico(0)!=-1;
+    return diagnostico_error(-3) || nxk_paginas_diagnostico(0)!=-1 ||
+        nxk_paginas_liberar_lista(&pagina,1)!=-3;
 #else
-    return diagnostico_error(-64) || nxk_paginas_diagnostico(0)!=-64;
+    return diagnostico_error(-64) || nxk_paginas_diagnostico(0)!=-64 ||
+        nxk_paginas_liberar_lista(&pagina,1)!=-64 || nxk_paginas_liberar_lista(0,0)!=-64;
 #endif
 }
 #if defined(__i386__)
@@ -27,6 +30,64 @@ static int diagnostico_igual(uint32_t total,uint32_t libres,uint32_t prestadas,
             d.mayor_bloque!=mayor || d.bloques_libres!=bloques) return 1;
     }
     return 0;
+}
+/* Miembros separados, validacion completa y lista alojada en memoria que se
+ * libera. Solo se invoca con el mapa BIOS restaurado y RAM real disponible. */
+__attribute__((minsize)) static int probar_lista(void) {
+    uint32_t paginas[32],lista[32];
+    struct nxk_diagnostico_paginas antes,actual;
+    if (nxk_paginas_diagnostico(&antes)) return 1;
+    for (unsigned i=0;i<32;++i) {
+        paginas[i]=(uint32_t)(uintptr_t)nxk_pagina_reservar();
+        if (!paginas[i]) return 2;
+        memset((void *)(uintptr_t)paginas[i],(int)(i+1),4096);
+    }
+    /* Dejar libre el ultimo miembro: el primero prestado no debe borrarse
+     * cuando la validacion llega al segundo y descubre que no esta prestado. */
+    lista[0]=paginas[31];
+    if (nxk_paginas_liberar_lista(lista,1)) return 3;
+    lista[0]=paginas[0]; lista[1]=paginas[31];
+    if (nxk_paginas_liberar_lista(lista,2)!=-2 ||
+        nxk_paginas_liberar_lista(0,1)!=-1 ||
+        nxk_paginas_liberar_lista(lista,0)!=-1 ||
+        nxk_paginas_liberar_lista(lista,33)!=-1 ||
+        nxk_paginas_liberar_lista(lista,UINT32_MAX)!=-1) return 4;
+    uint32_t invalidas[]={0,0x7ff000,0x40000000,UINT32_MAX,paginas[0]+1,paginas[0]};
+    for (unsigned i=0;i<sizeof(invalidas)/sizeof(*invalidas);++i) {
+        lista[1]=invalidas[i];
+        if (nxk_paginas_liberar_lista(lista,2)!=-1) return 5;
+    }
+    if (nxk_paginas_diagnostico(&actual) || actual.libres!=antes.libres-31 ||
+        actual.prestadas!=antes.prestadas+31 || actual.excluidas!=antes.excluidas) return 6;
+    for (unsigned i=0;i<31;++i) for (unsigned j=0;j<4096;++j)
+        if (((unsigned char *)(uintptr_t)paginas[i])[j]!=i+1) return 7;
+    /* Desordenadas y separadas por pagina[1], que debe conservar su contenido. */
+    lista[0]=paginas[2]; lista[1]=paginas[0];
+    if (nxk_paginas_liberar_lista(lista,2) || nxk_paginas_liberar_lista(lista,2)!=-2) return 8;
+    for (unsigned j=0;j<4096;++j)
+        if (((unsigned char *)(uintptr_t)paginas[0])[j] ||
+            ((unsigned char *)(uintptr_t)paginas[2])[j] ||
+            ((unsigned char *)(uintptr_t)paginas[1])[j]!=2) return 9;
+    lista[0]=paginas[1];
+    for (unsigned i=3;i<31;++i) lista[i-2]=paginas[i];
+    if (nxk_paginas_liberar_lista(lista,29) ||
+        diagnostico_igual(antes.total,antes.libres,antes.prestadas,antes.excluidas,
+                          antes.mayor_bloque,antes.bloques_libres)) return 10;
+    /* Limite de 32 miembros. La propia lista esta en la primera pagina que
+     * se borra: leerla de nuevo tras borrar produciria direcciones incorrectas. */
+    for (unsigned i=0;i<32;++i) {
+        paginas[i]=(uint32_t)(uintptr_t)nxk_pagina_reservar();
+        if (!paginas[i]) return 11;
+        memset((void *)(uintptr_t)paginas[i],0x7b,4096);
+    }
+    uint32_t *interna=(void *)(uintptr_t)(paginas[0]+64);
+    interna[0]=paginas[0];
+    for (unsigned i=1;i<32;++i) interna[i]=paginas[32-i];
+    if (nxk_paginas_liberar_lista(interna,32)) return 12;
+    for (unsigned i=0;i<32;++i) for (unsigned j=0;j<4096;++j)
+        if (((unsigned char *)(uintptr_t)paginas[i])[j]) return 13;
+    return diagnostico_igual(antes.total,antes.libres,antes.prestadas,antes.excluidas,
+                            antes.mayor_bloque,antes.bloques_libres) ? 14 : 0;
 }
 #endif
 __attribute__((minsize)) int nxk_probar_paginas(void) {
@@ -155,6 +216,7 @@ __attribute__((minsize)) int nxk_probar_paginas(void) {
     if (liberadas!=cantidad || nxk_paginas_libres()!=cantidad) return 13;
     if (diagnostico_igual(cantidad,cantidad,0,0,
                          inicial.mayor_bloque,inicial.bloques_libres)) return 55;
+    int lista=probar_lista(); if (lista) return 60+lista;
 #else
     if (nxk_probar_paginas_preinicio()) return 56;
 #endif

@@ -196,6 +196,35 @@ int nxk_paginas_liberar_bloque(void *inicio,uint32_t cantidad) {
 #endif
 }
 uint32_t nxk_paginas_libres(void) { return libres; }
+int nxk_paginas_liberar_lista(const uint32_t *paginas,uint32_t cantidad) {
+#if defined(__i386__)
+    if (!iniciado) return -3;
+    if (!paginas || !cantidad || cantidad>32) return -1;
+    /* La entrada puede estar en una de las paginas que vamos a borrar.
+     * Conservar todas las direcciones antes de validar o liberar ninguna. */
+    uint32_t lista[32];
+    memcpy(lista,paginas,cantidad*sizeof(*paginas));
+    for (uint32_t i=0;i<cantidad;++i) {
+        uint32_t a=lista[i];
+        if ((a&4095u) || a<0x800000u || a>=LIMITE) return -1;
+        for (uint32_t j=0;j<i;++j) if (lista[j]==a) return -1;
+    }
+    for (uint32_t i=0;i<cantidad;++i)
+        if (!bit(entregadas,lista[i]/4096)) return -2;
+    /* Ningun miembro se publica libre mientras quede contenido por borrar. */
+    for (uint32_t i=0;i<cantidad;++i)
+        memset((void *)(uintptr_t)lista[i],0,4096);
+    for (uint32_t i=0;i<cantidad;++i) {
+        uint32_t p=lista[i]/4096;
+        marcar(entregadas,p,0); marcar(disponibles,p,1);
+        if (p<pista) pista=p;
+    }
+    libres+=cantidad; entregas_activas-=cantidad;
+    return 0;
+#else
+    (void)paginas; (void)cantidad; return -64;
+#endif
+}
 uint32_t nxk_paginas_total(void) { return total; }
 int nxk_paginas_diagnostico(struct nxk_diagnostico_paginas *salida) {
 #if defined(__i386__)
