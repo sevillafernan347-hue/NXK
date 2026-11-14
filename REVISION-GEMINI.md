@@ -21,8 +21,11 @@ La primera propuesta no se integro:
 - La duracion variable de sondeos por iteraciones es una limitacion conocida;
   no demuestra por si sola un fallo reproducido.
 
-Se pidio rectificacion y trazas de estados para evaluar DRQ aun activo al
-inicio/final de lectura. No se cambio el controlador ATA ni se declararon
+Gemini rectifico los dos primeros puntos. Su segunda propuesta retiro ademas
+los bits altos de LBA28 al escribir 0xf0 sin combinar lba>>24; tambien se rechazo
+y se comunico el motivo. Se pidieron casos de simulacion de DRQ persistente,
+BSY transitorio, ERR/DF, ausencia, maestro prohibido y LBA alto, sin otro parche.
+No se cambio el controlador ATA ni se declararon
 pruebas sobre el parche propuesto. La entrega v0.0.29 corresponde a memoria,
 probada de forma independiente; consultar ENTREGA-ESPACIOS-FRAGMENTADOS.md.
 
