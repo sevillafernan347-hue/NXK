@@ -197,3 +197,32 @@ int nxk_paginas_liberar_bloque(void *inicio,uint32_t cantidad) {
 }
 uint32_t nxk_paginas_libres(void) { return libres; }
 uint32_t nxk_paginas_total(void) { return total; }
+int nxk_paginas_diagnostico(struct nxk_diagnostico_paginas *salida) {
+#if defined(__i386__)
+    if (!salida) return -1;
+    if (!iniciado) return -3;
+    struct nxk_diagnostico_paginas d={0};
+    uint32_t corrida=0;
+    d.total=total;
+    for (uint32_t p=PRIMERA;p<CANTIDAD;++p) {
+        int libre=bit(disponibles,p), prestada=bit(entregadas,p);
+        /* Una pagina no puede estar disponible y en uso a la vez. */
+        if (libre && prestada) return -2;
+        d.prestadas+=(uint32_t)prestada;
+        if (libre) {
+            ++d.libres;
+            if (!corrida) ++d.bloques_libres;
+            if (++corrida>d.mayor_bloque) d.mayor_bloque=corrida;
+        } else corrida=0;
+    }
+    /* No confundir los huecos de RAM con reservas posteriores al inicio.
+     * Los recuentos estan acotados por CANTIDAD; su suma no desborda. */
+    if (d.total>CANTIDAD-PRIMERA || d.libres!=libres ||
+        d.prestadas!=entregas_activas || d.libres+d.prestadas>d.total) return -2;
+    d.excluidas=d.total-d.libres-d.prestadas;
+    *salida=d; /* Publicar solo despues de validar la instantanea completa. */
+    return 0;
+#else
+    (void)salida; return -64;
+#endif
+}

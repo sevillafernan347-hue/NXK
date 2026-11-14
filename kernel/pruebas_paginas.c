@@ -1,5 +1,34 @@
 /* Casos sinteticos y agotamiento real. Solo se enlaza en la imagen de pruebas. */
 #include "paginas.h"
+/* Un error debe conservar cada byte de la salida, no publicar un resumen parcial. */
+static int diagnostico_error(int esperado) {
+    struct nxk_diagnostico_paginas d;
+    memset(&d,0xa5,sizeof(d));
+    if (nxk_paginas_diagnostico(&d)!=esperado) return 1;
+    for (unsigned i=0;i<sizeof(d);++i)
+        if (((unsigned char *)&d)[i]!=0xa5) return 1;
+    return 0;
+}
+int nxk_probar_paginas_preinicio(void) {
+#if defined(__i386__)
+    return diagnostico_error(-3) || nxk_paginas_diagnostico(0)!=-1;
+#else
+    return diagnostico_error(-64) || nxk_paginas_diagnostico(0)!=-64;
+#endif
+}
+#if defined(__i386__)
+static int diagnostico_igual(uint32_t total,uint32_t libres,uint32_t prestadas,
+                             uint32_t excluidas,uint32_t mayor,uint32_t bloques) {
+    /* Repetir confirma que consultar no consume paginas ni altera el resumen. */
+    for (unsigned i=0;i<2;++i) {
+        struct nxk_diagnostico_paginas d;
+        if (nxk_paginas_diagnostico(&d) || d.total!=total || d.libres!=libres ||
+            d.prestadas!=prestadas || d.excluidas!=excluidas ||
+            d.mayor_bloque!=mayor || d.bloques_libres!=bloques) return 1;
+    }
+    return 0;
+}
+#endif
 __attribute__((minsize)) int nxk_probar_paginas(void) {
 #if defined(__i386__)
     struct nxk_region_ram mapa[]={
@@ -8,8 +37,11 @@ __attribute__((minsize)) int nxk_probar_paginas(void) {
         {0x900000,0x100000,1} /* Duplicado: no debe contar RAM dos veces. */
     };
     if (nxk_paginas_iniciar(mapa,3) || nxk_paginas_total()!=1023) return 1;
+    if (nxk_paginas_diagnostico(0)!=-1 ||
+        diagnostico_igual(1023,1023,0,0,1023,1)) return 38;
     void *a=nxk_pagina_reservar(), *b=nxk_pagina_reservar();
     if ((uintptr_t)a!=0x801000 || (uintptr_t)b!=0x802000) return 2;
+    if (diagnostico_igual(1023,1021,2,0,1021,1)) return 39;
     for (unsigned i=0;i<4096;++i)
         if (((unsigned char *)a)[i] || ((unsigned char *)b)[i]) return 16;
     /* Escrituras reales para comprobar que las paginas son independientes. */
@@ -28,6 +60,7 @@ __attribute__((minsize)) int nxk_probar_paginas(void) {
     mapa[0]=(struct nxk_region_ram){0x600000,0x600000,1};
     mapa[1]=(struct nxk_region_ram){0x600001,1,2};
     if (!nxk_paginas_iniciar(mapa,3)) return 9;
+    if (diagnostico_igual(1023,1023,0,0,1023,1)) return 40;
     /* Dos regiones contiguas pueden cubrir juntas la reserva de metadatos. */
     mapa[0]=(struct nxk_region_ram){0x600000,0x8000,1};
     mapa[1]=(struct nxk_region_ram){0x608000,0x5f8000,1};
@@ -38,24 +71,43 @@ __attribute__((minsize)) int nxk_probar_paginas(void) {
     /* Reserva parcial redondeada: repeticion no descuenta paginas dos veces. */
     mapa[1]=(struct nxk_region_ram){0x608000,0x5f8000,1};
     if (nxk_paginas_iniciar(mapa,2) || nxk_paginas_total()!=1024) return 19;
+    if (diagnostico_igual(1024,1024,0,0,1024,1)) return 41;
+    /* Inyectar corrupcion solo en esta imagen de pruebas. Restaurar siempre
+     * los bytes antes de cualquier operacion del asignador, incluso si falla. */
+    volatile unsigned char *libre=(void *)(0x600000+0x800000/4096/8);
+    volatile unsigned char *prestada=(void *)(0x608000+0x800000/4096/8);
+    unsigned char guardado=*prestada;
+    *prestada=(unsigned char)(guardado|1);
+    int error=diagnostico_error(-2);
+    *prestada=guardado;
+    if (error) return 42;
+    guardado=*libre;
+    *libre=(unsigned char)(guardado&~1u);
+    error=diagnostico_error(-2);
+    *libre=guardado;
+    if (error || diagnostico_igual(1024,1024,0,0,1024,1)) return 43;
     if (nxk_paginas_reservar_region(0x803001,4095) || nxk_paginas_libres()!=1023) return 20;
     if (nxk_paginas_reservar_region(0x803001,4095) || nxk_paginas_libres()!=1023) return 21;
+    if (diagnostico_igual(1024,1023,0,1,1020,2)) return 44;
     void *activa=nxk_pagina_reservar();
     uint32_t antes_reserva=nxk_paginas_libres();
     if ((uintptr_t)activa!=0x800000) return 22;
     if (nxk_paginas_reservar_region(0x800fff,1)!=-2) return 24;
     if (nxk_paginas_libres()!=antes_reserva) return 25;
+    if (diagnostico_igual(1024,1022,1,1,1020,2)) return 45;
     if (nxk_pagina_liberar(activa)) return 26;
     if (nxk_paginas_reservar_region(0x3fffffff,2)!=-1 ||
         nxk_paginas_reservar_region(0,0) || nxk_paginas_libres()!=1023) return 23;
     /* Bloque alineado: no debe cruzar la pagina reservada 0x803000. */
     void *bloque=nxk_paginas_reservar_bloque(4,4);
     if ((uintptr_t)bloque!=0x804000 || nxk_paginas_libres()!=1019) return 27;
+    if (diagnostico_igual(1024,1019,4,1,1016,2)) return 46;
     memset(bloque,0x7b,4*4096);
     uint32_t libres_antes=nxk_paginas_libres();
     if (nxk_paginas_reservar_bloque(0,1) || nxk_paginas_reservar_bloque(1,3) ||
         nxk_paginas_reservar_bloque(UINT32_MAX,1) || nxk_paginas_libres()!=libres_antes) return 28;
     if (nxk_paginas_liberar_bloque(bloque,5)!=-2 || nxk_paginas_libres()!=libres_antes) return 29;
+    if (diagnostico_igual(1024,1019,4,1,1016,2)) return 47;
     for (unsigned i=0;i<4*4096;++i) if (((unsigned char *)bloque)[i]!=0x7b) return 30;
     if (nxk_paginas_liberar_bloque(bloque,4) || nxk_paginas_libres()!=1023 ||
         nxk_paginas_liberar_bloque(bloque,4)!=-2) return 31;
@@ -63,6 +115,7 @@ __attribute__((minsize)) int nxk_probar_paginas(void) {
     if (nxk_paginas_liberar_bloque((void *)0x3ffff000,2)!=-1) return 33;
     /* Muchas paginas libres pero ninguna corrida de 1021 paginas. */
     if (nxk_paginas_reservar_bloque(1021,1) || nxk_paginas_libres()!=1023) return 34;
+    if (diagnostico_igual(1024,1023,0,1,1020,2)) return 48;
     /* La union de fragmentos no alineados cubre una pagina completa, aunque
        las entradas lleguen desordenadas y haya una reserva intercalada. */
     struct nxk_region_ram partes[]={
@@ -74,9 +127,20 @@ __attribute__((minsize)) int nxk_probar_paginas(void) {
     /* Un hueco de un solo byte dentro de metadatos impide la inicializacion. */
     partes[3].base++; partes[3].longitud--;
     if (nxk_paginas_iniciar(partes,4)!=-4 || nxk_paginas_total()!=1023) return 37;
+    if (diagnostico_igual(1023,1023,0,0,1022,2)) return 49;
+    /* Metadatos validos pero ninguna pagina asignable: no es un error. */
+    struct nxk_region_ram bordes[]={{0x600000,0x10000,1},{0x3ffff000,4096,1}};
+    if (nxk_paginas_iniciar(bordes,1) || diagnostico_igual(0,0,0,0,0,0)) return 50;
+    /* La corrida que termina exactamente en 1 GiB tambien debe contarse.
+     * Solo se consultan bits: no se accede a RAM inexistente en QEMU de 32 MiB. */
+    if (nxk_paginas_iniciar(bordes,2) || diagnostico_igual(1,1,0,0,1,1)) return 51;
+    if (nxk_paginas_reservar_region(0x3ffff000,4096) ||
+        diagnostico_igual(1,0,0,1,0,0)) return 52;
     /* Restaurar el mapa real; agotar y liberar todas sus paginas sin escribirlas. */
     if (nxk_paginas_bios() || !nxk_paginas_total()) return 10;
     uint32_t cantidad=nxk_paginas_total();
+    struct nxk_diagnostico_paginas inicial;
+    if (nxk_paginas_diagnostico(&inicial)) return 53;
     uintptr_t anterior=0;
     for (uint32_t i=0;i<cantidad;++i) {
         uintptr_t p=(uintptr_t)nxk_pagina_reservar();
@@ -84,10 +148,15 @@ __attribute__((minsize)) int nxk_probar_paginas(void) {
         anterior=p;
     }
     if (nxk_pagina_reservar() || nxk_paginas_libres()) return 12;
+    if (diagnostico_igual(cantidad,0,cantidad,0,0,0)) return 54;
     uint32_t liberadas=0;
     for (uintptr_t p=0x800000;p<0x40000000;p+=4096)
         if (!nxk_pagina_liberar((void *)p)) ++liberadas;
     if (liberadas!=cantidad || nxk_paginas_libres()!=cantidad) return 13;
+    if (diagnostico_igual(cantidad,cantidad,0,0,
+                         inicial.mayor_bloque,inicial.bloques_libres)) return 55;
+#else
+    if (nxk_probar_paginas_preinicio()) return 56;
 #endif
     return 0;
 }

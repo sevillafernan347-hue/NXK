@@ -1,7 +1,11 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.27**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.28**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
+
+El gestor fisico incluye una API kernel de diagnostico: paginas libres,
+prestadas y excluidas, mayor bloque continuo y comprobacion de coherencia.
+Consulta [contrato y pruebas](ENTREGA-DIAGNOSTICO-MEMORIA.md).
 
 **Prueba grafica:** abre `VER-MINI-NXK.cmd`. [MINI NXK](experimentos/mini-so/README.md)
 ofrece una pantalla propia y terminal conectada al kernel, dentro de QEMU.

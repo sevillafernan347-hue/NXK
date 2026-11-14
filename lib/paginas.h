@@ -19,4 +19,16 @@ void *nxk_paginas_reservar_bloque(uint32_t cantidad,uint32_t alineacion);
 int nxk_paginas_liberar_bloque(void *inicio,uint32_t cantidad);
 uint32_t nxk_paginas_libres(void);
 uint32_t nxk_paginas_total(void);
+/* Instantanea en paginas de 4 KiB. total es la capacidad inicial; excluidas
+ * cuenta solo las retiradas despues por reservar_region, no huecos del BIOS.
+ * mayor_bloque no garantiza una alineacion superior a una pagina. */
+struct nxk_diagnostico_paginas {
+    uint32_t total, libres, prestadas, excluidas, mayor_bloque, bloques_libres;
+};
+/* Consulta explicita O(paginas), sin asignaciones ni cambios del gestor.
+ * Solo kernel, una CPU, sin concurrencia con el gestor ni llamadas desde IRQ.
+ * salida debe apuntar a memoria kernel escribible fuera de los metadatos.
+ * 0 exito; -1 nulo, -3 no iniciado, -2 incoherencia, -64 x64 no soportado.
+ * En error no modifica salida. */
+int nxk_paginas_diagnostico(struct nxk_diagnostico_paginas *salida);
 #endif

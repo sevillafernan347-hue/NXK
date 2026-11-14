@@ -384,8 +384,9 @@ void kernel_main(void) {
     extern int nxk_ram_probar(void);
     if (nxk_ram_probar()) { print("NXK: RAM MAPA FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
     print("NXK: RAM MAPA OK\n");
+    extern int nxk_probar_paginas_preinicio(void);
     if (nxk_pagina_reservar() || nxk_pagina_liberar((void *)0x800000)!=-3 ||
-        nxk_paginas_reservar_region(0x800000,4096)!=-3) {
+        nxk_paginas_reservar_region(0x800000,4096)!=-3 || nxk_probar_paginas_preinicio()) {
         print("NXK: PAGINAS PREINICIO FAIL\n"); out8(0xf4,0x11); nxk_es_detener();
     }
     print("NXK: PAGINAS PREINICIO OK\n");

@@ -3,6 +3,18 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.28
+
+- API interna de diagnostico fisico: total inicial, paginas libres, prestadas,
+  excluidas posteriormente, mayor bloque continuo y cantidad de bloques libres.
+- Recorre mapas y contrasta contadores; rechaza incoherencias sin publicar
+  una salida parcial. Consulta sin asignaciones ni cambios del gestor.
+- Pruebas de fragmentacion, reservas fallidas, corrupcion controlada, mapa vacio,
+  limite de 1 GiB y agotamiento/recuperacion. Matriz x86 y regresion x64 superadas.
+- Regresion externa de memoria privada CPL3 superada, con recursos recuperados.
+- Puente C, una CPU y consulta explicita fuera de IRQ; sin compactacion ni
+  llamada de usuario nueva. Contrato en ENTREGA-DIAGNOSTICO-MEMORIA.md.
+
 ## v0.0.27
 
 - Filtro saliente monotono de hasta cuatro IDs completos, sin transferir
