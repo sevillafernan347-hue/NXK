@@ -35,6 +35,7 @@ existiendo aunque no reciban una etiqueta propia.
 | v0.0.26 | Proteccion RO/RW de datos, validacion de buffers, consola y NEXTRY |
 | v0.0.27 | Destinos permitidos de mensajes y experimento grafico MINI NXK |
 | v0.0.28 | Diagnostico de fragmentacion y coherencia del gestor fisico |
+| v0.0.29 | Espacios sobre paginas fisicas separadas y liberacion atomica de listas |
 
 La serie de etiquetas se inicia el 3 de noviembre de 2026. v0.0.1 identifica
 la entrega previa ya probada; no cambia sus archivos ni fecha del commit.

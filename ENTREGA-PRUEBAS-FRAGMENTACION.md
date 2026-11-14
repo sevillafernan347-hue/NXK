@@ -14,4 +14,6 @@ copias entre codigo/pila, activacion, reuso y recuperacion del diagnostico.
 El helper restaura CR3 y libera sus reservas al terminar, tambien ante un
 fallo de asercion. No inicializa un mapa sintetico ni toca paginas ajenas.
 No ejecuta codigo CPL3; esa regresion corresponde a la prueba de integracion.
-Pendiente compilar y ejecutar por el responsable de integracion.
+Integracion compilo y supero la matriz QEMU x86 32/64/128/1024 MiB y x64
+64 MiB el 14 de noviembre de 2026. El agotamiento especial se ejecuto en32 MiB;
+las configuraciones mayores mantienen las pruebas generales del gestor.

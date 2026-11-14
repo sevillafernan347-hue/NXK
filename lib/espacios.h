@@ -16,6 +16,8 @@ struct nxk_espacio_info { uint32_t id, directorio, codigo_fisico, pila_fisica, p
 int nxk_espacio_limitar_datos(uint32_t id,uint32_t cuota);
 int nxk_espacio_cuota(uint32_t id,uint32_t *salida);
 /* Crear: 1..4096 bytes, codigo RO, pila RW en cero; salida intacta al fallar.
+ * Las cinco paginas fisicas base pueden estar separadas. Un fallo devuelve
+ * todas las temporales y no publica el slot ni consume una generacion.
  * 0 exito; -1 contrato/ID; -2 tabla llena/activo al destruir;
  * -3 contexto no permitido; -4 memoria fisica insuficiente. */
 int nxk_espacio_crear(const void *codigo,size_t longitud,uint32_t *id);
@@ -63,7 +65,8 @@ int nxk_espacio_escribir(uint32_t id,uint32_t virtual,const void *origen,size_t 
 int nxk_espacio_activar(uint32_t id);
 int nxk_espacio_restaurar(void);
 /* Destruir: -5 si un observador de proceso retiene el resultado de este ID.
- * Debe consumir su espera o cancelarla antes de liberar el destino. */
+ * Debe consumir su espera o cancelarla antes de liberar el destino.
+ * Valida todas sus paginas antes de borrarlas; -4 conserva el espacio. */
 int nxk_espacio_destruir(uint32_t id);
 int nxk_espacios_demo(void);
 #ifdef NXK_TEST

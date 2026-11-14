@@ -1,6 +1,6 @@
 # Distribucion fisica x86 de NXK
 
-Revisada para v0.0.26. Limites de region, no medicion de consumo del sistema.
+Revisada para v0.0.29. Limites de region, no medicion de consumo del sistema.
 El extremo derecho de cada intervalo es exclusivo.
 
 | Region | Inicio | Fin | Uso |
@@ -26,6 +26,9 @@ amplia el cargador BIOS ni se cambian las direcciones de aplicaciones.
 
 Cada proceso usa otro CR3: codigo virtual400000 RO, pila401000 RW y hasta
 cuatro paginas de datos402000..406000, con respaldos fisicos propios desde8MiB.
+Directorio, tablas baja/alta, codigo y pila ocupan cinco paginas independientes;
+ninguna direccion fisica se calcula sumando a otra. Se mantienen los mismos
+limites de region; las cuatro direcciones extra por slot suman64B de variables.
 Los datos pueden ser RO/RW; el resto de alias permanece supervisor. Su direccion
 virtual400000 no comparte el PE del mapa kernel. No hay NX en x86 sin PAE.
 

@@ -1,7 +1,11 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.28**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.29**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
+
+Los espacios privados pueden usar paginas fisicas separadas para sus tablas,
+codigo y pila. Crear ya no necesita cinco paginas consecutivas; un intento
+sin memoria devuelve las temporales. Consulta [la entrega](ENTREGA-ESPACIOS-FRAGMENTADOS.md).
 
 El gestor fisico incluye una API kernel de diagnostico: paginas libres,
 prestadas y excluidas, mayor bloque continuo y comprobacion de coherencia.

@@ -19,13 +19,14 @@ desalineada, fuera del rango administrado o duplicada; -2 pagina no prestada;
 -3 gestor sin iniciar. En x64 devuelve -64. Un error no cambia paginas ni
 estado del gestor. Solo una CPU, sin concurrencia ni llamadas desde IRQ.
 
-Puente C pendiente de migrar a NEXTRY. La integracion usara esta operacion
+Puente C pendiente de migrar a NEXTRY. La integracion usa esta operacion
 para devolver las paginas de un espacio privado sin depender de contiguidad.
 
 Pruebas agregadas: listas de 1 y 32 miembros, lista no contigua/desordenada,
 casos invalidos, duplicados,
 mezcla de pagina prestada/libre, conservacion de bytes y mapas al rechazar,
 lista dentro de pagina liberada, llamada previa al inicio y rechazo x64.
-La rama no ejecuta compilaciones: las pruebas se validaran al integrar.
+Validado al integrar: matriz QEMU x86 32/64/128/1024 MiB y regresion x64
+64 MiB superadas el 14 de noviembre de 2026.
 Revision estatica y git diff --check sin hallazgos. Memoria local para copiar
 la lista: 32 uint32_t (128 bytes), sin nuevas variables persistentes ni heap.

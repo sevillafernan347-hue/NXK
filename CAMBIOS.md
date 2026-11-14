@@ -3,6 +3,22 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.29
+
+- Las cinco paginas base de cada espacio privado pueden ser fisicamente
+  independientes. Crear ya no exige un bloque continuo; al faltar RAM devuelve
+  todas las temporales sin publicar el slot ni consumir generacion.
+- Liberacion kernel de listas de 1..32 paginas con copia local y validacion
+  completa previa. Destruir espacios y liberar lotes privados la reutilizan;
+  una pagina invalida al final no provoca una liberacion parcial.
+- Pruebas con cinco huecos aislados, rollback con 0..4, CR3 real, permisos,
+  datos RO, reciclaje y recursos recuperados. Matriz x86 y regresion x64 pasaron.
+- Regresiones externas de memoria, buffers, proteccion y lotes superadas;
+  aplicaciones CPL3/NEXTRY, recursos recuperados y discos intactos.
+- Mismas direcciones virtuales y ABI NXE; 64 B adicionales de registros del
+  pool, sin heap ni nuevas regiones fijas. Puente C, una CPU, sin SMP.
+- Contrato y evidencias: ENTREGA-ESPACIOS-FRAGMENTADOS.md.
+
 ## v0.0.28
 
 - API interna de diagnostico fisico: total inicial, paginas libres, prestadas,

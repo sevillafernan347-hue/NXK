@@ -1,5 +1,9 @@
 # NXK v0.0.10: base de memoria privada para procesos
 
+Actualizacion v0.0.29: las cinco paginas base ya no requieren contiguidad
+fisica. Consulta ENTREGA-ESPACIOS-FRAGMENTADOS.md. El texto siguiente conserva
+el contrato y las pruebas de la entrega original v0.0.10.
+
 Base v0.0.9, commit314fa62. Puente C en kernel/espacios.c; paginacion x86
 clasica, una CPU. Es un gestor de espacios de direcciones independiente del
 runtime CPL3 y del planificador existentes.

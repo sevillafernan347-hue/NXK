@@ -173,6 +173,8 @@ if ($Test) {
     $objects += "$buildDir/pruebas_cargadores.o"
     Invoke-Zig cc @flags -c kernel/pruebas_paginas.c -o "$buildDir/pruebas_paginas.o"
     $objects += "$buildDir/pruebas_paginas.o"
+    Invoke-Zig cc @flags -c kernel/pruebas_espacios_fragmentados.c -o "$buildDir/pruebas_espacios_fragmentados.o"
+    $objects += "$buildDir/pruebas_espacios_fragmentados.o"
 }
 Invoke-Zig ld.lld -T kernel/linker.ld @objects -o "$buildDir/kernel.elf"
 if ($Architecture -eq 'x86') {

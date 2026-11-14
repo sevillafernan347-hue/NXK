@@ -1,4 +1,4 @@
-/* Cuatro directorios privados sin consumir heap. Cinco paginas contiguas por
+/* Cuatro directorios privados sin consumir heap. Cinco paginas independientes por
  * espacio: PD/PT0/PT1/codigo/pila, mas hasta cuatro paginas de datos opcionales.
  * Nunca liberar un CR3 activo. Solo codigo, pila y datos propios son usuario.
  * Sin NX (paging x86 no PAE), SMP ni concurrencia en el asignador fisico. */
@@ -9,7 +9,10 @@
 #include "procesos.h"
 #if defined(__i386__)
 #define KERNEL_CR3 0x200000u
-struct espacio { uint32_t generacion,id,base,datos[NXK_ESPACIO_DATOS_MAX]; };
+struct espacio {
+    uint32_t generacion,id,base,tabla_baja,tabla_alta,codigo,pila;
+    uint32_t datos[NXK_ESPACIO_DATOS_MAX];
+};
 static struct espacio espacios[NXK_ESPACIOS_MAX];
 /* Tres bits por slot: cuotas0..4. No altera el ID ni su generacion. */
 _Static_assert(NXK_ESPACIOS_MAX*3<=16 && NXK_ESPACIO_DATOS_MAX<8,"Cuotas fuera de rango");
@@ -52,13 +55,13 @@ static int contexto(void) {
 /* Copiar desde el mapa kernel original: conserva guardas nuevas al activar.
  * Las paginas fisicas >=8MiB siguen accesibles por alias solo supervisor. */
 static void preparar(struct espacio *e) {
-    uint32_t *d=(void *)(uintptr_t)e->base, *baja=(void *)(uintptr_t)(e->base+4096),
-        *alta=(void *)(uintptr_t)(e->base+8192);
+    uint32_t *d=(void *)(uintptr_t)e->base, *baja=(void *)(uintptr_t)e->tabla_baja,
+        *alta=(void *)(uintptr_t)e->tabla_alta;
     memcpy(d,(void *)KERNEL_CR3,4096);
     memcpy(baja,(void *)0x201000,4096); memcpy(alta,(void *)0x202000,4096);
     for (unsigned i=0;i<1024;++i) { d[i]&=~4u; baja[i]&=~4u; alta[i]&=~4u; }
-    d[0]=(e->base+4096)|3u; d[1]=(e->base+8192)|7u;
-    alta[0]=(e->base+12288)|5u; alta[1]=(e->base+16384)|7u;
+    d[0]=e->tabla_baja|3u; d[1]=e->tabla_alta|7u;
+    alta[0]=e->codigo|5u; alta[1]=e->pila|7u;
     for (unsigned i=0;i<NXK_ESPACIO_DATOS_MAX;++i)
         if (e->datos[i]) alta[2+i]=pte_dato(e,i);
 }
@@ -68,11 +71,27 @@ int nxk_espacio_crear(const void *codigo,size_t n,uint32_t *id) {
     unsigned i;
     for (i=0;i<NXK_ESPACIOS_MAX;++i) if (!espacios[i].base && espacios[i].generacion<0xffffffu) break;
     if (i==NXK_ESPACIOS_MAX) return -2;
-    void *reserva=nxk_paginas_reservar_bloque(5,1); if (!reserva) return -4;
-    struct espacio *e=&espacios[i]; e->base=(uint32_t)(uintptr_t)reserva;
-    memcpy((void *)(uintptr_t)(e->base+12288),codigo,n); preparar(e);
+    uint32_t temporales[5]; unsigned adquiridas=0;
+    while (adquiridas<5) {
+        void *pagina=nxk_pagina_reservar();
+        if (!pagina) {
+            /* No publicar el slot ni consumir una generacion al fallar. */
+            if (adquiridas) nxk_paginas_liberar_lista(temporales,adquiridas);
+            return -4;
+        }
+        temporales[adquiridas++]=(uint32_t)(uintptr_t)pagina;
+    }
+    struct espacio *e=&espacios[i];
+    struct espacio nuevo={.generacion=e->generacion+1,.id=((e->generacion+1)<<8)|(i+1),
+        .base=temporales[0],.tabla_baja=temporales[1],.tabla_alta=temporales[2],
+        .codigo=temporales[3],.pila=temporales[4]};
+    memcpy((void *)(uintptr_t)nuevo.codigo,codigo,n);
+    /* Sin datos opcionales aun: preparar no consulta bits RO del pool. */
+    preparar(&nuevo);
+    *e=nuevo;
+    for (unsigned j=0;j<NXK_ESPACIO_DATOS_MAX;++j) poner_ro(e,j,0);
     poner_limite(e,NXK_ESPACIO_DATOS_MAX);
-    ++e->generacion; e->id=(e->generacion<<8)|(i+1); *id=e->id; return 0;
+    *id=e->id; return 0;
 }
 int nxk_espacio_consultar(uint32_t id,struct nxk_espacio_info *salida) {
     struct espacio *e=buscar(id); if (!e || !salida) return -1;
@@ -80,7 +99,7 @@ int nxk_espacio_consultar(uint32_t id,struct nxk_espacio_info *salida) {
     for (unsigned i=0;i<NXK_ESPACIO_DATOS_MAX;++i) cantidad+=!!e->datos[i];
     uint32_t cuota=limite(e);
     if (cuota>NXK_ESPACIO_DATOS_MAX || cantidad>cuota) return -1;
-    *salida=(struct nxk_espacio_info){e->id,e->base,e->base+12288,e->base+16384,cantidad,cuota}; return 0;
+    *salida=(struct nxk_espacio_info){e->id,e->base,e->codigo,e->pila,cantidad,cuota}; return 0;
 }
 int nxk_espacio_enumerar(unsigned slot,struct nxk_espacio_info *salida) {
     if (slot>=NXK_ESPACIOS_MAX || !salida) return -1;
@@ -95,7 +114,7 @@ static int contexto_datos(const struct espacio *e) {
 }
 static void actualizar_dato(struct espacio *e,unsigned i) {
     uint32_t virtual=NXK_ESPACIO_DATOS+i*4096;
-    uint32_t *tabla=(void *)(uintptr_t)(e->base+8192);
+    uint32_t *tabla=(void *)(uintptr_t)e->tabla_alta;
     /* Al liberar se restaura el mapa supervisor original de esta direccion. */
     tabla[2+i]=e->datos[i] ? pte_dato(e,i) : ((uint32_t *)0x202000)[2+i]&~4u;
     if (cr3()==e->base) __asm__ volatile("invlpg (%0)"::"r"(virtual):"memory");
@@ -154,12 +173,14 @@ __attribute__((minsize)) int nxk_espacio_liberar_paginas(uint32_t id,uint32_t vi
     unsigned i=(virtual-NXK_ESPACIO_DATOS)/4096;
     if (cantidad>NXK_ESPACIO_DATOS_MAX-i) return -1;
     if (!contexto_datos(e)) return -3;
+    uint32_t paginas[NXK_ESPACIO_DATOS_MAX];
     for (unsigned j=0;j<cantidad;++j) {
         if (!e->datos[i+j]) return -1;
         if (nxk_proceso_pagina_retenida(id,virtual+j*4096)) return -5;
+        paginas[j]=e->datos[i+j];
     }
+    if (nxk_paginas_liberar_lista(paginas,cantidad)) return -4;
     for (unsigned j=0;j<cantidad;++j) {
-        if (nxk_pagina_liberar((void *)(uintptr_t)e->datos[i+j])) return -4;
         e->datos[i+j]=0; poner_ro(e,i+j,0); actualizar_dato(e,i+j);
     }
     return 0;
@@ -201,7 +222,7 @@ __attribute__((minsize)) int nxk_espacio_proteger_paginas(uint32_t id,uint32_t v
  * Devuelve el alias fisico de la pagina propia; cero identifica un hueco. */
 static uint32_t respaldo(const struct espacio *e,uint32_t virtual) {
     unsigned pagina=(virtual-NXK_ESPACIO_CODIGO)/4096;
-    return pagina<2 ? e->base+12288+pagina*4096 : e->datos[pagina-2];
+    return pagina==0 ? e->codigo : pagina==1 ? e->pila : e->datos[pagina-2];
 }
 int nxk_espacio_validar_rango(uint32_t id,uint32_t virtual,size_t n,int escritura) {
     struct espacio *e=buscar(id); if (!e || (escritura!=0 && escritura!=1)) return -1;
@@ -247,12 +268,16 @@ int nxk_espacio_destruir(uint32_t id) {
     /* Un observador conserva el resultado de este ID hasta consumirlo o
      * cancelar su espera, tambien si entra por la API antigua de espacios. */
     if (nxk_proceso_retenido(id)) return -5;
-    for (unsigned i=0;i<NXK_ESPACIO_DATOS_MAX;++i) if (e->datos[i]) {
-        if (nxk_pagina_liberar((void *)(uintptr_t)e->datos[i])) return -4;
-        e->datos[i]=0; poner_ro(e,i,0);
-    }
-    if (nxk_paginas_liberar_bloque((void *)(uintptr_t)e->base,5)) return -4;
-    poner_limite(e,0); e->base=0; e->id=0; return 0;
+    uint32_t paginas[5+NXK_ESPACIO_DATOS_MAX]={e->base,e->tabla_baja,e->tabla_alta,e->codigo,e->pila};
+    unsigned cantidad=5;
+    for (unsigned i=0;i<NXK_ESPACIO_DATOS_MAX;++i)
+        if (e->datos[i]) paginas[cantidad++]=e->datos[i];
+    /* Validar todo antes de liberar: un fallo conserva tablas, datos e ID. */
+    if (nxk_paginas_liberar_lista(paginas,cantidad)) return -4;
+    for (unsigned i=0;i<NXK_ESPACIO_DATOS_MAX;++i) poner_ro(e,i,0);
+    poner_limite(e,0);
+    uint32_t generacion=e->generacion;
+    memset(e,0,sizeof(*e)); e->generacion=generacion; return 0;
 }
 /* Demostracion kernel: cuatro pilas en la misma VA, contenido independiente.
  * Toda salida de error restaura CR3 y devuelve reservas adquiridas. */
@@ -306,7 +331,7 @@ __attribute__((minsize)) static int probar_guarda(uint32_t id) {
     __asm__ volatile("invlpg (%0)"::"r"(0x17f000u):"memory");
     int r=nxk_espacio_activar(id);
     struct espacio *e=buscar(id);
-    if (!r && (((uint32_t *)(uintptr_t)(e->base+4096))[0x17f000u/4096]&1u)) r=1;
+    if (!r && (((uint32_t *)(uintptr_t)e->tabla_baja)[0x17f000u/4096]&1u)) r=1;
     uint32_t guardas=nxk_paginacion_guardas();
     if (!r && (nxk_paginacion_guarda((void *)0x17e000u)!=-1 || nxk_paginacion_guardas()!=guardas)) r=1;
     if (nxk_espacio_restaurar()) r=1;
@@ -391,7 +416,7 @@ __attribute__((minsize)) static int probar_proteccion(uint32_t a,uint32_t b) {
         nxk_espacio_proteger_paginas(a,base,2,2)!=-1 ||
         nxk_espacio_activar(a)) goto limpiar;
     struct espacio *e=buscar(a);
-    if (((uint32_t *)(uintptr_t)(e->base+8192))[3]&2u) goto limpiar;
+    if (((uint32_t *)(uintptr_t)e->tabla_alta)[3]&2u) goto limpiar;
     estado=0xdeadbeef;
     if (nxk_espacio_escritura(b,otra,&estado)!=-3 || estado!=0xdeadbeef ||
         nxk_espacio_proteger_paginas(b,otra,1,0)!=-3 ||
@@ -412,6 +437,31 @@ limpiar:
     if (otra && nxk_espacio_liberar_pagina(b,otra)) fallo=1;
     return fallo || nxk_paginas_libres()!=libres;
 }
+/* Una pagina mal registrada al final no debe destruir las anteriores.
+ * Inyeccion exclusiva de pruebas, restaurada antes de consultar o continuar. */
+__attribute__((minsize)) static int probar_destruccion_atomica(uint32_t id) {
+    uint32_t virtual=0,libres=nxk_paginas_libres();
+    if (nxk_espacio_reservar_paginas(id,2,&virtual)) return 1;
+    struct espacio *e=buscar(id);
+    struct espacio anterior=*e;
+    uint32_t valor=0x12345678,leido=0;
+    if (nxk_espacio_escribir(id,virtual,&valor,4) ||
+        nxk_espacio_escribir(id,virtual+4096,&valor,4)) return 2;
+    uint32_t pagina=e->datos[1]/4096;
+    volatile unsigned char *mapa=(void *)(uintptr_t)(0x608000+pagina/8);
+    unsigned char guardado=*mapa;
+    *mapa=(unsigned char)(guardado&~(1u<<(pagina%8)));
+    int lote=nxk_espacio_liberar_paginas(id,virtual,2);
+    int r=nxk_espacio_destruir(id);
+    *mapa=guardado;
+    if (lote!=-4 || r!=-4 || nxk_paginas_libres()!=libres-2) return 3;
+    for (unsigned i=0;i<sizeof(anterior);++i)
+        if (((unsigned char *)e)[i]!=((unsigned char *)&anterior)[i]) return 4;
+    for (unsigned i=0;i<2;++i)
+        if (nxk_espacio_leer(id,virtual+i*4096,&leido,4) || leido!=valor) return 5;
+    if (nxk_espacio_liberar_paginas(id,virtual,2) || nxk_paginas_libres()!=libres) return 6;
+    return 0;
+}
 __attribute__((minsize)) int nxk_espacios_probar(void) {
     uint32_t ids[NXK_ESPACIOS_MAX]={0}, salida=0xdeadbeef, libres=nxk_paginas_libres();
     size_t heap=nxk_heap_used(); unsigned char codigo=0xc3;
@@ -422,8 +472,8 @@ __attribute__((minsize)) int nxk_espacios_probar(void) {
     for (unsigned i=0;i<NXK_ESPACIOS_MAX;++i) {
         struct nxk_espacio_info info;
         if (nxk_espacio_consultar(ids[i],&info)) return 4;
-        uint32_t *d=(void *)(uintptr_t)info.directorio,*baja=(void *)(uintptr_t)(info.directorio+4096),
-            *alta=(void *)(uintptr_t)(info.directorio+8192);
+        uint32_t *d=(void *)(uintptr_t)info.directorio;
+        uint32_t *baja=(void *)(uintptr_t)(d[0]&~4095u), *alta=(void *)(uintptr_t)(d[1]&~4095u);
         if ((d[0]&7)!=3 || (d[1]&7)!=7 || baja[0] ||
             (alta[0]&~0x60u)!=(info.codigo_fisico|5u) || (alta[1]&~0x60u)!=(info.pila_fisica|7u)) return 5;
         for (unsigned j=2;j<1024;++j) if (d[j]&4u || alta[j]&4u) return 6;
@@ -436,6 +486,7 @@ __attribute__((minsize)) int nxk_espacios_probar(void) {
     if (probar_datos(ids[0],ids[1])) return 16;
     if (probar_lote_sin_ram(ids[0])) return 18;
     if (probar_proteccion(ids[0],ids[1])) return 19;
+    if (probar_destruccion_atomica(ids[0])) return 20;
     uint32_t viejo=ids[0];
     /* Destruir debe recuperar reservas que el propietario no libero. */
     if (nxk_espacio_reservar_pagina(ids[0],&salida) ||
@@ -451,6 +502,9 @@ __attribute__((minsize)) int nxk_espacios_probar(void) {
     for (unsigned i=0;i<sizeof(info);++i) if (((unsigned char *)&info)[i]!=0xa5) return 12;
     if (nxk_espacio_crear(&codigo,1,&ids[0]) || ids[0]==viejo || nxk_espacio_destruir(ids[0]) ||
         nxk_espacios_demo() || nxk_espacios_demo() || nxk_paginas_libres()!=libres || nxk_heap_used()!=heap) return 13;
+    extern int nxk_espacios_fragmentados_probar(void);
+    int fragmentacion=nxk_espacios_fragmentados_probar();
+    if (fragmentacion) return 100+fragmentacion;
     return 0;
 }
 #endif
