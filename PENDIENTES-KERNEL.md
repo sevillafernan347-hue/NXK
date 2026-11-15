@@ -1,6 +1,6 @@
 # Trabajo restante del kernel
 
-Estado tras v0.0.30. Son hitos por implementar y verificar, no porcentajes.
+Estado tras v0.0.31. Son hitos por implementar y verificar, no porcentajes.
 
 | Area | Existe | Siguiente evidencia necesaria |
 | --- | --- | --- |
@@ -17,7 +17,8 @@ Existe un filtro saliente por IDs completos; faltan canales con identidad y
 permisos independientes de los procesos. MINI NXK tiene paneles graficos fijos
 y terminal con teclado; faltan raton, ventanas y aplicaciones graficas.
 
-ATA valida cierre de lectura/IDENTIFY y conserva errores. Sigue por sondeo
+ATA valida cierre de lectura/IDENTIFY y conserva diagnosticos por unidad,
+consultables con discos estado sin I/O. Sigue por sondeo
 acotado por iteraciones; faltan plazos temporales, recuperacion/reset del canal,
 IRQ/DMA y soporte AHCI. Un fallo al escribir no revierte bytes enviados al disco.
 

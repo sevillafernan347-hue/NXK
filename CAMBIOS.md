@@ -3,6 +3,22 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.31
+
+- API kernel nxk_ata_consultar y comando discos estado: ultima operacion por
+  unidad, LBA, fase, comando emitido, resultado, Status, Error y sondeos.
+- Consulta sin I/O; argumentos invalidos conservan evidencia. Operacion nueva
+  reemplaza el registro de esa unidad y limpia errores anteriores.
+- Registro Error solo se captura con BSY=DRQ=0 y ERR=1. La consola distingue
+  ABRT y, para READ emitido, IDNF/UNC; conserva tambien el valor hexadecimal.
+- Unificacion de esperas ATA sin cambiar su politica ni limites. Proteccion
+  del maestro, LBA28 y destino intacto al fallar conservados.
+- Pruebas host ampliadas a117; consola QEMU con consultas repetidas, matriz
+  x86 y x64 (incluido rechazo del API sin tocar salida);38 verificaciones de
+  persistencia superadas. Ver entrega detallada.
+- Puente C,72 B de registros, sin heap ni ABI usuario nueva. No recupera/reset
+  el disco ni reintenta escrituras. ENTREGA-ATA-DIAGNOSTICO.md.
+
 ## v0.0.30
 
 - READ exige canal sin BSY/DRQ antes de emitir el comando y despues del sector.

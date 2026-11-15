@@ -3,6 +3,17 @@
 #define NXK_ATA_H
 #include "nxk.h"
 struct nxk_ata_info { uint32_t sectores; char modelo[41]; };
+/* Ultima operacion valida por unidad; consulta solo en contexto kernel serial.
+ * comando: EC identificar,20 leer,30 escribir,E7 sincronizar (hexadecimal).
+ * fase: 0 sin operacion,1 antes del comando,2 espera de datos,3 cierre.
+ * emitido distingue fallo previo de fallo del comando solicitado.
+ * error solo es interpretable cuando error_valido=1; sondeos no mide tiempo. */
+struct nxk_ata_diagnostico {
+    uint32_t comando,lba,fase,emitido,estado,error,error_valido,sondeos;
+    int32_t resultado;
+};
+/* Sin I/O ni asignaciones. -1 argumento invalido; -64 en x64; salida intacta. */
+int nxk_ata_consultar(unsigned unidad,struct nxk_ata_diagnostico *salida);
 /* Errores: -1 argumento/capacidad; -2 ausente; -3 ERR/DF; -4 espera agotada;
  * -5 IDENTIFY incompatible; -64 plataforma sin soporte. Identificar/leer
  * conservan la salida del llamador al fallar. Identificar invalida primero

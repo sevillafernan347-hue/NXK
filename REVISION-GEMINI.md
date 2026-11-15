@@ -49,6 +49,15 @@ no se modifico el navegador con otras tareas ni se envio otro mensaje.
 Pendiente compartir los resultados de ENTREGA-ATA-ESTADOS.md y pedir revision
 acotada de las transiciones y limites; no afirmar aprobacion nueva de Gemini.
 
+## Seguimiento v0.0.31
+
+La herramienta del navegador en segundo plano sigue sin estar disponible en
+esta sesion; no hubo un intercambio nuevo ni aprobacion de Gemini. Se avanzo
+con revision local y referencia de protocolo: ENTREGA-ATA-DIAGNOSTICO.md.
+La observacion anterior sobre ABRT ahora dispone de captura del registro Error
+cuando es valido y pruebas propias. Esto no implementa recuperacion del canal.
+Compartir el contrato y resultados cuando el chat vuelva a estar accesible.
+
 ## Al retomar
 
 Leer la respuesta pendiente y contrastar cada afirmacion con el codigo actual.

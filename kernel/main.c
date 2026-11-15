@@ -454,6 +454,9 @@ void kernel_main(void) {
     print("NXK: ATA LECTURA OK\n");
     if (nxk_pci_probar()) { print("NXK: PCI FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
     print("NXK: PCI INVENTARIO OK\n");
+#else
+    if (nxk_ata_probar()) { print("NXK: ATA STUB FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
+    print("NXK: ATA SIN SOPORTE OK\n");
 #endif
     unsigned char prueba_memoria[19];
     memset(prueba_memoria, 0xcc, sizeof(prueba_memoria));
@@ -557,7 +560,7 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | espacios | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nproceso resumen | proceso dependencias | proceso dormir | proceso preempcion | proceso demo | proceso cargar nombre.nxe | proceso listar | proceso paso ID\nproceso ejecutar | proceso liberar ID\nproceso enviar ID VALOR | proceso cancelar ID\nproceso permisos ID MASCARA\nproceso memoria ID LIMITE\nproceso proteger ID BASE CANTIDAD ESCRITURA\nproceso destinos ID [ID1,ID2]\nproceso archivos ID [nombre1,nombre2]\nusuario espacios | usuario listar | usuario cargar archivo.nxe | usuario turno ID | usuario liberar ID\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | discos estado | espacios | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nproceso resumen | proceso dependencias | proceso dormir | proceso preempcion | proceso demo | proceso cargar nombre.nxe | proceso listar | proceso paso ID\nproceso ejecutar | proceso liberar ID\nproceso enviar ID VALOR | proceso cancelar ID\nproceso permisos ID MASCARA\nproceso memoria ID LIMITE\nproceso proteger ID BASE CANTIDAD ESCRITURA\nproceso destinos ID [ID1,ID2]\nproceso archivos ID [nombre1,nombre2]\nusuario espacios | usuario listar | usuario cargar archivo.nxe | usuario turno ID | usuario liberar ID\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe | volumen montar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -634,6 +637,29 @@ void kernel_main(void) {
                         print(" clase "); hexadecimal((d.clase<<16)|(d.subclase<<8)|d.interfaz);
                         print(" revision "); number(d.revision); print(" IRQ "); number(d.irq); put('\n');
                     }
+                }
+            }
+            else if (nxk_equal(line, "discos estado")) {
+                for (unsigned u=0;u<2;++u) { struct nxk_ata_diagnostico d;
+                    print("IDE "); number(u);
+                    if (nxk_ata_consultar(u,&d)) { print(": diagnostico no disponible.\n"); continue; }
+                    if (!d.comando) { print(": sin operaciones.\n"); continue; }
+                    print(" comando "); hexadecimal(d.comando); print(" emitido "); number(d.emitido);
+                    print(" LBA "); number(d.lba); print(" fase ");
+                    print(d.fase==1 ? "previa" : d.fase==2 ? "datos" : "cierre");
+                    print(" resultado "); if (d.resultado<0) put('-');
+                    number(d.resultado<0 ? (uint32_t)-d.resultado : (uint32_t)d.resultado);
+                    print(" estado "); hexadecimal(d.estado); print(" sondeos "); number(d.sondeos);
+                    if (d.error_valido) {
+                        print(" error "); hexadecimal(d.error);
+                        if (d.error&4) print(" ABRT");
+                        /* Estos bits dependen del comando; no interpretar un error previo. */
+                        if (d.emitido && d.comando==0x20) {
+                            if (d.error&0x10) print(" IDNF");
+                            if (d.error&0x40) print(" UNC");
+                        }
+                    }
+                    put('\n');
                 }
             }
             else if (nxk_equal(line, "discos")) {

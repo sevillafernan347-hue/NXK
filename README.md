@@ -1,7 +1,11 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.30**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.31**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
+
+`discos estado` consulta la ultima operacion ATA de cada unidad: comando,
+sector, fase, resultado y registros de error validos, sin acceder otra vez al
+disco. Consulta [diagnostico y ejemplos](ENTREGA-ATA-DIAGNOSTICO.md).
 
 Las lecturas ATA y la identificacion del disco esperan el cierre completo antes
 de publicar resultados. Las pruebas de estados del controlador se ejecutan
