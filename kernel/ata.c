@@ -2,10 +2,20 @@
  * Un comando por vez, canal primario, unidades 0/1, sectores de 512 bytes.
  * Escritura solo en esclavo; los sondeos tienen limite, sin IRQ ATA ni DMA. */
 #include "ata.h"
-#if defined(__i386__)
+#if defined(__i386__) || defined(NXK_ATA_PRUEBA_HOST)
 static uint32_t capacidad[2];
+#if defined(NXK_ATA_PRUEBA_HOST)
+/* Solo el ejecutable de pruebas define este backend; no accede a puertos reales. */
+static uint8_t entrada(uint16_t p);
+static void salida(uint16_t p,uint8_t v);
+static uint16_t entrada_palabra(void);
+static void salida_palabra(uint16_t v);
+#else
 static uint8_t entrada(uint16_t p) { uint8_t v; __asm__ volatile("inb %1,%0":"=a"(v):"Nd"(p)); return v; }
 static void salida(uint16_t p,uint8_t v) { __asm__ volatile("outb %0,%1" :: "a"(v),"Nd"(p)); }
+static uint16_t entrada_palabra(void) { uint16_t v; __asm__ volatile("inw %1,%0":"=a"(v):"Nd"((uint16_t)0x1f0)); return v; }
+static void salida_palabra(uint16_t v) { __asm__ volatile("outw %0,%1" :: "a"(v),"Nd"((uint16_t)0x1f0)); }
+#endif
 static void pausa(void) { for (unsigned i=0;i<4;++i) (void)entrada(0x3f6); }
 static int esperar(int datos) {
     for (unsigned i=0;i<1000000;++i) {
@@ -17,7 +27,7 @@ static int esperar(int datos) {
     }
     return -4;
 }
-/* Un comando de escritura/flush solo termina con BSY y DRQ despejados.
+/* Un comando solo termina con BSY y DRQ despejados.
  * No interpretar una solicitud de datos pendiente como operacion completada. */
 static int esperar_final(void) {
     for (unsigned i=0;i<1000000;++i) {
@@ -30,7 +40,7 @@ static int esperar_final(void) {
     return -4;
 }
 static void leer_palabras(uint16_t *p) {
-    for (unsigned i=0;i<256;++i) __asm__ volatile("inw %1,%0":"=a"(p[i]):"Nd"((uint16_t)0x1f0));
+    for (unsigned i=0;i<256;++i) p[i]=entrada_palabra();
 }
 int nxk_ata_identificar(unsigned unidad,struct nxk_ata_info *info) {
     if (unidad>1 || !info) return -1;
@@ -42,7 +52,8 @@ int nxk_ata_identificar(unsigned unidad,struct nxk_ata_info *info) {
     int r=esperar(1); if (r) return r;
     if (entrada(0x1f4) || entrada(0x1f5)) return -5;
     uint16_t datos[256]; leer_palabras(datos);
-    if (esperar(0)) return -3;
+    /* La ultima palabra no basta: esperar el cierre antes de publicar capacidad. */
+    pausa(); r=esperar_final(); if (r) return r;
     if (!(datos[49]&0x200)) return -5;
     uint32_t n=datos[60]|(uint32_t)datos[61]<<16;
     if (!n) return -5;
@@ -60,13 +71,14 @@ int nxk_ata_identificar(unsigned unidad,struct nxk_ata_info *info) {
 int nxk_ata_leer_sector(unsigned unidad,uint32_t lba,void *destino) {
     if (unidad>1 || !destino || !capacidad[unidad] || lba>=capacidad[unidad] || lba>=0x10000000u) return -1;
     salida(0x1f6,(uint8_t)(0xe0|(unidad<<4)|(lba>>24))); pausa();
-    int r=esperar(0); if (r) return r;
+    int r=esperar_final(); if (r) return r;
     salida(0x1f2,1); salida(0x1f3,(uint8_t)lba);
     salida(0x1f4,(uint8_t)(lba>>8)); salida(0x1f5,(uint8_t)(lba>>16));
     salida(0x1f7,0x20); pausa();
     r=esperar(1); if (r) return r;
     uint16_t datos[256]; leer_palabras(datos);
-    r=esperar(0); if (r) return r;
+    /* Conservar destino intacto hasta completar tambien la fase final del disco. */
+    pausa(); r=esperar_final(); if (r) return r;
     memcpy(destino,datos,512); return 0;
 }
 /* Solo se permite el esclavo: nunca sobrescribir el disco de arranque maestro.
@@ -81,7 +93,7 @@ int nxk_ata_escribir_sector(unsigned unidad,uint32_t lba,const void *origen) {
     salida(0x1f7,0x30); pausa(); /* WRITE SECTORS, exactamente 512 bytes. */
     r=esperar(1); if (r) return r;
     for (unsigned i=0;i<256;++i)
-        __asm__ volatile("outw %0,%1" :: "a"(datos[i]),"Nd"((uint16_t)0x1f0));
+        salida_palabra(datos[i]);
     pausa(); return esperar_final();
 }
 int nxk_ata_sincronizar(unsigned unidad) {

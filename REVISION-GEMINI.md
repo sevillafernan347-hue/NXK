@@ -29,6 +29,26 @@ No se cambio el controlador ATA ni se declararon
 pruebas sobre el parche propuesto. La entrega v0.0.29 corresponde a memoria,
 probada de forma independiente; consultar ENTREGA-ESPACIOS-FRAGMENTADOS.md.
 
+## Seguimiento v0.0.30, 15 de noviembre de 2026
+
+En el intercambio previo Gemini sugirio comprobar las cuatro lecturas de
+estado alternativo y advirtio que una simulacion no reproduce temporizacion
+fisica. Se incorporo el conteo y se documenta ese limite. Sugirio ademas ABRT:
+esta entrega cubre ERR/DF generales; no decodifica el registro Error ni agrega
+recuperacion/reset del canal. No atribuirle esa capacidad.
+
+La prueba propia reprodujo ocho fallos en 46 comprobaciones antes del arreglo.
+Tras corregir esperas READ/IDENTIFY y preservar codigos, la suite ampliada pasa
+66 comprobaciones; matriz x86, regresion x64 y persistencia tambien superadas.
+Se mantienen rechazados los parches previos que abrian escritura al maestro o
+perdian bits LBA28. El codigo integrado es propio y contrastado con pruebas.
+
+En esta continuacion no estuvo disponible la herramienta del navegador en
+segundo plano. El inventario de ventanas no ofrecio el chat separado de Gemini;
+no se modifico el navegador con otras tareas ni se envio otro mensaje.
+Pendiente compartir los resultados de ENTREGA-ATA-ESTADOS.md y pedir revision
+acotada de las transiciones y limites; no afirmar aprobacion nueva de Gemini.
+
 ## Al retomar
 
 Leer la respuesta pendiente y contrastar cada afirmacion con el codigo actual.

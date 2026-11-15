@@ -36,6 +36,7 @@ existiendo aunque no reciban una etiqueta propia.
 | v0.0.27 | Destinos permitidos de mensajes y experimento grafico MINI NXK |
 | v0.0.28 | Diagnostico de fragmentacion y coherencia del gestor fisico |
 | v0.0.29 | Espacios sobre paginas fisicas separadas y liberacion atomica de listas |
+| v0.0.30 | Cierre completo de lectura ATA, errores precisos y simulacion del controlador |
 
 La serie de etiquetas se inicia el 3 de noviembre de 2026. v0.0.1 identifica
 la entrega previa ya probada; no cambia sus archivos ni fecha del commit.

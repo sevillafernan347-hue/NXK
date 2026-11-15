@@ -3,6 +3,20 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.30
+
+- READ exige canal sin BSY/DRQ antes de emitir el comando y despues del sector.
+  IDENTIFY comprueba tambien el cierre; mantiene distintos los errores de
+  ausencia, dispositivo y espera agotada antes de publicar capacidad/modelo.
+- Pausa mediante cuatro lecturas de estado alternativo tras recibir datos.
+  Destino intacto al fallar; maestro protegido y direccion LBA28 conservados.
+- Prueba host compila el controlador real con puertos simulados: 66
+  comprobaciones superadas. Integrada en test.ps1 x86, sin puertos fisicos.
+- Matriz x86 32/64/128/1024 MiB, x64 64 MiB y 38 resultados de persistencia
+  superados. Ocho comprobaciones fallaban con el comportamiento anterior.
+- Puente C, sin cambio de ABI ni regiones; no incluye reset, IRQ ATA o DMA.
+  Contrato, reproduccion y limites: ENTREGA-ATA-ESTADOS.md.
+
 ## v0.0.29
 
 - Las cinco paginas base de cada espacio privado pueden ser fisicamente

@@ -10,6 +10,11 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
+if ($Architecture -eq 'x86') {
+    # El mismo controlador, con puertos simulados: errores que QEMU no inyecta.
+    & "$root\tools\python\python.exe" "$root\lenguaje\pruebas_ata_estados.py"
+    if ($LASTEXITCODE -ne 0) { throw 'Fallo de las pruebas host de estados ATA.' }
+}
 & "$root\build.ps1" -Test -FuenteUsuario $FuenteUsuario -FuenteApp $FuenteApp -Architecture $Architecture
 $buildDir = if ($Architecture -eq 'x86') { "$root\build\x86" } else { "$root\build" }
 $qemuName = if ($Architecture -eq 'x86') { 'qemu-system-i386.exe' } else { 'qemu-system-x86_64.exe' }

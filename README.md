@@ -1,7 +1,12 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.29**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.30**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
+
+Las lecturas ATA y la identificacion del disco esperan el cierre completo antes
+de publicar resultados. Las pruebas de estados del controlador se ejecutan
+automaticamente con `test.ps1 -Architecture x86`.
+Consulta [alcance y evidencias](ENTREGA-ATA-ESTADOS.md).
 
 Los espacios privados pueden usar paginas fisicas separadas para sus tablas,
 codigo y pila. Crear ya no necesita cinco paginas consecutivas; un intento

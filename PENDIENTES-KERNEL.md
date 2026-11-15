@@ -1,6 +1,6 @@
 # Trabajo restante del kernel
 
-Estado tras v0.0.29. Son hitos por implementar y verificar, no porcentajes.
+Estado tras v0.0.30. Son hitos por implementar y verificar, no porcentajes.
 
 | Area | Existe | Siguiente evidencia necesaria |
 | --- | --- | --- |
@@ -11,11 +11,15 @@ Estado tras v0.0.29. Son hitos por implementar y verificar, no porcentajes.
 | Hardware | BIOS, VGA texto, teclado basico, PIT, ATA PIO e inventario PCI | Controladores USB/red/audio/graficos, ECAM/ACPI y pruebas por dispositivo |
 | NEXTRY | Compilador a C y apps protegidas iniciales | Parametros/estructuras/punteros y migracion gradual de puentes C |
 | Compatibilidad | NXE propio y demo limitada Win32 | ABI estable y APIs documentadas; compatibilidad Windows general pendiente |
-| Calidad | Pruebas QEMU y versiones Git | Pruebas fisicas ASUS, cargas prolongadas, fuzzing y revision de seguridad |
+| Calidad | Pruebas QEMU, simulacion de estados ATA y versiones Git | Pruebas fisicas ASUS, cargas prolongadas, fuzzing y revision de seguridad |
 
 Existe un filtro saliente por IDs completos; faltan canales con identidad y
 permisos independientes de los procesos. MINI NXK tiene paneles graficos fijos
 y terminal con teclado; faltan raton, ventanas y aplicaciones graficas.
+
+ATA valida cierre de lectura/IDENTIFY y conserva errores. Sigue por sondeo
+acotado por iteraciones; faltan plazos temporales, recuperacion/reset del canal,
+IRQ/DMA y soporte AHCI. Un fallo al escribir no revierte bytes enviados al disco.
 
 El siguiente bloque propuesto es espera de dispositivos, recursos por proceso
 y permisos por canal/objeto. Los permisos generales y filtros por nombre ya existen. IPC de valores uint32 ya espera espacio al enviar y permite
