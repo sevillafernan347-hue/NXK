@@ -3,6 +3,19 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.34
+
+- NEXTRY en CPL3 muestra archivos NXFS completos de 4 KiB. NXFS conserva
+  la copia verificada en su buffer para el siguiente tramo contiguo.
+- La copia se verifica de nuevo al empezar, saltar tramos o cambiar de
+  archivo. ATA invalida la copia al reidentificar o intentar escribir al
+  esclavo. Se mantiene la ABI de usuario.
+- La demo sincronica `usuario nextry` conserva un limite PIT de 100 ticks
+  para dar margen a la salida por consola. Procesos gestionados: diez ticks.
+- Las pruebas host comprueban 16 tramos con ocho lecturas de sector,
+  invalidacion de la copia y destino intacto ante error.
+  Ver ENTREGA-LECTURA-SECUENCIAL.md.
+
 ## v0.0.33
 
 - Mostrar NXFS verifica una lectura completa y comparte el buffer de 4 KiB.

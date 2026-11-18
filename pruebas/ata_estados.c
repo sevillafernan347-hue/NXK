@@ -250,6 +250,28 @@ int main(void) {
     unsigned antes=sim.io;
     comprobar(!nxk_ata_consultar(0,&d) && !memcmp(&d,&otra,sizeof(d)) && sim.io==antes,
               "Diagnosticos independientes entre unidades");
+    reiniciar(); uint32_t rev=nxk_ata_revision_esclavo();
+    comprobar(!sim.io && !nxk_ata_leer_sector(1,7,destino) &&
+              nxk_ata_revision_esclavo()==rev,"Consulta y READ no cambian revision");
+    reiniciar();
+    comprobar(!nxk_ata_identificar(0,&info) && nxk_ata_revision_esclavo()==rev,
+              "Identificar maestro no cambia revision del esclavo");
+    reiniciar();
+    comprobar(!nxk_ata_escribir_sector(1,7,origen) &&
+              nxk_ata_revision_esclavo()==rev+1,"WRITE invalida lecturas del esclavo");
+    reiniciar(); secuencia(2,0x51,0x51,0x51);
+    comprobar(nxk_ata_escribir_sector(1,7,origen)==-3 && sim.escrituras==256 &&
+              nxk_ata_revision_esclavo()==rev+2,"WRITE fallido tras datos invalida");
+    reiniciar(); secuencia(0,0,0,0);
+    comprobar(nxk_ata_identificar(1,&info)==-2 && nxk_ata_revision_esclavo()==rev+3,
+              "IDENTIFY fallido invalida lecturas del esclavo");
+    revision_esclavo=UINT32_MAX-1;
+    reiniciar();
+    comprobar(!nxk_ata_identificar(1,&info) && nxk_ata_revision_esclavo()==UINT32_MAX,
+              "Revision alcanza saturacion");
+    reiniciar();
+    comprobar(!nxk_ata_escribir_sector(1,7,origen) &&
+              nxk_ata_revision_esclavo()==UINT32_MAX,"Revision no vuelve a cero");
     printf("ATA HOST: %u comprobaciones, %u fallos\n",casos,fallos);
     return fallos ? 1 : 0;
 }

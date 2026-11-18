@@ -4,7 +4,13 @@
 #include "ata.h"
 #if defined(__i386__) || defined(NXK_ATA_PRUEBA_HOST)
 static uint32_t capacidad[2];
+static uint32_t revision_esclavo;
 static struct nxk_ata_diagnostico diagnosticos[2];
+uint32_t nxk_ata_revision_esclavo(void) { return revision_esclavo; }
+static void cambiar_revision_esclavo(void) {
+    /* Saturar evita que una revision vieja vuelva a coincidir por overflow. */
+    if (revision_esclavo!=UINT32_MAX) ++revision_esclavo;
+}
 int nxk_ata_consultar(unsigned unidad,struct nxk_ata_diagnostico *salida) {
     if (unidad>1 || !salida) return -1;
     *salida=diagnosticos[unidad]; return 0;
@@ -55,6 +61,7 @@ static void leer_palabras(uint16_t *p) {
 }
 int nxk_ata_identificar(unsigned unidad,struct nxk_ata_info *info) {
     if (unidad>1 || !info) return -1;
+    if (unidad==1) cambiar_revision_esclavo();
     struct nxk_ata_diagnostico *d=iniciar(unidad,0xec,0);
     capacidad[unidad]=0;
     salida(0x3f6,2); salida(0x1f6,(uint8_t)(0xa0|(unidad<<4))); pausa();
@@ -100,6 +107,7 @@ int nxk_ata_leer_sector(unsigned unidad,uint32_t lba,void *destino) {
  * El llamador valida formato y autorizacion del volumen antes de llegar aqui. */
 int nxk_ata_escribir_sector(unsigned unidad,uint32_t lba,const void *origen) {
     if (unidad!=1 || !origen || !capacidad[1] || lba>=capacidad[1] || lba>=0x10000000u) return -1;
+    cambiar_revision_esclavo();
     struct nxk_ata_diagnostico *d=iniciar(unidad,0x30,lba);
     uint16_t datos[256]; memcpy(datos,origen,512);
     salida(0x1f6,(uint8_t)(0xf0|(lba>>24))); pausa();
@@ -149,6 +157,7 @@ int nxk_ata_probar(void) {
     return 0;
 }
 #else
+uint32_t nxk_ata_revision_esclavo(void) { return UINT32_MAX; }
 int nxk_ata_consultar(unsigned u,struct nxk_ata_diagnostico *s) { (void)u;(void)s;return -64; }
 int nxk_ata_identificar(unsigned u,struct nxk_ata_info *i) { (void)u;(void)i;return -64; }
 int nxk_ata_leer_sector(unsigned u,uint32_t l,void *p) { (void)u;(void)l;(void)p;return -64; }

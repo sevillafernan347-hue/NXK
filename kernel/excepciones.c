@@ -143,6 +143,8 @@ extern uint32_t nxk_usuario_entrar(uint32_t codigo,uint32_t pila);
 extern void nxk_usuario_salir(void);
 static int usuario_activo;
 static uint32_t usuario_inicio,usuario_id_activo;
+enum { USUARIO_TURNO_TICKS=10, USUARIO_DEMO_NEXTRY_TICKS=100 };
+static uint32_t usuario_limite;
 static uintptr_t usuario_base;
 static const unsigned char *usuario_carga;
 static size_t usuario_carga_longitud;
@@ -368,7 +370,8 @@ int nxk_usuario_historial(unsigned reciente,struct nxk_usuario_resultado *salida
 extern _Noreturn void nxk_usuario_abortar(uint32_t resultado);
 static void usuario_temporizador(const uint32_t *contexto) {
     /* Segmentos 0..3, PUSHAD 4..11, EIP/CS/EFLAGS 12..14, ESP/SS 15..16. */
-    if (!usuario_activo || (contexto[13]&3)!=3 || (uint32_t)(ticks-usuario_inicio)<10) return;
+    if (!usuario_activo || (contexto[13]&3)!=3 ||
+        (uint32_t)(ticks-usuario_inicio)<usuario_limite) return;
     if (contexto_reanudable) {
         /* IRQ0 tiene el mismo marco que INT81. Conservar EAX original: no es
          * una llamada al sistema ni una salida del proceso. EOI ya enviado. */
@@ -423,6 +426,7 @@ static int ejecutar_privado(uint32_t id,uint32_t *marco,struct nxk_usuario_resul
         contexto_reanudable=marco; motivo_retorno=plazo_retorno=0;
         usuario_id_activo=marco ? id : 0;
         usuario_base=NXK_ESPACIO_CODIGO; usuario_inicio=ticks; nxk_usuario_cs_guardado=0;
+        usuario_limite=USUARIO_TURNO_TICKS;
         fallo_vector=fallo_error=fallo_direccion=fallo_eip=fallo_ocurrido=fallo_pila=0;
         usuario_activo=1;
         uint32_t cr0_antes;
@@ -651,6 +655,9 @@ static int usuario_ejecutar(unsigned modo) {
     __asm__ volatile("mov %0,%%cr3" :: "r"((uint32_t)directorio_usuario) : "memory");
     nxk_usuario_cs_guardado=0;
     usuario_base=virtual_codigo; usuario_inicio=ticks;
+    /* La demo sincronica de NEXTRY puede mostrar hasta 4 KiB por consola.
+     * Darle margen de E/S sin ampliar el turno de los procesos gestionados. */
+    usuario_limite=modo==17 ? USUARIO_DEMO_NEXTRY_TICKS : USUARIO_TURNO_TICKS;
     usuario_activo=1; fallo_vector=fallo_error=fallo_direccion=fallo_eip=fallo_ocurrido=fallo_pila=0;
     uint32_t resultado=nxk_usuario_entrar((uint32_t)virtual_codigo,(uint32_t)(virtual_codigo+8192));
     uint32_t cr3_regreso; __asm__ volatile("mov %%cr3,%0":"=r"(cr3_regreso));

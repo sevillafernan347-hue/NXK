@@ -40,6 +40,7 @@ existiendo aunque no reciban una etiqueta propia.
 | v0.0.31 | Diagnostico ATA por unidad y consulta de errores desde consola sin I/O |
 | v0.0.32 | Preparacion de comandos ATA y validacion completa del relleno NXFS1 |
 | v0.0.33 | Visualizacion de archivos NXFS con una lectura verificada y un buffer compartido |
+| v0.0.34 | Lectura secuencial NXFS y archivos de 4 KiB en modo usuario |
 
 La serie de etiquetas se inicia el 3 de noviembre de 2026. v0.0.1 identifica
 la entrega previa ya probada; no cambia sus archivos ni fecha del commit.

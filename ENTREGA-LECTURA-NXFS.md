@@ -30,8 +30,9 @@ imprimir contenido cuando se altera el ultimo byte del archivo.
 
 La prueba adicional de NEXTRY en modo usuario se detuvo en el caso de
 archivo de 4096 bytes. El mismo caso se reprodujo con v0.0.32, antes del
-cambio. Es una limitacion pendiente de la ruta protegida. El archivo de
-4096 bytes si se mostro completo desde la consola del kernel.
+cambio. El archivo de 4096 bytes si se mostro completo desde la consola.
+La ruta de modo usuario se corrigio en v0.0.34. Ver
+ENTREGA-LECTURA-SECUENCIAL.md.
 
 Puente C. Un lector por vez en contexto kernel cooperativo. La verificacion
 usa FNV1a para detectar corrupcion accidental. La ASUS fisica sigue pendiente.

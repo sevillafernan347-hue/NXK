@@ -1,6 +1,6 @@
 # Trabajo restante del kernel
 
-Estado tras v0.0.33. Son hitos por implementar y verificar, no porcentajes.
+Estado tras v0.0.34. Son hitos por implementar y verificar, no porcentajes.
 
 | Area | Existe | Siguiente evidencia necesaria |
 | --- | --- | --- |

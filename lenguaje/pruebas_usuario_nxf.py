@@ -1,5 +1,5 @@
 """Comprueba fallos de fuentes NEXTRY reales en CPL3; restaura imagen por defecto."""
-import os,pathlib,subprocess,time
+import argparse,os,pathlib,subprocess,time
 raiz=pathlib.Path(__file__).resolve().parents[1]
 entorno={k:v for k,v in os.environ.items() if k.lower()!='psmodulepath'}
 construir=['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',str(raiz/'build.ps1'),'-Architecture','x86']
@@ -15,8 +15,13 @@ casos={
  'copiar_duplicado':'funcion inicio\nguardar_archivo "a", "original"\nguardar_archivo "b", "destino"\ncopiar_archivo "a", "b"\nfin',
  'copiar_invalido':'funcion inicio\nguardar_archivo "a", "original"\ncopiar_archivo "a", "../x"\nfin',
  'renombrar_duplicado':'funcion inicio\nguardar_archivo "a", "original"\nguardar_archivo "b", "destino"\nrenombrar_archivo "a", "b"\nfin'}
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--caso',choices=casos,help='Ejecutar solo el caso elegido')
+opciones=parser.parse_args()
+seleccion=[opciones.caso] if opciones.caso else casos
 try:
-    for nombre,fuente in casos.items():
+    for nombre in seleccion:
+        fuente=casos[nombre]
         archivo=raiz/f'build/x86/negativo-{nombre}.nxf'; archivo.write_text(fuente)
         subprocess.run(construir+['-FuenteUsuario',str(archivo)],cwd=raiz,env=entorno,check=True,capture_output=True)
         log=raiz/f'build/x86/usuario-nxf-{nombre}.log'

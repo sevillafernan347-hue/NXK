@@ -14,6 +14,8 @@ if ($Architecture -eq 'x86') {
     # El mismo controlador, con puertos simulados: errores que QEMU no inyecta.
     & "$root\tools\python\python.exe" "$root\lenguaje\pruebas_ata_estados.py"
     if ($LASTEXITCODE -ne 0) { throw 'Fallo de las pruebas host de estados ATA.' }
+    & "$root\tools\python\python.exe" "$root\lenguaje\pruebas_volumen_secuencial.py"
+    if ($LASTEXITCODE -ne 0) { throw 'Fallo de las pruebas host de tramos NXFS.' }
 }
 & "$root\build.ps1" -Test -FuenteUsuario $FuenteUsuario -FuenteApp $FuenteApp -Architecture $Architecture
 $buildDir = if ($Architecture -eq 'x86') { "$root\build\x86" } else { "$root\build" }

@@ -6,6 +6,10 @@ struct entrada { char nombre[24]; uint32_t longitud,lba,huella; };
 static struct entrada archivos[8];
 static unsigned cantidad;
 static unsigned char *temporal;
+/* El mismo buffer es una copia verificada solo para el siguiente tramo.
+ * Este estado nunca reemplaza la validacion del nombre/rango del llamador. */
+static const struct entrada *serie;
+static uint32_t siguiente,revision_serie;
 static uint32_t u32(const unsigned char *p) { return p[0]|(uint32_t)p[1]<<8|(uint32_t)p[2]<<16|(uint32_t)p[3]<<24; }
 static uint32_t huella(const unsigned char *p,size_t n) {
     uint32_t h=2166136261u; while (n--) h=(h^*p++)*16777619u; return h;
@@ -15,6 +19,7 @@ static int todo_cero(const unsigned char *p,size_t n) {
     return 1;
 }
 int nxk_volumen_montar(void) {
+    serie=0;
     cantidad=0; /* No conservar metadatos viejos si cambia/falla el disco. */
     struct nxk_ata_info info; unsigned char cabecera[512]; struct entrada nuevas[8]={0};
     if (nxk_ata_identificar(1,&info) || nxk_ata_leer_sector(1,0,cabecera)) return -1;
@@ -58,6 +63,7 @@ static const struct entrada *buscar(const char *nombre) {
  * longitud no alineada cabe completo en el buffer. La huella cubre solo los
  * bytes del archivo. No publicar datos ante un fallo de disco o de huella. */
 static int verificar(const struct entrada *a) {
+    serie=0; /* Incluso una lectura fallida puede sobrescribir el buffer. */
     if (!a->longitud) return a->huella==2166136261u ? 0 : -6;
     if (!temporal) temporal=nxk_alloc(4096);
     if (!temporal) return -4;
@@ -74,9 +80,17 @@ static int leer_rango(const char *nombre,void *destino,size_t capacidad,uint32_t
     if (desplazamiento>n || (completo && capacidad<n)) return -3;
     size_t copiar=n-desplazamiento; if (copiar>capacidad) copiar=capacidad;
     if (!copiar && n) return 0;
-    int r=verificar(a);
-    if (r) return r;
-    if (copiar) memcpy(destino,temporal+desplazamiento,copiar);
+    if (!copiar) return verificar(a);
+    uint32_t revision=nxk_ata_revision_esclavo();
+    if (!desplazamiento || serie!=a || siguiente!=desplazamiento ||
+        revision==UINT32_MAX || revision!=revision_serie) {
+        int r=verificar(a);
+        if (r) return r;
+    }
+    memcpy(destino,temporal+desplazamiento,copiar);
+    siguiente=desplazamiento+(uint32_t)copiar;
+    revision_serie=revision;
+    serie=!completo && siguiente<n ? a : 0;
     return (int)copiar;
 }
 

@@ -14,6 +14,9 @@ struct nxk_ata_diagnostico {
 };
 /* Sin I/O ni asignaciones. -1 argumento invalido; -64 en x64; salida intacta. */
 int nxk_ata_consultar(unsigned unidad,struct nxk_ata_diagnostico *salida);
+/* Revision del esclavo sin I/O. Cambia antes de identificarlo o escribir.
+ * UINT32_MAX indica que el llamador no puede reutilizar lecturas antiguas. */
+uint32_t nxk_ata_revision_esclavo(void);
 /* Errores: -1 argumento/capacidad; -2 ausente; -3 ERR/DF; -4 espera agotada;
  * -5 IDENTIFY incompatible; -64 plataforma sin soporte. Identificar/leer
  * conservan la salida del llamador al fallar. Identificar invalida primero

@@ -9,8 +9,10 @@ carpeta=raiz/'build/x86/usuario-volumen-pruebas';carpeta.mkdir(exist_ok=True)
 patron=bytes(33+(i*37+i//251)%90 for i in range(4096))
 base=crear({'leeme.txt':b'NEXTRY_DISCO_VALIDO\n'})
 corrupto=bytearray(base);corrupto[512]^=1
+corrupto_final=crear({'leeme.txt':patron})
+corrupto_final[512+len(patron)-1]^=1
 casos={'correcto':base,'corrupto':corrupto,'grande':crear({'leeme.txt':b'G'*257}),'maximo':crear({'leeme.txt':patron}),'vacio':crear({'leeme.txt':b''}),'minimo':crear({'leeme.txt':b'@'}),'exacto':crear({'leeme.txt':b'E'*256}),
-       'ausente':crear({'otro.txt':b'otro'}),'sin_montar':base}
+       'ausente':crear({'otro.txt':b'otro'}),'sin_montar':base,'corrupto_final':corrupto_final}
 try:
     subprocess.run(construir+['-FuenteUsuario','lenguaje/ejemplos/usuario_volumen.nxf'],cwd=raiz,env=entorno,check=True,capture_output=True)
     for nombre,datos in casos.items():
@@ -51,6 +53,8 @@ try:
                 else:
                     esperar(b'Aplicacion NEXTRY fallo.')
                     if b'NEXTRY_DISCO_VALIDO' in log.read_bytes():raise RuntimeError('Contenido invalido publicado')
+                    if nombre=='corrupto_final' and patron[:256] in log.read_bytes():
+                        raise RuntimeError('Se publico un tramo antes de verificar el ultimo sector')
                 enviar(b'help\n');esperar(b'help | version')
                 print('USUARIO NXFS '+nombre+': correcto.')
             finally:p.terminate();p.wait(timeout=5)

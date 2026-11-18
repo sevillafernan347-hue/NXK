@@ -23,7 +23,9 @@ restauran CR3 y permisos. Las apps NXE anteriores siguen en ring0.
 Para fuente propia: build.ps1 -FuenteUsuario ruta.nxf. Arrancar nueva imagen
 y usar usuario nextry. test.ps1 acepta la misma opcion para validacion.
 No carga rutas arbitrarias desde disco o RAM y no ejecuta multiples apps.
-El presupuesto temporal actual sigue en diez ticks de PIT por ejecucion.
+Desde v0.0.34, la orden sincronica `usuario nextry` tiene cien ticks PIT
+por ejecucion para admitir la salida de archivos grandes. Los procesos
+gestionados conservan turnos de diez ticks.
 
 Validacion: ejemplo imprime texto y numero 10, afirma resultado y termina en
 CPL3. Matriz x86 32/64/128/1024 MiB, consola serie y regresion x64 superadas.

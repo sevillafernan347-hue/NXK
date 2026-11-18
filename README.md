@@ -1,7 +1,11 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.33**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.34**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
+
+NEXTRY en modo usuario puede mostrar archivos NXFS de 4 KiB. Los tramos
+contiguos comparten una copia verificada. Consulta
+[la lectura secuencial](ENTREGA-LECTURA-SECUENCIAL.md).
 
 `volumen leer` verifica el archivo NXFS completo con un solo buffer de 4 KiB.
 La ruta interna de NEXTRY reutiliza esa lectura para mostrar el archivo.
