@@ -26,7 +26,8 @@ que quedo registrado. Es preferible consultar el estado inmediatamente despues
 de un fallo de volumen/persistencia: otra operacion valida sustituye el registro.
 No es un historial acumulado ni una lectura en vivo de los registros del disco.
 
-Ejemplo observado en QEMU sin esclavo:
+Ejemplo observado en QEMU sin esclavo en v0.0.31. Desde v0.0.32 el esclavo
+ausente se detecta en fase previa, con emitido 0. Ver ENTREGA-ATA-PREPARACION.md.
 
 ```text
 IDE 0 comando 0x000000EC emitido 1 LBA 0 fase cierre resultado 0 estado 0x00000050 sondeos 2

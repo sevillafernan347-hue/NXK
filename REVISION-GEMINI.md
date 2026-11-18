@@ -58,6 +58,14 @@ La observacion anterior sobre ABRT ahora dispone de captura del registro Error
 cuando es valido y pruebas propias. Esto no implementa recuperacion del canal.
 Compartir el contrato y resultados cuando el chat vuelva a estar accesible.
 
+## Seguimiento v0.0.32
+
+Se retomo el chat separado y se compartio el plan de ATA y NXFS1.
+Gemini sugirio verificar que IDENTIFY tras ERR residual finalice y publique
+la capacidad correcta. Se incluyo ese escenario en las pruebas del controlador
+con puertos simulados. El resultado se verifico localmente y no se incorporo
+codigo de Gemini. No se agrega un reset ni una escritura para limpiar ERR.
+
 ## Al retomar
 
 Leer la respuesta pendiente y contrastar cada afirmacion con el codigo actual.

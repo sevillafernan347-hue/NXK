@@ -3,6 +3,18 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.32
+
+- IDENTIFY comprueba el estado de la unidad seleccionada antes de enviar
+  parametros. Un ERR residual aislado permite una orden nueva cuando BSY
+  y DRQ estan despejados. Un fallo DF sigue bloqueando el comando.
+- NXFS1 rechaza campos reservados y relleno distintos de cero aunque la
+  huella coincida. Las imagenes del generador oficial se siguen montando.
+- Imagen integrada verificada en QEMU x86 con 32, 64, 128 y 1024 MiB y
+  x64 con 64 MiB. Pasaron 134 comprobaciones ATA, la consola de discos,
+  16 escenarios NXFS y 38 resultados de persistencia.
+- Cambios en puentes C. Ver ENTREGA-ATA-PREPARACION.md y ENTREGA-VOLUMEN-NXFS.md.
+
 ## v0.0.31
 
 - API kernel nxk_ata_consultar y comando discos estado: ultima operacion por

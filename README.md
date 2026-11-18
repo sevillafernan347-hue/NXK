@@ -1,7 +1,13 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.31**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.32**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
+
+ATA verifica que el dispositivo seleccionado este listo antes de identificarlo.
+Una orden nueva puede avanzar si el unico error de estado pertenece a una orden
+anterior. NXFS valida tambien los campos reservados y el relleno de la cabecera.
+Consulta [preparacion ATA](ENTREGA-ATA-PREPARACION.md) y
+[volumen NXFS](ENTREGA-VOLUMEN-NXFS.md).
 
 `discos estado` consulta la ultima operacion ATA de cada unidad: comando,
 sector, fase, resultado y registros de error validos, sin acceder otra vez al
