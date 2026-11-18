@@ -7,6 +7,11 @@ carpeta=raiz/'build/x86/volumen-pruebas'; carpeta.mkdir(exist_ok=True)
 base=crear({'leeme.txt':b'NXFS: lectura persistente de prueba.\n','largo.txt':b'Z'*1100,'vacio.txt':b'','exacto.txt':b'X'*256})
 casos={}
 casos['correcto']=(base,True)
+casos['vacio']=(crear({}),True)
+nombre_maximo = 'a' * 23
+lleno = {f'dato{i}.txt': bytes([65+i]) for i in range(7)}
+lleno[nombre_maximo] = b'MAXIMO_NXFS'
+casos['ocho-entradas']=(crear(lleno),True)
 for nombre in ('cabecera','cantidad','nombre','limite','solapamiento','tamano'):
     b=bytearray(base)
     if nombre=='cabecera': b[0]^=1
@@ -18,6 +23,14 @@ for nombre in ('cabecera','cantidad','nombre','limite','solapamiento','tamano'):
     struct.pack_into('<I',b,508,huella(b[:508])); casos[nombre]=(b,False)
 b=bytearray(base); b[508]^=1; casos['huella']=(b,False)
 b=bytearray(base); b[512]^=1; casos['contenido']=(b,True)
+# La huella recalculada aísla esta validación de la detección de corrupción.
+for nombre,pos in (
+    ('reservado-cabecera',15), ('reservado-entrada-final',16+3*40+39),
+    ('relleno-nombre-final',16+3*40+23), ('entrada-inactiva',16+4*40),
+    ('relleno-sector',507),
+):
+    b=bytearray(base); b[pos]=1
+    struct.pack_into('<I',b,508,huella(b[:508])); casos[nombre]=(b,False)
 for nombre,(datos,valido) in casos.items():
     disco=carpeta/f'{nombre}.img'; disco.write_bytes(datos)
     log=carpeta/f'{nombre}.log'
@@ -63,6 +76,13 @@ for nombre,(datos,valido) in casos.items():
                 enviar(b'volumen leer leeme.txt\n'); esperar(b'No se pudo leer o verificar')
                 enviar(b'copiar leeme.txt rechazado\n'); esperar(b'No se pudo copiar.')
                 enviar(b'leer rechazado\n'); esperar(b'No se pudo leer.')
+
+            elif nombre=='ocho-entradas':
+                enviar(b'volumen listar\n'); esperar(nombre_maximo.encode())
+                enviar(f'volumen leer {nombre_maximo}\n'.encode()); esperar(b'MAXIMO_NXFS')
+
+            elif not valido:
+                enviar(b'volumen leer leeme.txt\n'); esperar(b'No se pudo leer o verificar')
 
             enviar(b'help\n'); esperar(b'help | version')
             print('NXFS '+nombre+': correcto.')

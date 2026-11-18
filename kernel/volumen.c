@@ -10,6 +10,10 @@ static uint32_t u32(const unsigned char *p) { return p[0]|(uint32_t)p[1]<<8|(uin
 static uint32_t huella(const unsigned char *p,size_t n) {
     uint32_t h=2166136261u; while (n--) h=(h^*p++)*16777619u; return h;
 }
+static int todo_cero(const unsigned char *p,size_t n) {
+    while (n--) if (*p++) return 0;
+    return 1;
+}
 int nxk_volumen_montar(void) {
     cantidad=0; /* No conservar metadatos viejos si cambia/falla el disco. */
     struct nxk_ata_info info; unsigned char cabecera[512]; struct entrada nuevas[8]={0};
@@ -17,6 +21,10 @@ int nxk_volumen_montar(void) {
     if (u32(cabecera)!=0x5346584e || u32(cabecera+4)!=1 ||
         u32(cabecera+8)>8 || huella(cabecera,508)!=u32(cabecera+508)) return -2;
     unsigned n=u32(cabecera+8);
+    /* Los campos reservados y las entradas inactivas no tienen significado
+     * en v1. Exigir ceros preserva una sola representacion de la cabecera. */
+    unsigned fin_tabla=16+n*40;
+    if (u32(cabecera+12) || !todo_cero(cabecera+fin_tabla,508-fin_tabla)) return -2;
     for (unsigned i=0;i<n;++i) {
         const unsigned char *p=cabecera+16+i*40; unsigned fin=24;
         for (unsigned j=0;j<24;++j) {
@@ -25,6 +33,7 @@ int nxk_volumen_montar(void) {
             if (!((c>='a' && c<='z') || (c>='0' && c<='9') || c=='.' || c=='_' || c=='-')) return -3;
         }
         if (!fin || fin==24) return -3;
+        if (!todo_cero(p+fin+1,23-fin) || u32(p+36)) return -2;
         memcpy(nuevas[i].nombre,p,fin+1);
         nuevas[i].longitud=u32(p+24); nuevas[i].lba=u32(p+28); nuevas[i].huella=u32(p+32);
         uint32_t sectores=(nuevas[i].longitud+511)/512;
