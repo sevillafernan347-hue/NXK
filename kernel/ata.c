@@ -38,7 +38,9 @@ static int esperar(struct nxk_ata_diagnostico *d,unsigned fase,int datos) {
         d->estado=s; ++d->sondeos;
         if (!s || s==0xff) return -2;
         if (s&0x80) continue;
-        if (s&0x21) {
+        /* Antes de emitir el comando, ERR puede pertenecer al anterior.
+         * El dispositivo lo borra al aceptar otro. DF conserva el rechazo. */
+        if ((s&0x20) || (fase!=1 && (s&1))) {
             /* Error requiere BSY=DRQ=0 y ERR=1; DF solo no lo valida. */
             if ((s&9)==1) { d->error=entrada(0x1f1); d->error_valido=1; }
             return -3;
@@ -56,10 +58,12 @@ int nxk_ata_identificar(unsigned unidad,struct nxk_ata_info *info) {
     struct nxk_ata_diagnostico *d=iniciar(unidad,0xec,0);
     capacidad[unidad]=0;
     salida(0x3f6,2); salida(0x1f6,(uint8_t)(0xa0|(unidad<<4))); pausa();
+    int r=esperar(d,1,0);
+    if (r) return terminar(d,r);
     /* IDENTIFY tambien distingue unidades ATAPI, que no soportamos. */
     salida(0x1f2,0); salida(0x1f3,0); salida(0x1f4,0); salida(0x1f5,0);
     salida(0x1f7,0xec); d->emitido=1; pausa();
-    int r=esperar(d,2,1); if (r) return terminar(d,r);
+    r=esperar(d,2,1); if (r) return terminar(d,r);
     if (entrada(0x1f4) || entrada(0x1f5)) return terminar(d,-5);
     uint16_t datos[256]; leer_palabras(datos);
     /* La ultima palabra no basta: esperar el cierre antes de publicar capacidad. */

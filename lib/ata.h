@@ -17,7 +17,8 @@ int nxk_ata_consultar(unsigned unidad,struct nxk_ata_diagnostico *salida);
 /* Errores: -1 argumento/capacidad; -2 ausente; -3 ERR/DF; -4 espera agotada;
  * -5 IDENTIFY incompatible; -64 plataforma sin soporte. Identificar/leer
  * conservan la salida del llamador al fallar. Identificar invalida primero
- * la capacidad anterior; solo publica la nueva al completar la operacion. */
+ * la capacidad anterior; solo publica la nueva al completar la operacion.
+ * En fase previa, ERR residual por si solo no impide un nuevo comando. */
 int nxk_ata_identificar(unsigned unidad,struct nxk_ata_info *info);
 /* Requiere identificar; destino de al menos 512 bytes, solo punteros kernel. */
 int nxk_ata_leer_sector(unsigned unidad,uint32_t lba,void *destino);

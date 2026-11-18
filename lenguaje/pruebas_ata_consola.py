@@ -44,7 +44,7 @@ with log.open('wb', buffering=0) as salida:
         assert b'IDE 1: no disponible o no compatible.' in listado, listado
         estado = comando('discos estado')
         assert re.search(rb'IDE 0 comando 0x000000EC emitido 1 LBA 0 fase cierre resultado 0 estado', estado), estado
-        assert re.search(rb'IDE 1 comando 0x000000EC emitido 1 LBA 0 fase datos resultado -[234] estado', estado), estado
+        assert re.search(rb'IDE 1 comando 0x000000EC emitido 0 LBA 0 fase previa resultado -2 estado', estado), estado
         # La consulta no debe reidentificar ni alterar siquiera el contador de sondeos.
         for _ in range(3):
             assert comando('discos estado') == estado

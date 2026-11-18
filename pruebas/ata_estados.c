@@ -6,7 +6,7 @@
 #include "../kernel/ata.c"
 static struct {
     uint8_t estados[3][4],registro[8],comando;
-    unsigned longitud[3],consultas[3],pausas[3],fase,lecturas,escrituras,comandos,io,errores_leidos;
+    unsigned longitud[3],consultas[3],pausas[3],fase,lecturas,escrituras,comandos,io,errores_leidos,parametros;
     uint16_t escritas[256];
 } sim;
 static unsigned casos,fallos;
@@ -38,6 +38,7 @@ static uint8_t entrada(uint16_t p) {
 }
 static void salida(uint16_t p,uint8_t v) {
     ++sim.io;
+    if (p>=0x1f2 && p<=0x1f5) ++sim.parametros;
     if (p>=0x1f0 && p<=0x1f7) sim.registro[p-0x1f0]=v;
     if (p==0x1f7) {
         sim.comando=v; ++sim.comandos;
@@ -84,7 +85,50 @@ int main(void) {
         unsigned antes=sim.io;
         comprobar(!nxk_ata_consultar(u,&d) && d.comando==0xec && d.emitido==1 &&
                   d.fase==3 && d.resultado==0 && d.estado==0x50 && !d.error_valido &&
-                  d.sondeos==2 && sim.io==antes,"Diagnostico IDENTIFY correcto");
+                  d.sondeos==3 && sim.io==antes,"Diagnostico IDENTIFY correcto");
+    }
+    /* IDENTIFY no puede interrumpir una transferencia pendiente ni publicar capacidad. */
+    const uint8_t previos[]={0x80,0x58,0x00,0xff,0x71};
+    const int resultados_previos[]={-4,-4,-2,-2,-3};
+    for (unsigned i=0;i<sizeof(previos);++i) {
+        reiniciar(); secuencia(0,previos[i],previos[i],previos[i]);
+        memset(&info,0xa5,sizeof(info));
+        int r=nxk_ata_identificar(1,&info);
+        comprobar(r==resultados_previos[i] &&
+                  !sim.comandos && !sim.parametros && !sim.lecturas &&
+                  centinela(&info,sizeof(info)),"IDENTIFY espera previa sin efectos");
+        unsigned antes=sim.io;
+        comprobar(!nxk_ata_consultar(1,&d) && d.comando==0xec && d.fase==1 &&
+                  !d.emitido && d.estado==previos[i] && d.resultado==r &&
+                  d.error_valido==(i==4) &&
+                  nxk_ata_leer_sector(1,0,destino)==-1 && sim.io==antes,
+                  "IDENTIFY previo informa fallo y no publica capacidad");
+    }
+    reiniciar(); secuencia(0,0x80,0x59,0x51);
+    comprobar(!nxk_ata_identificar(1,&info) && sim.consultas[0]==3 &&
+              !sim.errores_leidos && sim.comandos==1 && sim.parametros==4 &&
+              info.sectores==0x10000000u,
+              "IDENTIFY espera BSY/DRQ y acepta ERR residual en reposo");
+    /* Una unidad ya identificada puede recibir otra identificacion tras ERR.
+     * Con DRQ aun activo no debe recibir ni parametros ni comando. */
+    reiniciar(); secuencia(0,0x51,0x51,0x51);
+    comprobar(!nxk_ata_identificar(1,&info) && sim.comandos==1 &&
+              !sim.errores_leidos && info.sectores==0x10000000u,
+              "IDENTIFY de unidad conocida permite ERR residual aislado");
+    reiniciar(); secuencia(0,0x59,0x59,0x59); memset(&info,0xa5,sizeof(info));
+    comprobar(nxk_ata_identificar(1,&info)==-4 && !sim.comandos && !sim.parametros &&
+              !sim.lecturas && !sim.errores_leidos && centinela(&info,sizeof(info)),
+              "IDENTIFY preserva transferencia con ERR y DRQ persistentes");
+    reiniciar(); comprobar(!nxk_ata_identificar(1,&info),"IDENTIFY recupera capacidad tras DRQ");
+    /* ERR de la operacion anterior se retira al escribir un comando nuevo.
+     * Cada llamada es una peticion explicita, nunca un reintento automatico. */
+    for (unsigned op=0;op<3;++op) {
+        reiniciar(); secuencia(0,0x51,0x51,0x51); sim.registro[1]=4;
+        int r=op==0 ? nxk_ata_leer_sector(1,7,destino) :
+              op==1 ? nxk_ata_escribir_sector(1,7,origen) : nxk_ata_sincronizar(1);
+        comprobar(!r && sim.comandos==1 && !sim.errores_leidos &&
+                  !nxk_ata_consultar(1,&d) && !d.resultado && !d.error_valido &&
+                  d.emitido && d.fase==3,"Nueva solicitud tras ERR residual");
     }
     /* Los bytes altos de LBA28 no pueden perderse al seleccionar el esclavo. */
     reiniciar();
@@ -133,22 +177,25 @@ int main(void) {
               "BSY no permite capturar registro Error");
     for (unsigned fase=0;fase<3;++fase) {
         reiniciar(); sim.registro[1]=0x54; secuencia(fase,0x59,0x59,0x59);
-        comprobar(nxk_ata_leer_sector(0,7,destino)==-3 && !sim.errores_leidos &&
+        comprobar(nxk_ata_leer_sector(0,7,destino)==(fase ? -3 : -4) &&
+                  !sim.errores_leidos &&
                   !nxk_ata_consultar(0,&d) && !d.error_valido && !d.error && d.estado==0x59,
                   "ERR con DRQ no hace valido registro Error");
     }
     for (unsigned fase=0;fase<3;++fase) for (unsigned e=0;e<6;++e) {
         if (fase==1 && e==1) continue; /* DRQ es exito durante transferencia. */
         reiniciar(); memset(destino,0xa5,sizeof(destino)); sim.registro[1]=0x54;
-        secuencia(fase,estados[e],estados[e],estados[e]);
+        /* ERR previo aislado permite entrar. DF junto a ERR aun debe fallar. */
+        uint8_t estado=!fase && e==2 ? 0x71 : estados[e];
+        secuencia(fase,estado,estado,estado);
         int r=nxk_ata_leer_sector(0,7,destino+1);
-        char nombre[80]; snprintf(nombre,sizeof(nombre),"READ fase%u estado%02x",fase,estados[e]);
+        char nombre[80]; snprintf(nombre,sizeof(nombre),"READ fase%u estado%02x",fase,estado);
         comprobar(r==errores[e] && centinela(destino,sizeof(destino)) &&
                   (fase!=0 || !sim.comandos) && (fase==2 || !sim.lecturas) &&
                   (errores[e]!=-4 || sim.consultas[fase]==1000000),nombre);
         unsigned antes=sim.io;
         comprobar(!nxk_ata_consultar(0,&d) && d.comando==0x20 && d.lba==7 &&
-                  d.fase==fase+1 && d.emitido==(fase!=0) && d.estado==estados[e] &&
+                  d.fase==fase+1 && d.emitido==(fase!=0) && d.estado==estado &&
                   d.resultado==r && d.error_valido==(e==2) && d.error==(e==2 ? 0x54u : 0u) &&
                   sim.errores_leidos==(e==2) && sim.io==antes &&
                   d.sondeos==sim.consultas[0]+sim.consultas[1]+sim.consultas[2],
@@ -158,15 +205,16 @@ int main(void) {
      * no promete deshacer lo recibido por el disco; solo informa el fallo. */
     for (unsigned fase=0;fase<3;++fase) for (unsigned e=0;e<6;++e) {
         if (fase==1 && e==1) continue;
-        reiniciar(); sim.registro[1]=4; secuencia(fase,estados[e],estados[e],estados[e]);
+        uint8_t estado=!fase && e==2 ? 0x71 : estados[e];
+        reiniciar(); sim.registro[1]=4; secuencia(fase,estado,estado,estado);
         int r=nxk_ata_escribir_sector(1,7,origen+1);
-        char nombre[80]; snprintf(nombre,sizeof(nombre),"WRITE fase%u estado%02x",fase,estados[e]);
+        char nombre[80]; snprintf(nombre,sizeof(nombre),"WRITE fase%u estado%02x",fase,estado);
         comprobar(r==errores[e] && (fase!=0 || !sim.comandos) &&
                   sim.escrituras==(fase==2 ? 256u : 0u) &&
                   (errores[e]!=-4 || sim.consultas[fase]==1000000),nombre);
         unsigned antes=sim.io;
         comprobar(!nxk_ata_consultar(1,&d) && d.comando==0x30 && d.lba==7 &&
-                  d.fase==fase+1 && d.emitido==(fase!=0) && d.estado==estados[e] &&
+                  d.fase==fase+1 && d.emitido==(fase!=0) && d.estado==estado &&
                   d.resultado==r && d.error_valido==(e==2) && d.error==(e==2 ? 4u : 0u) &&
                   sim.errores_leidos==(e==2) && sim.io==antes,"Diagnostico WRITE y ABRT");
     }
