@@ -1,7 +1,11 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.32**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.33**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
+
+`volumen leer` verifica el archivo NXFS completo con un solo buffer de 4 KiB.
+La ruta interna de NEXTRY reutiliza esa lectura para mostrar el archivo.
+Consulta [la entrega](ENTREGA-LECTURA-NXFS.md).
 
 ATA verifica que el dispositivo seleccionado este listo antes de identificarlo.
 Una orden nueva puede avanzar si el unico error de estado pertenece a una orden
@@ -26,7 +30,7 @@ El gestor fisico incluye una API kernel de diagnostico: paginas libres,
 prestadas y excluidas, mayor bloque continuo y comprobacion de coherencia.
 Consulta [contrato y pruebas](ENTREGA-DIAGNOSTICO-MEMORIA.md).
 
-**Prueba grafica:** abre `VER-MINI-NXK.cmd`. [MINI NXK](experimentos/mini-so/README.md)
+**Prueba grafica:** abre `VER-MINI-NXK.cmd -Recompilar`. [MINI NXK](experimentos/mini-so/README.md)
 ofrece una pantalla propia y terminal conectada al kernel, dentro de QEMU.
 Se controla con teclado; paneles fijos, sin raton ni ventanas movibles.
 

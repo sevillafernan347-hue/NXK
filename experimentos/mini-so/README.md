@@ -21,5 +21,10 @@ memoria, escritura/lectura de archivos, NEXTRY, procesos, scroll y retroceso.
 Guarda captura en `build/x86-interfaz/mini-nxk.png`. Prueba superada en64MiB;
 los discos originales permanecieron intactos. Tambien se observo la ventana GTK.
 
+Secuencia corta para presentar v0.0.33: `version`, `mem`,
+`escribir ejemplo.txt hola desde nxk`, `leer ejemplo.txt`,
+`proceso demo` y `usuario nextry`. La prueba grafica de esta version
+verifico las funciones equivalentes en 64 MiB de RAM virtual.
+
 QEMU usa una copia de la imagen con snapshot. Los archivos creados en RAM
 son temporales. No accede al disco fisico de la laptop ni instala NXK en ella.

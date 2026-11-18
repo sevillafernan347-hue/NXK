@@ -1,5 +1,6 @@
 """Prueba la pantalla VGA y comandos reales en QEMU sin cerrar ventanas del usuario."""
 import json
+import re
 import socket
 import struct
 import subprocess
@@ -10,6 +11,8 @@ RAIZ=Path(__file__).resolve().parents[2]
 
 def main():
     carpeta=RAIZ/'build/x86-interfaz'; disco=carpeta/'nxk.img'
+    version = re.search(rb'#define NXK_VERSION "([^"]+)"', (RAIZ/'lib/version.h').read_bytes())[1]
+    marca_version = b'NXK ' + version
     original=disco.read_bytes(); normal=RAIZ/'build/x86/nxk.img'
     normal_antes=normal.read_bytes()
     with socket.socket() as libre:
@@ -70,14 +73,14 @@ def main():
         for tecla in ('v','e','r','s','i','o','n','ret'):
             pedir('human-monitor-command',{'command-line':'sendkey '+tecla})
             time.sleep(.09)
-        assert b'NXK 0.0.27' in esperar(desde)
+        assert marca_version in esperar(desde)
         comando('mem',b'Heap fijo usado')
         comando('escribir grafico hola',b'Archivo guardado en RAM.')
         comando('leer grafico',b'hola')
         comando('usuario nextry',b'NEXTRY')
         comando('proceso demo',b'registros y punto de ejecucion conservados')
         # Fuerza varias vueltas de scroll y un retroceso al escribir.
-        comando('help',b'proceso permisos'); comando('versionx\b',b'NXK 0.0.27')
+        comando('help',b'proceso permisos'); comando('versionx\b',marca_version)
     finally:
         if conexion:conexion.close()
         p.terminate();p.wait(timeout=5);salida.close()

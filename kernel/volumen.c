@@ -48,25 +48,46 @@ int nxk_volumen_montar(void) {
     memcpy(archivos,nuevas,n*sizeof(*archivos)); cantidad=n; return 0;
 }
 const char *nxk_volumen_nombre(unsigned i) { return i<cantidad ? archivos[i].nombre : 0; }
-static int leer_rango(const char *nombre,void *destino,size_t capacidad,uint32_t desplazamiento,int completo) {
-    if (!nombre || (!destino && capacidad)) return -1;
-    unsigned i; for (i=0;i<cantidad;++i) if (nxk_equal(nombre,archivos[i].nombre)) break;
-    if (i==cantidad) return -2;
-    uint32_t n=archivos[i].longitud;
-    if (desplazamiento>n || (completo && capacidad<n)) return -3;
-    size_t copiar=n-desplazamiento; if (copiar>capacidad) copiar=capacidad;
-    if (!n && archivos[i].huella!=2166136261u) return -6;
-    if (!copiar) return 0;
+static const struct entrada *buscar(const char *nombre) {
+    for (unsigned i=0;i<cantidad;++i)
+        if (nxk_equal(nombre,archivos[i].nombre)) return &archivos[i];
+    return 0;
+}
+
+/* El montaje limita la longitud a 4096. Incluso el ultimo sector de una
+ * longitud no alineada cabe completo en el buffer. La huella cubre solo los
+ * bytes del archivo. No publicar datos ante un fallo de disco o de huella. */
+static int verificar(const struct entrada *a) {
+    if (!a->longitud) return a->huella==2166136261u ? 0 : -6;
     if (!temporal) temporal=nxk_alloc(4096);
     if (!temporal) return -4;
-    unsigned char sector[512];
-    for (uint32_t leidos=0;leidos<n;) {
-        if (nxk_ata_leer_sector(1,archivos[i].lba+leidos/512,sector)) return -5;
-        unsigned paso=n-leidos; if (paso>512) paso=512;
-        memcpy(temporal+leidos,sector,paso); leidos+=paso;
-    }
-    if (huella(temporal,n)!=archivos[i].huella) return -6;
-    memcpy(destino,temporal+desplazamiento,copiar); return (int)copiar;
+    for (uint32_t pos=0;pos<a->longitud;pos+=512)
+        if (nxk_ata_leer_sector(1,a->lba+pos/512,temporal+pos)) return -5;
+    return huella(temporal,a->longitud)==a->huella ? 0 : -6;
+}
+
+static int leer_rango(const char *nombre,void *destino,size_t capacidad,uint32_t desplazamiento,int completo) {
+    if (!nombre || (!destino && capacidad)) return -1;
+    const struct entrada *a=buscar(nombre);
+    if (!a) return -2;
+    uint32_t n=a->longitud;
+    if (desplazamiento>n || (completo && capacidad<n)) return -3;
+    size_t copiar=n-desplazamiento; if (copiar>capacidad) copiar=capacidad;
+    if (!copiar && n) return 0;
+    int r=verificar(a);
+    if (r) return r;
+    if (copiar) memcpy(destino,temporal+desplazamiento,copiar);
+    return (int)copiar;
+}
+
+int nxk_volumen_visitar(const char *nombre,void (*visitar)(const unsigned char *,size_t)) {
+    if (!nombre || !visitar) return -1;
+    const struct entrada *a=buscar(nombre);
+    if (!a) return -2;
+    int r=verificar(a);
+    if (r) return r;
+    visitar(a->longitud ? temporal : 0,a->longitud);
+    return 0;
 }
 
 int nxk_volumen_leer(const char *n,void *d,size_t c) { return leer_rango(n,d,c,0,1); }

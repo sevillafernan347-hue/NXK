@@ -3,6 +3,17 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.33
+
+- Mostrar NXFS verifica una lectura completa y comparte el buffer de 4 KiB.
+  La consola elimina una reserva duplicada y la ruta de NEXTRY dentro del
+  kernel evita releer el archivo por cada tramo de 256 bytes.
+- Los sectores llegan directamente al buffer de verificacion. El ultimo
+  sector cabe completo y la huella solo cubre los bytes del archivo.
+- 18 escenarios NXFS, 38 verificaciones de persistencia, 134 comprobaciones
+  ATA y arranque QEMU x86 (32, 64, 128 y 1024 MiB) y x64 (64 MiB).
+  Ver ENTREGA-LECTURA-NXFS.md.
+
 ## v0.0.32
 
 - IDENTIFY comprueba el estado de la unidad seleccionada antes de enviar

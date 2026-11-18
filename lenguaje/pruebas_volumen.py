@@ -1,5 +1,5 @@
 """Prueba NXFS1 en discos virtuales IDE secundarios de solo lectura."""
-import pathlib,subprocess,sys,time,struct
+import pathlib,re,subprocess,sys,time,struct
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parent))
 from crear_volumen import crear,huella
 raiz=pathlib.Path(__file__).resolve().parents[1]
@@ -12,6 +12,13 @@ nombre_maximo = 'a' * 23
 lleno = {f'dato{i}.txt': bytes([65+i]) for i in range(7)}
 lleno[nombre_maximo] = b'MAXIMO_NXFS'
 casos['ocho-entradas']=(crear(lleno),True)
+# Patron comprobado completo, incluido el ultimo byte del octavo sector.
+patron = bytes(65 + (i+i//251)%26 for i in range(4096))
+maximo = crear({'maximo.txt':patron})
+casos['lectura-maxima']=(maximo,True)
+corrupto_final = bytearray(maximo)
+corrupto_final[512+len(patron)-1] ^= 1
+casos['contenido-final']=(corrupto_final,True)
 for nombre in ('cabecera','cantidad','nombre','limite','solapamiento','tamano'):
     b=bytearray(base)
     if nombre=='cabecera': b[0]^=1
@@ -50,6 +57,14 @@ for nombre,(datos,valido) in casos.items():
         def enviar(texto):
             for v in texto:
                 p.stdin.write(bytes([v])); p.stdin.flush(); time.sleep(.003)
+        def comando(texto):
+            desde=log.stat().st_size
+            prompts=log.read_bytes().count(b'nxk> ')
+            enviar(texto+b'\n')
+            esperar(b'nxk> ',prompts+1)
+            return log.read_bytes()[desde:]
+        def heap_usado():
+            return int(re.search(rb'Heap fijo usado: (\d+)',comando(b'mem'))[1])
         try:
             esperar(b'nxk> '); enviar(b'volumen montar\n')
             esperar(b'Volumen NXFS montado' if valido else b'Volumen no disponible o invalido.')
@@ -80,6 +95,21 @@ for nombre,(datos,valido) in casos.items():
             elif nombre=='ocho-entradas':
                 enviar(b'volumen listar\n'); esperar(nombre_maximo.encode())
                 enviar(f'volumen leer {nombre_maximo}\n'.encode()); esperar(b'MAXIMO_NXFS')
+
+            elif nombre=='lectura-maxima':
+                esperar(b'nxk> ',2)
+                antes=heap_usado()
+                assert b'No se pudo leer o verificar' in comando(b'volumen leer ausente')
+                assert heap_usado()==antes, 'Una consulta fallida no debe reservar el buffer'
+                for _ in range(2):
+                    assert patron in comando(b'volumen leer maximo.txt')
+                    assert heap_usado()-antes==4096, 'NXFS debe usar un solo buffer de 4 KiB'
+
+            elif nombre=='contenido-final':
+                esperar(b'nxk> ',2)
+                respuesta=comando(b'volumen leer maximo.txt')
+                assert b'No se pudo leer o verificar' in respuesta
+                assert patron[:512] not in respuesta, 'NXFS publico bytes antes de verificar'
 
             elif not valido:
                 enviar(b'volumen leer leeme.txt\n'); esperar(b'No se pudo leer o verificar')

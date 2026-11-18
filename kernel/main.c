@@ -271,16 +271,19 @@ void nxk_es_copiar_archivo(const char *origen,const char *destino) {
 void nxk_es_renombrar_archivo(const char *nombre,const char *nuevo) {
     if (nxk_archivo_renombrar(nombre,nuevo)) nxk_es_fallo(0);
 }
-void nxk_es_mostrar_archivo(const char *nombre) {
-    char datos[256]; uint32_t posicion=0;
-    for (;;) {
-        int n=nxk_archivo_leer_parte(nombre,datos,256,posicion);
-        if (n<0) nxk_es_fallo(0);
-        if (!n) break;
-        for (int i=0;i<n;++i) put(datos[i]);
-        posicion+=(uint32_t)n;
-    }
+static void mostrar_bytes(const unsigned char *datos,size_t n) {
+    for (size_t i=0;i<n;++i) put((char)datos[i]);
     put('\n');
+}
+void nxk_es_mostrar_archivo(const char *nombre) {
+    unsigned char datos[256];
+    int n=nxk_archivo_leer(nombre,datos,sizeof(datos));
+    if (n==-2) {
+        if (nxk_volumen_visitar(nombre,mostrar_bytes)) nxk_es_fallo(0);
+        return;
+    }
+    if (n<0) nxk_es_fallo(0);
+    mostrar_bytes(datos,(size_t)n);
 }
 void nxk_es_borrar_archivo(const char *nombre) {
     if (nxk_archivo_borrar(nombre)) nxk_es_fallo(0);
@@ -614,11 +617,8 @@ void kernel_main(void) {
                 for (unsigned i=0;i<8;++i) { const char *s=nxk_volumen_nombre(i); if (s) { print(s); put('\n'); } }
             }
             else if (prefijo(line,"volumen leer ")) {
-                static unsigned char *contenido;
-                if (!contenido) contenido=nxk_alloc(4096);
-                int n=contenido ? nxk_volumen_leer(line+13,contenido,4096) : -1;
-                if (n<0) print("No se pudo leer o verificar el archivo.\n");
-                else { for (int i=0;i<n;++i) put((char)contenido[i]); put('\n'); }
+                if (nxk_volumen_visitar(line+13,mostrar_bytes))
+                    print("No se pudo leer o verificar el archivo.\n");
             }
             else if (nxk_equal(line,"espacios")) {
                 print(nxk_espacios_demo() ? "Fallo al comprobar espacios.\n" : "Cuatro espacios privados verificados; paginas devueltas.\n");

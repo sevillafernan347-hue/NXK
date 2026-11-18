@@ -14,6 +14,5 @@
   Si faltan herramientas, indicarlo; nunca declarar pruebas que no se ejecutaron.
 - No subir herramientas, libros, credenciales, discos generados ni claves.
 - No prometer porcentajes comparados con Windows ni compatibilidad fisica sin pruebas.
-- Al continuar el kernel, consultar REVISION-GEMINI.md: el usuario autorizo
-  intercambio de revisiones con Gemini en su chat separado. Verificar cada
-  propuesta y sus pruebas antes de integrar; no tocar otros chats o ajustes.
+- El usuario pidio trabajar en NXK sin asistentes ni IA externas.
+  REVISION-GEMINI.md conserva el historial anterior.
