@@ -1,7 +1,11 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.34**. Consulta [versiones e historial](VERSIONES.md) y
+Version publicada: **0.0.35**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
+
+`archivo info nombre` muestra el tamano en bytes y si el archivo visible
+esta en RAM o NXFS. La consulta tambien permite a `copiar` rechazar destinos
+existentes sin leer el disco. Consulta [la entrega](ENTREGA-METADATOS-ARCHIVOS.md).
 
 NEXTRY en modo usuario puede mostrar archivos NXFS de 4 KiB. Los tramos
 contiguos comparten una copia verificada. Consulta

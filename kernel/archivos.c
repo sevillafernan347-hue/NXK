@@ -80,14 +80,28 @@ int nxk_archivo_leer_visible(const char *nombre,void *datos,size_t capacidad) {
     /* No esconder errores de capacidad o nombres invalidos tras otro backend. */
     return resultado==-2 ? nxk_volumen_leer(nombre,datos,capacidad) : resultado;
 }
+int nxk_archivo_info(const char *nombre,struct nxk_archivo_info *salida) {
+    if (!valido(nombre) || !salida) return -1;
+    int i=buscar(nombre);
+    if (i>=0) {
+        *salida=(struct nxk_archivo_info){(uint32_t)tabla[i].n,NXK_ARCHIVO_RAM};
+        return 0;
+    }
+    uint32_t longitud;
+    int r=nxk_volumen_tamano(nombre,&longitud);
+    if (r) return r;
+    *salida=(struct nxk_archivo_info){longitud,NXK_ARCHIVO_NXFS};
+    return 0;
+}
 /* Copia visible a RAM sin reemplazar destinos, ni siquiera los del volumen.
  * El buffer local completa lectura y verificacion antes de crear la entrada.
  * Sin concurrencia: comprobacion y publicacion pertenecen a la misma llamada. */
 int nxk_archivo_copiar(const char *origen,const char *destino) {
-    unsigned char datos[256], comprobacion[256];
+    unsigned char datos[256];
     if (!valido(origen) || !valido(destino)) return -1;
-    int existente=nxk_archivo_leer_visible(destino,comprobacion,sizeof(comprobacion));
-    /* Solo ausencia permite publicar. Errores y destinos grandes se conservan. */
+    struct nxk_archivo_info info;
+    int existente=nxk_archivo_info(destino,&info);
+    /* Un destino registrado conserva su nombre aunque su contenido falle. */
     if (existente!=-2) return -3;
     int n=nxk_archivo_leer_visible(origen,datos,sizeof(datos));
     if (n<0) return n;
@@ -191,6 +205,10 @@ __attribute__((minsize)) static int probar_imagen(void) {
 #endif
 int nxk_archivos_probar(void) {
     unsigned char b[256],d[256];
+    struct nxk_archivo_info info={123,NXK_ARCHIVO_NXFS};
+    if (nxk_archivo_info("ausente",&info)!=-2 || nxk_archivo_info("../x",&info)!=-1 ||
+        nxk_archivo_info("ausente",0)!=-1 || info.longitud!=123 ||
+        info.origen!=NXK_ARCHIVO_NXFS) return 31;
     for (unsigned i=0;i<256;++i) d[i]=(unsigned char)i;
     if (nxk_archivo_escribir("prueba",d,256) || nxk_archivo_escribir("prueba",d,257)!=-1 ||
         nxk_archivo_leer_visible("prueba",b,255)!=-3 || nxk_archivo_leer("prueba",b,256)!=256) return 1;
@@ -233,6 +251,11 @@ int nxk_archivos_probar(void) {
     if (nxk_archivo_truncar("tamano",0) || nxk_archivo_leer("tamano",0,0)!=0 ||
         nxk_archivo_truncar("tamano",4) || nxk_archivo_leer("tamano",b,256)!=4 ||
         b[0] || b[1] || b[2] || b[3] || nxk_archivo_borrar("tamano")) return 20;
+    if (nxk_archivo_escribir("info",0,0) ||
+        nxk_archivo_info("info",&info) || info.longitud || info.origen!=NXK_ARCHIVO_RAM ||
+        nxk_archivo_truncar("info",256) || nxk_archivo_info("info",&info) ||
+        info.longitud!=256 || info.origen!=NXK_ARCHIVO_RAM || nxk_archivo_borrar("info"))
+        return 32;
 #ifdef NXK_TEST
     int imagen=probar_imagen(); if (imagen) return 20+imagen;
 #endif

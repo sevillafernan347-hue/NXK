@@ -59,6 +59,14 @@ static const struct entrada *buscar(const char *nombre) {
     return 0;
 }
 
+int nxk_volumen_tamano(const char *nombre,uint32_t *salida) {
+    if (!nombre || !salida) return -1;
+    const struct entrada *a=buscar(nombre);
+    if (!a) return -2;
+    *salida=a->longitud;
+    return 0;
+}
+
 /* El montaje limita la longitud a 4096. Incluso el ultimo sector de una
  * longitud no alineada cabe completo en el buffer. La huella cubre solo los
  * bytes del archivo. No publicar datos ante un fallo de disco o de huella. */

@@ -3,6 +3,15 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.35
+
+- `archivo info nombre` consulta en RAM origen y longitud de un archivo
+  visible. RAM tiene prioridad y se conserva la salida al rechazar la API.
+- `copiar` consulta el nombre de destino antes de leer el origen. Los
+  destinos NXFS ocupados se conservan aunque falle su huella de contenido.
+  Elimina un buffer de 256 bytes de la pila de copia.
+- Puentes C. Contrato y comprobaciones en ENTREGA-METADATOS-ARCHIVOS.md.
+
 ## v0.0.34
 
 - NEXTRY en CPL3 muestra archivos NXFS completos de 4 KiB. NXFS conserva

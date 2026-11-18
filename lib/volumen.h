@@ -4,6 +4,9 @@
 #include "nxk.h"
 int nxk_volumen_montar(void);
 const char *nxk_volumen_nombre(unsigned indice);
+/* Tamano registrado al montar. Sin I/O: no verifica el contenido.
+ * 0 exito, -1 puntero nulo, -2 nombre no registrado. */
+int nxk_volumen_tamano(const char *nombre,uint32_t *salida);
 /* Tramos contiguos pueden compartir una copia verificada. Offset cero,
  * otra verificacion NXFS o una nueva revision del esclavo inician otra copia. */
 int nxk_volumen_leer_parte(const char *nombre,void *destino,size_t capacidad,uint32_t desplazamiento);

@@ -7,6 +7,7 @@ carpeta=raiz/'build/x86/volumen-pruebas'; carpeta.mkdir(exist_ok=True)
 base=crear({'leeme.txt':b'NXFS: lectura persistente de prueba.\n','largo.txt':b'Z'*1100,'vacio.txt':b'','exacto.txt':b'X'*256})
 casos={}
 casos['correcto']=(base,True)
+casos['metadatos']=(base,True)
 casos['vacio']=(crear({}),True)
 nombre_maximo = 'a' * 23
 lleno = {f'dato{i}.txt': bytes([65+i]) for i in range(7)}
@@ -87,9 +88,33 @@ for nombre,(datos,valido) in casos.items():
                 enviar(b'borrar editable\nvolumen leer leeme.txt\n')
                 esperar(b'NXFS: lectura persistente de prueba.',2)
 
+            elif nombre=='metadatos':
+                esperar(b'nxk> ',2)
+                estado=comando(b'discos estado')
+                assert b'comando 0x00000020 emitido 1 LBA 0' in estado, estado
+                heap=heap_usado()
+                assert b'Archivo NXFS: 1100 bytes' in comando(b'archivo info largo.txt')
+                assert b'Archivo NXFS: 0 bytes' in comando(b'archivo info vacio.txt')
+                assert b'Archivo no encontrado.' in comando(b'archivo info ausente')
+                assert b'Nombre de archivo invalido.' in comando(b'archivo info ../x')
+                assert b'No se pudo copiar.' in comando(b'copiar leeme.txt exacto.txt')
+                assert comando(b'discos estado')==estado
+                assert heap_usado()==heap, 'Consultar y rechazar copia no deben reservar memoria'
+                assert b'Archivo guardado en RAM.' in comando(b'escribir largo.txt sombra')
+                assert b'Archivo RAM: 6 bytes' in comando(b'archivo info largo.txt')
+                assert b'Archivo borrado.' in comando(b'borrar largo.txt')
+                assert b'Archivo NXFS: 1100 bytes' in comando(b'archivo info largo.txt')
+                assert comando(b'discos estado')==estado
+
             elif nombre=='contenido':
+                esperar(b'nxk> ',2)
+                estado=comando(b'discos estado')
+                assert b'Archivo NXFS:' in comando(b'archivo info leeme.txt')
+                assert b'No se pudo copiar.' in comando(b'copiar exacto.txt leeme.txt')
+                assert comando(b'discos estado')==estado
+                assert b'Archivo NXFS:' in comando(b'archivo info leeme.txt')
                 enviar(b'volumen leer leeme.txt\n'); esperar(b'No se pudo leer o verificar')
-                enviar(b'copiar leeme.txt rechazado\n'); esperar(b'No se pudo copiar.')
+                enviar(b'copiar leeme.txt rechazado\n'); esperar(b'No se pudo copiar.',2)
                 enviar(b'leer rechazado\n'); esperar(b'No se pudo leer.')
 
             elif nombre=='ocho-entradas':
@@ -99,6 +124,7 @@ for nombre,(datos,valido) in casos.items():
             elif nombre=='lectura-maxima':
                 esperar(b'nxk> ',2)
                 antes=heap_usado()
+                assert b'Archivo NXFS: 4096 bytes' in comando(b'archivo info maximo.txt')
                 assert b'No se pudo leer o verificar' in comando(b'volumen leer ausente')
                 assert heap_usado()==antes, 'Una consulta fallida no debe reservar el buffer'
                 for _ in range(2):

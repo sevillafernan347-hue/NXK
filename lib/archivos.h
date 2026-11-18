@@ -7,6 +7,14 @@ int nxk_archivo_leer(const char *nombre,void *datos,size_t capacidad);
 /* Lee RAM primero; solo si falta busca el volumen NXFS montado. */
 int nxk_archivo_leer_parte(const char *nombre,void *datos,size_t capacidad,uint32_t desplazamiento);
 int nxk_archivo_leer_visible(const char *nombre,void *datos,size_t capacidad);
+enum nxk_archivo_origen { NXK_ARCHIVO_RAM, NXK_ARCHIVO_NXFS };
+struct nxk_archivo_info {
+    uint32_t longitud;
+    enum nxk_archivo_origen origen;
+};
+/* RAM tiene prioridad. 0 exito, -1 argumento, -2 no existe.
+ * Sin I/O ni asignacion. La salida permanece intacta ante error. */
+int nxk_archivo_info(const char *nombre,struct nxk_archivo_info *salida);
 /* Agrega solo a archivos existentes; rechaza desbordamiento sin modificarlos. */
 int nxk_archivo_agregar(const char *nombre,const void *datos,size_t n);
 /* Cambia longitud RAM hasta 256: ampliacion rellena con ceros; no crea archivos. */
