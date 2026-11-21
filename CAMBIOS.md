@@ -3,6 +3,14 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## Propuesta para v0.0.37
+
+- La consola consulta el estado y la cantidad de archivos de NXFS. Un volumen
+  montado sin entradas se distingue de uno desmontado.
+- Desmontar descarta el catalogo y la lectura secuencial. Las consultas y
+  el desmontaje funcionan sin enviar ordenes ATA. Se puede montar de nuevo.
+- Contrato y pruebas en [ENTREGA-CICLO-VOLUMEN.md](ENTREGA-CICLO-VOLUMEN.md).
+
 ## Propuesta para v0.0.36
 
 - Auditoria de procedencia: la fuente 5x7 sin bocetos ni atribucion fue

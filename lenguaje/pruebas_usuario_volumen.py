@@ -46,6 +46,17 @@ try:
                     enviar(b'borrar leeme.txt\nusuario nextry\n')
                     esperar(b'NEXTRY_DISCO_VALIDO',2);esperar(b'Aplicacion NEXTRY protegida termino.',4)
                     enviar(b'leer leeme.txt\n');esperar(b'NEXTRY_DISCO_VALIDO',3)
+                    # Una app pierde el acceso a NXFS al desmontar y lo recupera
+                    # al montar otra vez. La copia previa no debe aparecer.
+                    enviar(b'volumen desmontar\nusuario nextry\n')
+                    esperar(b'Volumen NXFS desmontado.')
+                    esperar(b'Aplicacion NEXTRY fallo.')
+                    if log.read_bytes().count(b'NEXTRY_DISCO_VALIDO')!=3:
+                        raise RuntimeError('NEXTRY leyo contenido tras desmontar')
+                    enviar(b'volumen montar\nusuario nextry\n')
+                    esperar(b'Volumen NXFS montado',2)
+                    esperar(b'NEXTRY_DISCO_VALIDO',4)
+                    esperar(b'Aplicacion NEXTRY protegida termino.',5)
                 elif nombre in ('grande','maximo','vacio','minimo','exacto'):
                     esperado={'grande':b'G'*257,'maximo':patron,'vacio':b'','minimo':b'@','exacto':b'E'*256}[nombre]
                     if esperado: esperar(esperado)

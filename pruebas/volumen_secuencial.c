@@ -40,7 +40,8 @@ int main(int argc,char **argv) {
     FILE *archivo=fopen(argv[1],"rb");
     assert(archivo && fread(disco,1,sizeof(disco),archivo)==sizeof(disco));
     assert(!fclose(archivo));
-    assert(!nxk_volumen_montar());
+    assert(nxk_volumen_estado()==-1 && !lecturas && !revision);
+    assert(!nxk_volumen_montar() && nxk_volumen_estado()==2);
     lecturas=0;
     unsigned char salida[258];
     memset(salida,0xa5,sizeof(salida));
@@ -79,5 +80,38 @@ int main(int argc,char **argv) {
     assert(nxk_volumen_leer_parte("a",salida+1,256,0)==256 && lecturas==82);
     assert(nxk_volumen_leer_parte("a",salida+1,256,256)==256 && lecturas==90);
     puts("NXFS HOST OK: 16 tramos, 8 sectores, cambios de revision y recuperacion.");
+
+    /* Crear una serie activa y desmontar sin lecturas ni nueva identificacion. */
+    revision=10;
+    assert(nxk_volumen_leer_parte("a",salida+1,256,0)==256 && lecturas==98);
+    nxk_volumen_desmontar();
+    nxk_volumen_desmontar();
+    uint32_t tamano=99;
+    memset(salida,0xa5,sizeof(salida));
+    assert(nxk_volumen_estado()==-1 && !nxk_volumen_nombre(0));
+    assert(nxk_volumen_tamano("a",&tamano)==-2 && tamano==99);
+    assert(nxk_volumen_leer_parte("a",salida+1,256,256)==-2);
+    assert(nxk_volumen_leer("b",salida,sizeof(salida))==-2);
+    assert(nxk_volumen_visitar("b",ver_otro)==-2 && visitas==1);
+    for (unsigned i=0;i<sizeof(salida);++i) assert(salida[i]==0xa5);
+    assert(lecturas==98 && revision==10 && reservas==1);
+
+    assert(!nxk_volumen_montar() && nxk_volumen_estado()==2 && lecturas==99);
+    /* Simular que la revision coincide con la de la serie previa. El montaje
+     * debe invalidarla por su cuenta, incluso si coincide el siguiente tramo. */
+    revision=10;
+    disco[8][511]^=1;
+    assert(nxk_volumen_leer_parte("a",salida+1,256,256)==-6 && lecturas==107);
+    disco[8][511]^=1;
+
+    disco[0][508]^=1;
+    assert(nxk_volumen_montar()==-2 && nxk_volumen_estado()==-1 && lecturas==108);
+    assert(!nxk_volumen_nombre(0));
+    assert(nxk_volumen_tamano("a",&tamano)==-2 && tamano==99 && lecturas==108);
+    disco[0][508]^=1;
+    assert(!nxk_volumen_montar() && nxk_volumen_estado()==2 && lecturas==109);
+    assert(nxk_volumen_leer_parte("a",salida+1,256,256)==256 && lecturas==117);
+    assert(reservas==1);
+    puts("NXFS HOST OK: desmontaje, rechazo de cache previa y recuperacion tras montaje fallido.");
     return 0;
 }

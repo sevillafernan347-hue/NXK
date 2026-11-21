@@ -1,7 +1,11 @@
 # NXK y NEXTRY
 
-Version de esta rama: **0.0.36**. Consulta [versiones e historial](VERSIONES.md) y
+Version de esta rama: **0.0.37**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
+
+`volumen estado` indica si NXFS esta montado y cuantos archivos contiene.
+`volumen desmontar` retira el catalogo del disco sin afectar los archivos RAM.
+Consulta [el ciclo de montaje y desmontaje](ENTREGA-CICLO-VOLUMEN.md).
 
 `archivo info nombre` muestra el tamano en bytes y si el archivo visible
 esta en RAM o NXFS. La consulta tambien permite a `copiar` rechazar destinos

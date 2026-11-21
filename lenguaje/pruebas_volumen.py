@@ -8,6 +8,7 @@ base=crear({'leeme.txt':b'NXFS: lectura persistente de prueba.\n','largo.txt':b'
 casos={}
 casos['correcto']=(base,True)
 casos['metadatos']=(base,True)
+casos['ciclo']=(base,True)
 casos['vacio']=(crear({}),True)
 nombre_maximo = 'a' * 23
 lleno = {f'dato{i}.txt': bytes([65+i]) for i in range(7)}
@@ -67,8 +68,12 @@ for nombre,(datos,valido) in casos.items():
         def heap_usado():
             return int(re.search(rb'Heap fijo usado: (\d+)',comando(b'mem'))[1])
         try:
-            esperar(b'nxk> '); enviar(b'volumen montar\n')
-            esperar(b'Volumen NXFS montado' if valido else b'Volumen no disponible o invalido.')
+            esperar(b'nxk> ')
+            desmontado=b'Volumen NXFS desmontado.'
+            if nombre=='ciclo':
+                assert desmontado in comando(b'volumen estado')
+            montaje=b'Volumen NXFS montado en solo lectura.'
+            assert (montaje if valido else b'Volumen no disponible o invalido.') in comando(b'volumen montar')
             if nombre=='correcto':
                 enviar(b'volumen listar\n'); esperar(b'largo.txt')
                 enviar(b'volumen leer leeme.txt\n'); esperar(b'NXFS: lectura persistente de prueba.')
@@ -89,7 +94,6 @@ for nombre,(datos,valido) in casos.items():
                 esperar(b'NXFS: lectura persistente de prueba.',2)
 
             elif nombre=='metadatos':
-                esperar(b'nxk> ',2)
                 estado=comando(b'discos estado')
                 assert b'comando 0x00000020 emitido 1 LBA 0' in estado, estado
                 heap=heap_usado()
@@ -106,8 +110,40 @@ for nombre,(datos,valido) in casos.items():
                 assert b'Archivo NXFS: 1100 bytes' in comando(b'archivo info largo.txt')
                 assert comando(b'discos estado')==estado
 
+            elif nombre=='ciclo':
+                assert montaje+b' Archivos: 4' in comando(b'volumen estado')
+                assert b'largo.txt' in comando(b'volumen listar')
+                assert b'Z'*1100 in comando(b'volumen leer largo.txt')
+                assert b'Archivo guardado en RAM.' in comando(b'escribir fuente local')
+                heap=heap_usado()
+                ata=comando(b'discos estado')
+                for _ in range(2):
+                    assert desmontado in comando(b'volumen desmontar')
+                    assert desmontado in comando(b'volumen estado')
+                assert b'largo.txt' not in comando(b'volumen listar')
+                assert b'Archivo no encontrado.' in comando(b'archivo info largo.txt')
+                assert b'No se pudo leer.' in comando(b'leer largo.txt')
+                assert b'No se pudo leer o verificar' in comando(b'volumen leer largo.txt')
+                assert ata==comando(b'discos estado')
+                assert heap_usado()==heap
+                assert b'Archivo copiado a RAM.' in comando(b'copiar fuente largo.txt')
+                assert montaje in comando(b'volumen montar')
+                assert montaje+b' Archivos: 4' in comando(b'volumen estado')
+                assert b'Archivo RAM: 5 bytes' in comando(b'archivo info largo.txt')
+                assert b'Z'*1100 in comando(b'volumen leer largo.txt')
+                assert desmontado in comando(b'volumen desmontar')
+                assert b'Archivo RAM: 5 bytes' in comando(b'archivo info largo.txt')
+                assert b'local' in comando(b'leer largo.txt')
+                assert heap_usado()==heap
+
+            elif nombre=='vacio':
+                assert montaje+b' Archivos: 0' in comando(b'volumen estado')
+                assert desmontado in comando(b'volumen desmontar')
+                assert desmontado in comando(b'volumen estado')
+                assert montaje in comando(b'volumen montar')
+                assert montaje+b' Archivos: 0' in comando(b'volumen estado')
+
             elif nombre=='contenido':
-                esperar(b'nxk> ',2)
                 estado=comando(b'discos estado')
                 assert b'Archivo NXFS:' in comando(b'archivo info leeme.txt')
                 assert b'No se pudo copiar.' in comando(b'copiar exacto.txt leeme.txt')
@@ -122,7 +158,6 @@ for nombre,(datos,valido) in casos.items():
                 enviar(f'volumen leer {nombre_maximo}\n'.encode()); esperar(b'MAXIMO_NXFS')
 
             elif nombre=='lectura-maxima':
-                esperar(b'nxk> ',2)
                 antes=heap_usado()
                 assert b'Archivo NXFS: 4096 bytes' in comando(b'archivo info maximo.txt')
                 assert b'No se pudo leer o verificar' in comando(b'volumen leer ausente')
@@ -132,12 +167,12 @@ for nombre,(datos,valido) in casos.items():
                     assert heap_usado()-antes==4096, 'NXFS debe usar un solo buffer de 4 KiB'
 
             elif nombre=='contenido-final':
-                esperar(b'nxk> ',2)
                 respuesta=comando(b'volumen leer maximo.txt')
                 assert b'No se pudo leer o verificar' in respuesta
                 assert patron[:512] not in respuesta, 'NXFS publico bytes antes de verificar'
 
             elif not valido:
+                assert desmontado in comando(b'volumen estado')
                 enviar(b'volumen leer leeme.txt\n'); esperar(b'No se pudo leer o verificar')
 
             enviar(b'help\n'); esperar(b'help | version')

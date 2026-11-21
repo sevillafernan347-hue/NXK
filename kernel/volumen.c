@@ -5,6 +5,7 @@
 struct entrada { char nombre[24]; uint32_t longitud,lba,huella; };
 static struct entrada archivos[8];
 static unsigned cantidad;
+static int montado;
 static unsigned char *temporal;
 /* El mismo buffer es una copia verificada solo para el siguiente tramo.
  * Este estado nunca reemplaza la validacion del nombre/rango del llamador. */
@@ -18,9 +19,20 @@ static int todo_cero(const unsigned char *p,size_t n) {
     while (n--) if (*p++) return 0;
     return 1;
 }
-int nxk_volumen_montar(void) {
+int nxk_volumen_estado(void) {
+    return montado ? (int)cantidad : -1;
+}
+
+void nxk_volumen_desmontar(void) {
+    /* El buffer del heap fijo se reutiliza, pero sus bytes ya no son validos. */
     serie=0;
-    cantidad=0; /* No conservar metadatos viejos si cambia/falla el disco. */
+    cantidad=0;
+    montado=0;
+}
+
+int nxk_volumen_montar(void) {
+    /* Un fallo de montaje tambien retira el catalogo anterior. */
+    nxk_volumen_desmontar();
     struct nxk_ata_info info; unsigned char cabecera[512]; struct entrada nuevas[8]={0};
     if (nxk_ata_identificar(1,&info) || nxk_ata_leer_sector(1,0,cabecera)) return -1;
     if (u32(cabecera)!=0x5346584e || u32(cabecera+4)!=1 ||
@@ -50,7 +62,10 @@ int nxk_volumen_montar(void) {
                 (nuevas[i].lba<nuevas[j].lba+prev && nuevas[j].lba<nuevas[i].lba+sectores)) return -5;
         }
     }
-    memcpy(archivos,nuevas,n*sizeof(*archivos)); cantidad=n; return 0;
+    memcpy(archivos,nuevas,n*sizeof(*archivos));
+    cantidad=n;
+    montado=1;
+    return 0;
 }
 const char *nxk_volumen_nombre(unsigned i) { return i<cantidad ? archivos[i].nombre : 0; }
 static const struct entrada *buscar(const char *nombre) {

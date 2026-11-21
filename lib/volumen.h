@@ -3,6 +3,11 @@
 #define NXK_VOLUMEN_H
 #include "nxk.h"
 int nxk_volumen_montar(void);
+/* Sin I/O: -1 si esta desmontado, 0..8 archivos si esta montado. */
+int nxk_volumen_estado(void);
+/* Invalida el catalogo y la lectura secuencial sin tocar el disco. */
+void nxk_volumen_desmontar(void);
+/* Nombre prestado hasta el siguiente montaje o desmontaje. */
 const char *nxk_volumen_nombre(unsigned indice);
 /* Tamano registrado al montar. Sin I/O: no verifica el contenido.
  * 0 exito, -1 puntero nulo, -2 nombre no registrado. */

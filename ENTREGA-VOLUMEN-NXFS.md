@@ -53,3 +53,6 @@ El 17 de noviembre de 2026, la matriz de `test.ps1 -Architecture x86
 que los discos secundarios de prueba conservaran sus bytes. Entre las
 imagenes aceptadas se incluyeron un volumen vacio y otro con las ocho
 entradas ocupadas y un nombre de 23 caracteres.
+
+La propuesta 0.0.37 agrega `volumen estado` y `volumen desmontar`. El procedimiento
+y las pruebas se describen en [ENTREGA-CICLO-VOLUMEN.md](ENTREGA-CICLO-VOLUMEN.md).
