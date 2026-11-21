@@ -3,6 +3,17 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## Propuesta para v0.0.36
+
+- Auditoria de procedencia: la fuente 5x7 sin bocetos ni atribucion fue
+  sustituida por matrices alfanumericas nuevas 3x5 centradas en la celda.
+- El mapa de teclado permanece: es una traduccion de make codes Set 1 cuya
+  correspondencia exige el protocolo/documentacion PC/AT; se cita su fuente.
+- No hay indicios de importacion de implementaciones o recursos externos en
+  los fragmentos revisados. La licencia del codigo NXK aun no esta definida.
+- Compilacion, captura y pruebas de consola MINI NXK en QEMU x86. Ver
+  AUDITORIA-PROCEDENCIA.md.
+
 ## v0.0.35
 
 - `archivo info nombre` consulta en RAM origen y longitud de un archivo

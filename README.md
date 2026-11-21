@@ -1,6 +1,6 @@
 # NXK y NEXTRY
 
-Version publicada: **0.0.35**. Consulta [versiones e historial](VERSIONES.md) y
+Version de esta rama: **0.0.36**. Consulta [versiones e historial](VERSIONES.md) y
 [los cambios por entrega](CAMBIOS.md).
 
 `archivo info nombre` muestra el tamano en bytes y si el archivo visible
@@ -10,6 +10,10 @@ existentes sin leer el disco. Consulta [la entrega](ENTREGA-METADATOS-ARCHIVOS.m
 NEXTRY en modo usuario puede mostrar archivos NXFS de 4 KiB. Los tramos
 contiguos comparten una copia verificada. Consulta
 [la lectura secuencial](ENTREGA-LECTURA-SECUENCIAL.md).
+
+La entrega 0.0.36 registra la auditoria de procedencia de la fuente grafica y
+del mapa de teclado, con evidencias, decisiones y limites en
+[AUDITORIA-PROCEDENCIA.md](AUDITORIA-PROCEDENCIA.md).
 
 `volumen leer` verifica el archivo NXFS completo con un solo buffer de 4 KiB.
 La ruta interna de NEXTRY reutiliza esa lectura para mostrar el archivo.

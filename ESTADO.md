@@ -1,6 +1,6 @@
 # Estado de NXK
 
-Version actual: 0.0.35. Cuatro procesos CPL3 con memoria privada, preempcion,
+Version de esta rama: 0.0.36. Cuatro procesos CPL3 con memoria privada, preempcion,
 esperas, mensajes, resultados, permisos y listas de archivos por proceso.
 Datos privados con proteccion RO/RW por pagina y validacion de buffers.
 Filtro saliente de mensajes por IDs completos y experimento grafico MINI NXK.
@@ -16,6 +16,11 @@ Mostrar contenido NXFS reutiliza un buffer y verifica antes de emitir bytes.
 Modo usuario muestra archivos NXFS de 4 KiB mediante tramos verificados.
 La consulta de archivos visibles indica origen y longitud sin usar ATA.
 Siguientes hitos en PENDIENTES-KERNEL.md.
+
+Auditoria de procedencia: matriz alfanumerica de MINI NXK redibujada para el
+proyecto; mapa PS/2 conservado como traduccion de codigos Set 1 documentados.
+Evidencias, limites y licencia del proyecto pendientes de definir en
+AUDITORIA-PROCEDENCIA.md.
 
 El registro siguiente conserva las etapas anteriores: cada entrada describe
 lo disponible en esa entrega, incluidas limitaciones resueltas posteriormente.

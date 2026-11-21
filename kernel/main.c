@@ -111,6 +111,9 @@ static char read_char(void) {
     if (in8(0x3fd) & 1) return (char)in8(0x3f8);
     if (!(in8(0x64) & 1)) return 0;
     uint8_t code = in8(0x60);
+    /* Traduccion de codigos estilo Set 1 que expone el controlador PC/AT
+       a caracteres de la distribucion US. La tabla de posiciones/codigos es
+       normativa; no es codigo de controlador importado. */
     static const char keys[] = {
         0,0,'1','2','3','4','5','6','7','8','9','0','-','=', '\b','\t',
         'q','w','e','r','t','y','u','i','o','p','[',']','\n',0,'a','s',
