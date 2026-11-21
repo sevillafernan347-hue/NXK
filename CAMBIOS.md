@@ -1,9 +1,18 @@
-# Cambios por version publicada
+# Cambios por versión
 
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
-## Propuesta para v0.0.37
+## v0.0.38 · Verificación de NXFS
+
+- `volumen verificar` comprueba la huella de cada archivo en disco y muestra
+  un resultado por nombre y un resumen.
+- Distingue fallos de lectura, huellas incorrectas y falta de memoria.
+  Usa el buffer compartido de 4 KiB y continúa si un archivo falla.
+- El [índice de versiones](VERSIONES.md) enlaza los commits, etiquetas y guías.
+- [Contrato y pruebas de la verificación](ENTREGA-VERIFICAR-NXFS.md).
+
+## 0.0.37 · Estado y desmontaje de NXFS
 
 - La consola consulta el estado y la cantidad de archivos de NXFS. Un volumen
   montado sin entradas se distingue de uno desmontado.
@@ -11,7 +20,7 @@ de entrega. Las etiquetas no reemplazan los commits intermedios.
   el desmontaje funcionan sin enviar ordenes ATA. Se puede montar de nuevo.
 - Contrato y pruebas en [ENTREGA-CICLO-VOLUMEN.md](ENTREGA-CICLO-VOLUMEN.md).
 
-## Propuesta para v0.0.36
+## 0.0.36 · Auditoría de procedencia
 
 - Auditoria de procedencia: la fuente 5x7 sin bocetos ni atribucion fue
   sustituida por matrices alfanumericas nuevas 3x5 centradas en la celda.

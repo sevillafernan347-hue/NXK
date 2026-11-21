@@ -54,5 +54,6 @@ que los discos secundarios de prueba conservaran sus bytes. Entre las
 imagenes aceptadas se incluyeron un volumen vacio y otro con las ocho
 entradas ocupadas y un nombre de 23 caracteres.
 
-La propuesta 0.0.37 agrega `volumen estado` y `volumen desmontar`. El procedimiento
-y las pruebas se describen en [ENTREGA-CICLO-VOLUMEN.md](ENTREGA-CICLO-VOLUMEN.md).
+El hito 0.0.37 agregó `volumen estado` y `volumen desmontar`.
+Consulta [el ciclo del volumen](ENTREGA-CICLO-VOLUMEN.md) y
+[la verificación de archivos incorporada en 0.0.38](ENTREGA-VERIFICAR-NXFS.md).

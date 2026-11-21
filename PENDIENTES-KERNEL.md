@@ -1,13 +1,13 @@
 # Trabajo restante del kernel
 
-Estado tras v0.0.37. Son hitos por implementar y verificar, no porcentajes.
+Estado tras v0.0.38. Son hitos por implementar y verificar, no porcentajes.
 
 | Area | Existe | Siguiente evidencia necesaria |
 | --- | --- | --- |
 | Procesos | Cuatro PCB CPL3, memoria privada, mensajes, resultados, permisos y filtros de nombres de archivo | Espera de E/S, permisos por canal/objeto y mas recursos por proceso |
 | Planificacion | Tareas kernel, preempcion CPL3, esperas y detector inicial de ciclos | Espera de dispositivos, secciones criticas y pruebas de carreras |
 | Memoria | Paginas fisicas, diagnostico de fragmentacion, guardas, espacios sobre paginas separadas, cuotas, buffers, lotes privados y permisos RO/RW de datos | Mapas mayores, asignacion por bytes, NX y memoria compartida |
-| Archivos | RAMFS, NXFS lector con consulta y desmontaje, snapshot NXPD1 persistente | Archivos grandes, directorios, varios volumenes y recuperacion mas amplia |
+| Archivos | RAMFS, NXFS con montaje y verificación de contenido, instantáneas NXPD1 | Archivos grandes, directorios, varios volúmenes y recuperación más amplia |
 | Hardware | BIOS, VGA texto, teclado basico, PIT, ATA PIO e inventario PCI | Controladores USB/red/audio/graficos, ECAM/ACPI y pruebas por dispositivo |
 | NEXTRY | Compilador a C y apps protegidas iniciales | Parametros/estructuras/punteros y migracion gradual de puentes C |
 | Compatibilidad | NXE propio y demo limitada Win32 | ABI estable y APIs documentadas; compatibilidad Windows general pendiente |

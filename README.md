@@ -1,7 +1,10 @@
 # NXK y NEXTRY
 
-Version de esta rama: **0.0.37**. Consulta [versiones e historial](VERSIONES.md) y
-[los cambios por entrega](CAMBIOS.md).
+Versión **0.0.38** · [Versiones e historial](VERSIONES.md) ·
+[Cambios por entrega](CAMBIOS.md)
+
+`volumen verificar` comprueba la integridad de los archivos de NXFS y muestra
+un resultado por archivo. Consulta [la guía y las pruebas](ENTREGA-VERIFICAR-NXFS.md).
 
 `volumen estado` indica si NXFS esta montado y cuantos archivos contiene.
 `volumen desmontar` retira el catalogo del disco sin afectar los archivos RAM.

@@ -1,6 +1,6 @@
 # Estado de NXK
 
-Version de esta rama: 0.0.37. Cuatro procesos CPL3 con memoria privada, preempcion,
+Versión actual: 0.0.38. Cuatro procesos CPL3 con memoria privada, preempcion,
 esperas, mensajes, resultados, permisos y listas de archivos por proceso.
 Datos privados con proteccion RO/RW por pagina y validacion de buffers.
 Filtro saliente de mensajes por IDs completos y experimento grafico MINI NXK.
@@ -17,6 +17,8 @@ Modo usuario muestra archivos NXFS de 4 KiB mediante tramos verificados.
 La consulta de archivos visibles indica origen y longitud sin usar ATA.
 NXFS distingue un volumen montado sin archivos de un volumen desmontado.
 El desmontaje invalida el catalogo y los datos que esperaban la siguiente lectura.
+`volumen verificar` comprueba los archivos del disco y separa fallos de lectura
+de huellas incorrectas. Consulta ENTREGA-VERIFICAR-NXFS.md.
 Siguientes hitos en PENDIENTES-KERNEL.md.
 
 Auditoria de procedencia: matriz alfanumerica de MINI NXK redibujada para el

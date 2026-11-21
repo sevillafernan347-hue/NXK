@@ -1,74 +1,75 @@
-# Versiones de NXK
+# Versiones e historial de NXK
 
-Cada cambio integrado queda en un commit con autor, fecha, archivos y diferencias.
-El historial completo esta en https://github.com/sevillafernan347-hue/NXK/commits/main/.
-Las etiquetas identifican entregas concretas; los commits intermedios siguen
-existiendo aunque no reciban una etiqueta propia.
+Consulta la entrega más reciente en [GitHub Releases](https://github.com/sevillafernan347-hue/NXK/releases)
+y los cambios individuales en el [historial de commits](https://github.com/sevillafernan347-hue/NXK/commits/main/).
+
+## Cambios recientes
+
+| Versión | Cambio | Detalles |
+| --- | --- | --- |
+| [v0.0.38](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.38) | Verificación de archivos NXFS desde la consola | [Guía y pruebas](ENTREGA-VERIFICAR-NXFS.md) |
+| [0.0.37](https://github.com/sevillafernan347-hue/NXK/commit/6e77d4296db02f3384c571efc447025a603be6c3) | Estado y desmontaje de un volumen NXFS | [Guía y pruebas](ENTREGA-CICLO-VOLUMEN.md) |
+| [0.0.36](https://github.com/sevillafernan347-hue/NXK/commit/c6a593e1be7e0430c2d1a98c9392894e53bf5187) | Auditoría de procedencia y nuevos glifos de MINI NXK | [Informe](AUDITORIA-PROCEDENCIA.md) |
+
+Los números 0.0.36 y 0.0.37 identifican hitos de desarrollo incluidos
+en v0.0.38. Las otras versiones del índice tienen su propia etiqueta.
+
+## Versiones anteriores
 
 | Etiqueta | Entrega |
 | --- | --- |
-| v0.0.1 | Snapshot 358156c: tareas, comunicacion, resultados, ciclos y metricas |
-| v0.0.2 | Version visible unificada y resumen global del planificador |
-| v0.0.3 | Semaforos kernel y arranque por bloques de hasta 120 KiB |
-| v0.0.4 | Mutex con propietario, recuperacion y ciclos combinados |
-| v0.0.5 | Reservas atomicas de varios permisos de semaforo |
-| v0.0.6 | Mapas BIOS mas robustos y ajuste de archivos RAM |
-| v0.0.7 | Persistencia NXPD1 con dos bancos, ATA escritura y restauracion RAM |
-| v0.0.8 | Segmentos de usuario seguros, tablas estables e inventario PCI |
-| v0.0.9 | Busqueda PCI por clase para preparar controladores |
-| v0.0.10 | Cuatro espacios privados y retorno de paginas para futuros procesos |
-| v0.0.11 | Copias acotadas de datos en espacios privados |
-| v0.0.12 | Programas NXE2 retenidos con turnos CPL3, datos privados y fallos contenidos |
-| v0.0.13 | Procesos cooperativos reanudables y ceder en NEXTRY |
-| v0.0.14 | Preempcion CPL3 reanudable y turnos automaticos con PIT |
-| v0.0.15 | Esperas temporizadas de procesos y dormir en NEXTRY |
-| v0.0.16 | Mensajes entre procesos, recepcion con plazo y cancelacion |
-| v0.0.17 | Envio con espera, resultados retenidos, ciclos y finalizar con codigo |
-| v0.0.18 | Resumen de procesos sin modificar estados ni plazos |
-| v0.0.19 | Permisos por proceso, revocacion de envios y soporte NEXTRY |
-| v0.0.20 | Paginas de datos privadas bajo demanda y operaciones de memoria en NEXTRY |
-| v0.0.21 | Buffers de archivos/IPC en memoria privada y retencion de paginas pendientes |
-| v0.0.22 | Listas de archivos por proceso que solo pueden reducirse y limitar_archivos |
-| v0.0.23 | Configuracion de archivos permitidos desde consola antes de ejecutar |
-| v0.0.24 | Cuotas de paginas de datos, consola y soporte NEXTRY |
-| v0.0.25 | Lotes atomicos de paginas privadas y soporte NEXTRY |
-| v0.0.26 | Proteccion RO/RW de datos, validacion de buffers, consola y NEXTRY |
-| v0.0.27 | Destinos permitidos de mensajes y experimento grafico MINI NXK |
-| v0.0.28 | Diagnostico de fragmentacion y coherencia del gestor fisico |
-| v0.0.29 | Espacios sobre paginas fisicas separadas y liberacion atomica de listas |
-| v0.0.30 | Cierre completo de lectura ATA, errores precisos y simulacion del controlador |
-| v0.0.31 | Diagnostico ATA por unidad y consulta de errores desde consola sin I/O |
-| v0.0.32 | Preparacion de comandos ATA y validacion completa del relleno NXFS1 |
-| v0.0.33 | Visualizacion de archivos NXFS con una lectura verificada y un buffer compartido |
-| v0.0.34 | Lectura secuencial NXFS y archivos de 4 KiB en modo usuario |
-| v0.0.35 | Metadatos RAM/NXFS y copias sin lectura del destino |
+| [v0.0.35](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.35) | Metadatos de archivos RAM y NXFS |
+| [v0.0.34](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.34) | Lectura secuencial NXFS de hasta 4 KiB en modo usuario |
+| [v0.0.33](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.33) | Lectura de archivos NXFS con un solo buffer |
+| [v0.0.32](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.32) | Preparación de comandos ATA y validación de cabeceras NXFS |
+| [v0.0.31](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.31) | Diagnóstico ATA por unidad |
+| [v0.0.30](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.30) | Validación del cierre de las lecturas ATA |
+| [v0.0.29](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.29) | Espacios privados sobre páginas físicas separadas |
+| [v0.0.28](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.28) | Diagnóstico de fragmentación de memoria |
+| [v0.0.27](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.27) | Destinos de mensajes y demostración gráfica MINI NXK |
+| [v0.0.26](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.26) | Protección de escritura en páginas privadas |
+| [v0.0.25](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.25) | Reserva y liberación de páginas por lotes |
+| [v0.0.24](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.24) | Cuotas de páginas de datos por proceso |
+| [v0.0.23](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.23) | Configuración de archivos permitidos desde la consola |
+| [v0.0.22](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.22) | Listas de archivos permitidos por proceso |
+| [v0.0.21](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.21) | Buffers de archivos y mensajes en memoria privada |
+| [v0.0.20](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.20) | Páginas de datos privadas bajo demanda |
+| [v0.0.19](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.19) | Permisos por proceso para archivos, salida y mensajes |
+| [v0.0.18](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.18) | Resumen de procesos y sus esperas |
+| [v0.0.17](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.17) | Envío con espera y resultados de procesos |
+| [v0.0.16](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.16) | Mensajes entre procesos y cancelación |
+| [v0.0.15](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.15) | Esperas temporizadas y dormir en NEXTRY |
+| [v0.0.14](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.14) | Preempción de procesos con el temporizador PIT |
+| [v0.0.13](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.13) | Procesos cooperativos y ceder en NEXTRY |
+| [v0.0.12](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.12) | Ejecución de programas NXE2 retenidos |
+| [v0.0.11](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.11) | Copias acotadas en espacios privados |
+| [v0.0.10](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.10) | Cuatro espacios de memoria privados |
+| [v0.0.9](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.9) | Búsqueda de dispositivos PCI por clase |
+| [v0.0.8](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.8) | Segmentos de usuario, paginación e inventario PCI |
+| [v0.0.7](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.7) | Persistencia NXPD1 y escritura ATA |
+| [v0.0.6](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.6) | Mapa BIOS y archivos RAM |
+| [v0.0.5](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.5) | Reservas de semáforos por lotes |
+| [v0.0.4](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.4) | Mutex con propietario y recuperación |
+| [v0.0.3](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.3) | Semáforos y arranque por bloques de hasta 120 KiB |
+| [v0.0.2](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.2) | Resumen del planificador y versión visible |
+| [v0.0.1](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.1) | Tareas, comunicación y detección de ciclos |
 
-La serie de etiquetas se inicia el 3 de noviembre de 2026. v0.0.1 identifica
-la entrega previa ya probada; no cambia sus archivos ni fecha del commit.
-Los prototipos anteriores mostraban el texto fijo NXK 0.1. Desde v0.0.2 el
-numero visible procede de lib/version.h y coincide con la etiqueta publicada.
-Las versiones son experimentales y no representan porcentaje de Windows.
+## Leer los cambios
 
-## Consultar o recuperar
+- [Cambios por versión](CAMBIOS.md) resume lo que incluye cada entrega.
+- Las etiquetas permiten descargar el código fuente de esa versión.
+  Para compilarlo, consulta [las herramientas](HERRAMIENTAS.md).
+- [Comparar v0.0.35 con v0.0.38](https://github.com/sevillafernan347-hue/NXK/compare/v0.0.35...v0.0.38)
+  muestra los commits y archivos de la última entrega.
 
-- Historial: https://github.com/sevillafernan347-hue/NXK/commits/main/
-- Etiquetas: https://github.com/sevillafernan347-hue/NXK/tags
-- Entregas: https://github.com/sevillafernan347-hue/NXK/releases
-- Diferencias: https://github.com/sevillafernan347-hue/NXK/compare/v0.0.1...v0.0.2
+## Títulos de commits nuevos
 
-En una etiqueta o release, GitHub permite descargar ZIP/TAR del codigo fuente.
-Las herramientas externas y los discos generados no se incluyen. Construir
-requiere preparar las herramientas indicadas en HERRAMIENTAS.md. El historial
-Git completo se obtiene clonando el repositorio; el ZIP es una instantanea.
+Los títulos usan un área y un verbo en español. Por ejemplo,
+`kernel: verificar la integridad de los archivos NXFS` y
+`docs: ordenar el historial de versiones`. Si un cambio necesita más
+contexto, el cuerpo del commit explica el motivo y enlaza la entrega.
 
-## Publicar las siguientes entregas
-
-1. Continuar el codigo sin reescribir commits antiguos.
-2. Incrementar el numero en lib/version.h para la siguiente entrega publicada.
-3. Registrar cambios, pruebas y limites en CAMBIOS.md y ESTADO.md.
-4. Ejecutar las pruebas necesarias y guardar los cambios en un commit.
-5. Crear una etiqueta anotada nueva sobre ese commit y subirla a GitHub.
-6. Publicar notas experimentales en Releases, conservando las entregas anteriores.
-
-No mover una etiqueta publicada ni forzar el historial para ocultar cambios.
-Un arreglo posterior lleva otro commit y, si se publica como entrega, otro numero.
+Para publicar una versión, actualiza `lib/version.h`, registra los cambios
+y las pruebas en la documentación y crea una etiqueta anotada nueva
+sobre el commit probado. Las notas de GitHub Releases enlazan la guía
+de la entrega. Los commits y etiquetas publicados conservan su identidad.
