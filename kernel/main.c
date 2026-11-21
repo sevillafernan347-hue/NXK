@@ -566,7 +566,11 @@ void kernel_main(void) {
         if (!ch) { __asm__ volatile("pause"); continue; }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
-            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | discos estado | espacios | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nproceso resumen | proceso dependencias | proceso dormir | proceso preempcion | proceso demo | proceso cargar nombre.nxe | proceso listar | proceso paso ID\nproceso ejecutar | proceso liberar ID\nproceso enviar ID VALOR | proceso cancelar ID\nproceso permisos ID MASCARA\nproceso memoria ID LIMITE\nproceso proteger ID BASE CANTIDAD ESCRITURA\nproceso destinos ID [ID1,ID2]\nproceso archivos ID [nombre1,nombre2]\nusuario espacios | usuario listar | usuario cargar archivo.nxe | usuario turno ID | usuario liberar ID\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe\nvolumen montar | volumen estado | volumen desmontar | volumen listar | volumen leer nombre\nescribir nombre texto | agregar nombre texto\nleer nombre | archivo info nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
+            if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | discos estado | espacios | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nproceso resumen | proceso dependencias | proceso dormir | proceso preempcion | proceso demo | proceso cargar nombre.nxe | proceso listar | proceso paso ID\nproceso ejecutar | proceso liberar ID\nproceso enviar ID VALOR | proceso cancelar ID\nproceso permisos ID MASCARA\nproceso memoria ID LIMITE\nproceso proteger ID BASE CANTIDAD ESCRITURA\nproceso destinos ID [ID1,ID2]\nproceso archivos ID [nombre1,nombre2]\nusuario espacios | usuario listar | usuario cargar archivo.nxe | usuario turno ID | usuario liberar ID\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe\nvolumen montar | volumen estado | volumen desmontar | volumen listar | volumen leer nombre\n"
+#if defined(__i386__)
+                "volumen verificar\n"
+#endif
+                "escribir nombre texto | agregar nombre texto\nleer nombre | archivo info nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
                 if (nxk_nxe_demo() != 0) print("No se pudo ejecutar el archivo NXE.\n");
             }
@@ -644,6 +648,29 @@ void kernel_main(void) {
             else if (nxk_equal(line, "volumen listar")) {
                 for (unsigned i=0;i<8;++i) { const char *s=nxk_volumen_nombre(i); if (s) { print(s); put('\n'); } }
             }
+#if defined(__i386__)
+            else if (nxk_equal(line, "volumen verificar")) {
+                int total=nxk_volumen_estado();
+                if (total<0) print("Volumen NXFS desmontado.\n");
+                else {
+                    unsigned correctos=0;
+                    for (unsigned i=0;i<(unsigned)total;++i) {
+                        const char *nombre=nxk_volumen_nombre(i);
+                        int resultado=nxk_volumen_verificar(i);
+                        print(nombre);
+                        switch (resultado) {
+                            case 0: ++correctos; print(": OK\n"); break;
+                            case NXK_VOLUMEN_HUELLA_INVALIDA: print(": huella incorrecta\n"); break;
+                            case NXK_VOLUMEN_ERROR_ATA: print(": error de lectura ATA\n"); break;
+                            case NXK_VOLUMEN_SIN_MEMORIA: print(": memoria insuficiente\n"); break;
+                            default: print(": entrada no disponible\n"); break;
+                        }
+                    }
+                    print("NXFS: correctos "); number(correctos);
+                    print(" de "); number((unsigned)total); print(".\n");
+                }
+            }
+#endif
             else if (prefijo(line,"volumen leer ")) {
                 if (nxk_volumen_visitar(line+13,mostrar_bytes))
                     print("No se pudo leer o verificar el archivo.\n");

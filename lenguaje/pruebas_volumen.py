@@ -72,9 +72,18 @@ for nombre,(datos,valido) in casos.items():
             desmontado=b'Volumen NXFS desmontado.'
             if nombre=='ciclo':
                 assert desmontado in comando(b'volumen estado')
+                assert desmontado in comando(b'volumen verificar')
             montaje=b'Volumen NXFS montado en solo lectura.'
             assert (montaje if valido else b'Volumen no disponible o invalido.') in comando(b'volumen montar')
             if nombre=='correcto':
+                antes=heap_usado()
+                for _ in range(2):
+                    respuesta=comando(b'volumen verificar')
+                    for archivo in (b'leeme.txt',b'largo.txt',b'vacio.txt',b'exacto.txt'):
+                        assert archivo+b': OK' in respuesta
+                    assert b'NXFS: correctos 4 de 4.' in respuesta
+                    assert b'lectura persistente de prueba' not in respuesta
+                    assert heap_usado()==antes+4096
                 enviar(b'volumen listar\n'); esperar(b'largo.txt')
                 enviar(b'volumen leer leeme.txt\n'); esperar(b'NXFS: lectura persistente de prueba.')
                 enviar(b'volumen leer largo.txt\n'); esperar(b'Z'*1100)
@@ -138,6 +147,10 @@ for nombre,(datos,valido) in casos.items():
 
             elif nombre=='vacio':
                 assert montaje+b' Archivos: 0' in comando(b'volumen estado')
+                antes=heap_usado()
+                ata=comando(b'discos estado')
+                assert b'NXFS: correctos 0 de 0.' in comando(b'volumen verificar')
+                assert heap_usado()==antes and comando(b'discos estado')==ata
                 assert desmontado in comando(b'volumen desmontar')
                 assert desmontado in comando(b'volumen estado')
                 assert montaje in comando(b'volumen montar')
@@ -149,6 +162,11 @@ for nombre,(datos,valido) in casos.items():
                 assert b'No se pudo copiar.' in comando(b'copiar exacto.txt leeme.txt')
                 assert comando(b'discos estado')==estado
                 assert b'Archivo NXFS:' in comando(b'archivo info leeme.txt')
+                respuesta=comando(b'volumen verificar')
+                assert b'leeme.txt: huella incorrecta' in respuesta
+                assert b'exacto.txt: OK' in respuesta
+                assert b'NXFS: correctos 3 de 4.' in respuesta
+                assert b'lectura persistente de prueba' not in respuesta
                 enviar(b'volumen leer leeme.txt\n'); esperar(b'No se pudo leer o verificar')
                 enviar(b'copiar leeme.txt rechazado\n'); esperar(b'No se pudo copiar.',2)
                 enviar(b'leer rechazado\n'); esperar(b'No se pudo leer.')
@@ -167,6 +185,10 @@ for nombre,(datos,valido) in casos.items():
                     assert heap_usado()-antes==4096, 'NXFS debe usar un solo buffer de 4 KiB'
 
             elif nombre=='contenido-final':
+                respuesta=comando(b'volumen verificar')
+                assert b'maximo.txt: huella incorrecta' in respuesta
+                assert b'NXFS: correctos 0 de 1.' in respuesta
+                assert patron[:512] not in respuesta
                 respuesta=comando(b'volumen leer maximo.txt')
                 assert b'No se pudo leer o verificar' in respuesta
                 assert patron[:512] not in respuesta, 'NXFS publico bytes antes de verificar'

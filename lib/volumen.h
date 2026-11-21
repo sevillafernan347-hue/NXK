@@ -9,6 +9,15 @@ int nxk_volumen_estado(void);
 void nxk_volumen_desmontar(void);
 /* Nombre prestado hasta el siguiente montaje o desmontaje. */
 const char *nxk_volumen_nombre(unsigned indice);
+enum {
+    NXK_VOLUMEN_SIN_ENTRADA=-2,
+    NXK_VOLUMEN_SIN_MEMORIA=-4,
+    NXK_VOLUMEN_ERROR_ATA=-5,
+    NXK_VOLUMEN_HUELLA_INVALIDA=-6
+};
+/* Verifica la entrada directamente desde NXFS. Devuelve 0 o un error de arriba.
+ * Comparte el buffer de lectura y no entrega el contenido al llamador. */
+int nxk_volumen_verificar(unsigned indice);
 /* Tamano registrado al montar. Sin I/O: no verifica el contenido.
  * 0 exito, -1 puntero nulo, -2 nombre no registrado. */
 int nxk_volumen_tamano(const char *nombre,uint32_t *salida);

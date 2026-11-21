@@ -87,12 +87,19 @@ int nxk_volumen_tamano(const char *nombre,uint32_t *salida) {
  * bytes del archivo. No publicar datos ante un fallo de disco o de huella. */
 static int verificar(const struct entrada *a) {
     serie=0; /* Incluso una lectura fallida puede sobrescribir el buffer. */
-    if (!a->longitud) return a->huella==2166136261u ? 0 : -6;
+    if (!a->longitud)
+        return a->huella==2166136261u ? 0 : NXK_VOLUMEN_HUELLA_INVALIDA;
     if (!temporal) temporal=nxk_alloc(4096);
-    if (!temporal) return -4;
+    if (!temporal) return NXK_VOLUMEN_SIN_MEMORIA;
     for (uint32_t pos=0;pos<a->longitud;pos+=512)
-        if (nxk_ata_leer_sector(1,a->lba+pos/512,temporal+pos)) return -5;
-    return huella(temporal,a->longitud)==a->huella ? 0 : -6;
+        if (nxk_ata_leer_sector(1,a->lba+pos/512,temporal+pos))
+            return NXK_VOLUMEN_ERROR_ATA;
+    return huella(temporal,a->longitud)==a->huella ? 0 : NXK_VOLUMEN_HUELLA_INVALIDA;
+}
+
+int nxk_volumen_verificar(unsigned indice) {
+    if (indice>=cantidad) return NXK_VOLUMEN_SIN_ENTRADA;
+    return verificar(&archivos[indice]);
 }
 
 static int leer_rango(const char *nombre,void *destino,size_t capacidad,uint32_t desplazamiento,int completo) {

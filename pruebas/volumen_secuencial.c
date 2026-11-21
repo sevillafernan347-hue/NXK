@@ -7,6 +7,7 @@
 
 static unsigned char disco[10][512], temporal[4096];
 static unsigned lecturas, reservas, visitas;
+static int fallar_reserva;
 static uint32_t revision, fallar_lba=UINT32_MAX;
 
 int nxk_ata_identificar(unsigned unidad,struct nxk_ata_info *info) {
@@ -25,6 +26,7 @@ int nxk_ata_leer_sector(unsigned unidad,uint32_t lba,void *destino) {
 }
 void *nxk_alloc(size_t bytes) {
     assert(bytes==sizeof(temporal) && !reservas);
+    if (fallar_reserva) return 0;
     ++reservas;
     return temporal;
 }
@@ -41,8 +43,13 @@ int main(int argc,char **argv) {
     assert(archivo && fread(disco,1,sizeof(disco),archivo)==sizeof(disco));
     assert(!fclose(archivo));
     assert(nxk_volumen_estado()==-1 && !lecturas && !revision);
+    assert(nxk_volumen_verificar(0)==NXK_VOLUMEN_SIN_ENTRADA && !lecturas);
     assert(!nxk_volumen_montar() && nxk_volumen_estado()==2);
     lecturas=0;
+    fallar_reserva=1;
+    assert(nxk_volumen_verificar(0)==NXK_VOLUMEN_SIN_MEMORIA);
+    assert(!lecturas && !reservas);
+    fallar_reserva=0;
     unsigned char salida[258];
     memset(salida,0xa5,sizeof(salida));
     for (uint32_t p=0;p<4096;p+=256) {
@@ -113,5 +120,20 @@ int main(int argc,char **argv) {
     assert(nxk_volumen_leer_parte("a",salida+1,256,256)==256 && lecturas==117);
     assert(reservas==1);
     puts("NXFS HOST OK: desmontaje, rechazo de cache previa y recuperacion tras montaje fallido.");
+
+    /* Verificar el mismo archivo no debe aceptar la serie anterior. */
+    lecturas=0;
+    assert(nxk_volumen_verificar(2)==NXK_VOLUMEN_SIN_ENTRADA && !lecturas);
+    assert(nxk_volumen_leer_parte("a",salida+1,256,0)==256 && lecturas==8);
+    disco[8][511]^=1;
+    assert(nxk_volumen_verificar(0)==NXK_VOLUMEN_HUELLA_INVALIDA && lecturas==16);
+    assert(nxk_volumen_leer_parte("a",salida+1,256,256)==-6 && lecturas==24);
+    disco[8][511]^=1;
+    fallar_lba=9;
+    assert(nxk_volumen_verificar(1)==NXK_VOLUMEN_ERROR_ATA && lecturas==25);
+    fallar_lba=UINT32_MAX;
+    assert(!nxk_volumen_verificar(1) && lecturas==26 && reservas==1);
+    assert(nxk_volumen_estado()==2 && visitas==1);
+    puts("NXFS HOST OK: verificacion directa, falta de memoria, error ATA y huella incorrecta.");
     return 0;
 }
