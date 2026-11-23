@@ -1,7 +1,10 @@
 # NXK y NEXTRY
 
-Versión **0.0.38** · [Versiones e historial](VERSIONES.md) ·
+Versión **0.0.39** · [Versiones e historial](VERSIONES.md) ·
 [Cambios por entrega](CAMBIOS.md)
+
+`discos estado` distingue si una espera ATA agotó el plazo del reloj PIT o
+el límite de sondeos. Consulta [los plazos y las pruebas](ENTREGA-PLAZOS-ATA.md).
 
 `volumen verificar` comprueba la integridad de los archivos de NXFS y muestra
 un resultado por archivo. Consulta [la guía y las pruebas](ENTREGA-VERIFICAR-NXFS.md).

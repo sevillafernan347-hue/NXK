@@ -28,7 +28,9 @@ static uint8_t entrada(uint16_t p);
 static void salida(uint16_t p,uint8_t v);
 static uint16_t entrada_palabra(void);
 static void salida_palabra(uint16_t v);
+static uint32_t nxk_reloj_ticks(void);
 #else
+extern uint32_t nxk_reloj_ticks(void);
 static uint8_t entrada(uint16_t p) { uint8_t v; __asm__ volatile("inb %1,%0":"=a"(v):"Nd"(p)); return v; }
 static void salida(uint16_t p,uint8_t v) { __asm__ volatile("outb %0,%1" :: "a"(v),"Nd"(p)); }
 static uint16_t entrada_palabra(void) { uint16_t v; __asm__ volatile("inw %1,%0":"=a"(v):"Nd"((uint16_t)0x1f0)); return v; }
@@ -39,21 +41,31 @@ static void pausa(void) { for (unsigned i=0;i<4;++i) (void)entrada(0x3f6); }
  * no releer Status al consultar, pues podria ocultar la causa original. */
 static int esperar(struct nxk_ata_diagnostico *d,unsigned fase,int datos) {
     d->fase=fase;
+    /* PIT a unos 100 Hz. FLUSH puede tardar mas que una transferencia. */
+    const uint32_t plazo=d->comando==0xe7 && fase==3 ? 1000 : 200;
+    const uint32_t inicio=nxk_reloj_ticks();
     for (unsigned i=0;i<1000000;++i) {
         uint8_t s=entrada(0x1f7);
         d->estado=s; ++d->sondeos;
         if (!s || s==0xff) return -2;
-        if (s&0x80) continue;
-        /* Antes de emitir el comando, ERR puede pertenecer al anterior.
-         * El dispositivo lo borra al aceptar otro. DF conserva el rechazo. */
-        if ((s&0x20) || (fase!=1 && (s&1))) {
-            /* Error requiere BSY=DRQ=0 y ERR=1; DF solo no lo valida. */
-            if ((s&9)==1) { d->error=entrada(0x1f1); d->error_valido=1; }
-            return -3;
+        if (!(s&0x80)) {
+            /* En fase previa se acepta ERR residual, pero DF sigue siendo fallo. */
+            if ((s&0x20) || (fase!=1 && (s&1))) {
+                /* Error requiere BSY=DRQ=0 y ERR=1. */
+                if ((s&9)==1) { d->error=entrada(0x1f1); d->error_valido=1; }
+                return -3;
+            }
+            /* Esperar DRQ en datos y su desactivacion en previa y cierre. */
+            if (datos ? (s&8)!=0 : (s&8)==0) return 0;
         }
-        /* Datos requiere DRQ; antes del comando y al cerrar debe estar libre. */
-        if (datos ? (s&8)!=0 : (s&8)==0) return 0;
+        /* La resta modular admite el reinicio del contador al desbordar.
+         * El limite de sondeos tambien funciona si no llegan ticks. */
+        if ((i&31u)==31u && nxk_reloj_ticks()-inicio>=plazo) {
+            d->limite=NXK_ATA_LIMITE_PIT;
+            return -4;
+        }
     }
+    d->limite=NXK_ATA_LIMITE_SONDEOS;
     return -4;
 }
 static void leer_palabras(uint16_t *p) {
@@ -153,7 +165,7 @@ int nxk_ata_probar(void) {
     if (nxk_ata_leer_sector(0,0,sector) || sector[510]!=0x55 || sector[511]!=0xaa) return 11;
     struct nxk_ata_diagnostico d;
     if (nxk_ata_consultar(0,&d) || d.comando!=0x20 || d.lba || d.fase!=3 ||
-        !d.emitido || d.resultado || d.error_valido || !d.sondeos) return 13;
+        !d.emitido || d.resultado || d.error_valido || !d.sondeos || d.limite) return 13;
     return 0;
 }
 #else

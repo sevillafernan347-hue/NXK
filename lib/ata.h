@@ -3,14 +3,21 @@
 #define NXK_ATA_H
 #include "nxk.h"
 struct nxk_ata_info { uint32_t sectores; char modelo[41]; };
+enum nxk_ata_limite {
+    NXK_ATA_LIMITE_NINGUNO,
+    NXK_ATA_LIMITE_PIT,
+    NXK_ATA_LIMITE_SONDEOS
+};
 /* Ultima operacion valida por unidad; consulta solo en contexto kernel serial.
  * comando: EC identificar,20 leer,30 escribir,E7 sincronizar (hexadecimal).
  * fase: 0 sin operacion,1 antes del comando,2 espera de datos,3 cierre.
  * emitido distingue fallo previo de fallo del comando solicitado.
- * error solo es interpretable cuando error_valido=1; sondeos no mide tiempo. */
+ * error solo es interpretable cuando error_valido=1; sondeos no mide tiempo.
+ * limite indica la causa de -4 y es cero en cualquier otro resultado. */
 struct nxk_ata_diagnostico {
     uint32_t comando,lba,fase,emitido,estado,error,error_valido,sondeos;
     int32_t resultado;
+    uint32_t limite;
 };
 /* Sin I/O ni asignaciones. -1 argumento invalido; -64 en x64; salida intacta. */
 int nxk_ata_consultar(unsigned unidad,struct nxk_ata_diagnostico *salida);

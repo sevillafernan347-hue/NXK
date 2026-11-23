@@ -1,6 +1,6 @@
 # Trabajo restante del kernel
 
-Estado tras v0.0.38. Son hitos por implementar y verificar, no porcentajes.
+Estado tras v0.0.39. Son hitos por implementar y verificar, no porcentajes.
 
 | Area | Existe | Siguiente evidencia necesaria |
 | --- | --- | --- |
@@ -17,10 +17,10 @@ Existe un filtro saliente por IDs completos; faltan canales con identidad y
 permisos independientes de los procesos. MINI NXK tiene paneles graficos fijos
 y terminal con teclado; faltan raton, ventanas y aplicaciones graficas.
 
-ATA valida inicio y cierre de lectura/IDENTIFY y conserva diagnosticos por unidad,
-consultables con discos estado sin I/O. Sigue por sondeo
-acotado por iteraciones; faltan plazos temporales, recuperacion/reset del canal,
-IRQ/DMA y soporte AHCI. Un fallo al escribir no revierte bytes enviados al disco.
+ATA valida inicio y cierre de lectura/IDENTIFY. Sus plazos usan el reloj PIT
+y el límite de sondeos sigue activo. `discos estado` consulta la fase y el
+límite alcanzado sin acceder al disco. Quedan pendientes la recuperación del
+canal, IRQ, DMA y AHCI. Un fallo al escribir no revierte bytes enviados al disco.
 
 El siguiente bloque propuesto es espera de dispositivos, recursos por proceso
 y permisos por canal/objeto. Los permisos generales y filtros por nombre ya existen. IPC de valores uint32 ya espera espacio al enviar y permite

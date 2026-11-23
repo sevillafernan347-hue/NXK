@@ -3,6 +3,14 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.39 · Plazos de espera ATA
+
+- ATA limita el tiempo de espera por fase con el reloj PIT. Conserva el
+  límite de sondeos como respaldo y da más tiempo al cierre de FLUSH CACHE.
+- `discos estado` informa cuál de los límites se alcanzó. Ambos conservan
+  el código de error -4 y los datos de diagnóstico.
+- [Contrato y pruebas](ENTREGA-PLAZOS-ATA.md).
+
 ## v0.0.38 · Verificación de NXFS
 
 - `volumen verificar` comprueba la huella de cada archivo en disco y muestra

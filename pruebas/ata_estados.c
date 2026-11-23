@@ -7,6 +7,7 @@
 static struct {
     uint8_t estados[3][4],registro[8],comando;
     unsigned longitud[3],consultas[3],pausas[3],fase,lecturas,escrituras,comandos,io,errores_leidos,parametros;
+    uint32_t ticks,ticks_por_sondeo[3];
     uint16_t escritas[256];
 } sim;
 static unsigned casos,fallos;
@@ -24,6 +25,7 @@ static void reiniciar(void) {
     secuencia(1,0x58,0x58,0x58);
     secuencia(2,0x50,0x50,0x50);
 }
+static uint32_t nxk_reloj_ticks(void) { return sim.ticks; }
 static uint8_t entrada(uint16_t p) {
     ++sim.io;
     /* Contar las lecturas no certifica su duracion en hardware fisico. */
@@ -31,6 +33,7 @@ static uint8_t entrada(uint16_t p) {
     if (p==0x1f1) ++sim.errores_leidos;
     if (p==0x1f7) {
         unsigned f=sim.fase,n=sim.consultas[f]++;
+        sim.ticks+=sim.ticks_por_sondeo[f];
         if (n>=sim.longitud[f]) n=sim.longitud[f]-1;
         return sim.estados[f][n];
     }
@@ -101,6 +104,7 @@ int main(void) {
         comprobar(!nxk_ata_consultar(1,&d) && d.comando==0xec && d.fase==1 &&
                   !d.emitido && d.estado==previos[i] && d.resultado==r &&
                   d.error_valido==(i==4) &&
+                  d.limite==(r==-4 ? NXK_ATA_LIMITE_SONDEOS : NXK_ATA_LIMITE_NINGUNO) &&
                   nxk_ata_leer_sector(1,0,destino)==-1 && sim.io==antes,
                   "IDENTIFY previo informa fallo y no publica capacidad");
     }
@@ -272,6 +276,38 @@ int main(void) {
     reiniciar();
     comprobar(!nxk_ata_escribir_sector(1,7,origen) &&
               nxk_ata_revision_esclavo()==UINT32_MAX,"Revision no vuelve a cero");
+
+    /* Probar las tres fases con reloj activo, incluido desbordamiento. */
+    for (unsigned fase=0;fase<3;++fase) {
+        reiniciar();
+        sim.ticks=UINT32_MAX-100;
+        sim.ticks_por_sondeo[fase]=1;
+        uint8_t pendiente=fase==1 ? 0x50 : 0x80;
+        secuencia(fase,pendiente,pendiente,pendiente);
+        memset(destino,0xa5,sizeof(destino));
+        comprobar(nxk_ata_leer_sector(0,7,destino+1)==-4 &&
+                  centinela(destino,sizeof(destino)) &&
+                  sim.consultas[fase]==224 && sim.ticks==123,
+                  "READ agota el plazo PIT sin publicar datos, incluso al desbordar");
+        unsigned antes=sim.io;
+        comprobar(!nxk_ata_consultar(0,&d) && d.resultado==-4 && d.fase==fase+1 &&
+                  d.emitido==(fase!=0) && d.estado==pendiente &&
+                  d.limite==NXK_ATA_LIMITE_PIT && sim.io==antes,
+                  "Diagnostico del plazo PIT sin I/O");
+        comprobar(sim.lecturas==(fase==2 ? 256u : 0u),
+                  "El plazo respeta la fase de transferencia");
+    }
+    reiniciar();
+    sim.ticks_por_sondeo[0]=500;
+    sim.ticks_por_sondeo[2]=1;
+    secuencia(2,0x80,0x80,0x80);
+    comprobar(nxk_ata_sincronizar(1)==-4 && sim.consultas[2]==1024 &&
+              !nxk_ata_consultar(1,&d) && d.fase==3 && d.limite==NXK_ATA_LIMITE_PIT,
+              "FLUSH mide su plazo mas largo desde el inicio de su propia fase");
+    reiniciar();
+    comprobar(!nxk_ata_sincronizar(1) && !nxk_ata_consultar(1,&d) &&
+              d.limite==NXK_ATA_LIMITE_NINGUNO,
+              "Una operacion exitosa limpia el motivo anterior");
     printf("ATA HOST: %u comprobaciones, %u fallos\n",casos,fallos);
     return fallos ? 1 : 0;
 }

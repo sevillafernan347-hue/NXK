@@ -6,7 +6,7 @@ NEXTRY ASM se presenta como Assembly en las estadisticas de GitHub.
 
 | Lenguaje | Archivos | Bytes |
 | --- | ---: | ---: |
-| C (puentes y runtime) | 51 | 444989 |
+| C (puentes y runtime) | 51 | 447715 |
 | Ensamblador GNU | 6 | 5092 |
 | NEXTRY | 25 | 15339 |
 | NEXTRY ASM | 13 | 11486 |

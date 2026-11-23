@@ -705,6 +705,10 @@ void kernel_main(void) {
                     print(" resultado "); if (d.resultado<0) put('-');
                     number(d.resultado<0 ? (uint32_t)-d.resultado : (uint32_t)d.resultado);
                     print(" estado "); hexadecimal(d.estado); print(" sondeos "); number(d.sondeos);
+#if defined(__i386__)
+                    if (d.limite)
+                        print(d.limite==NXK_ATA_LIMITE_PIT ? " limite PIT" : " limite sondeos");
+#endif
                     if (d.error_valido) {
                         print(" error "); hexadecimal(d.error);
                         if (d.error&4) print(" ABRT");

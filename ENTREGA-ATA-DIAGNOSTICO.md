@@ -1,5 +1,8 @@
 # Diagnostico de operaciones ATA
 
+Desde 0.0.39, el diagnóstico distingue si una espera agotó el plazo PIT
+o el límite de sondeos. Consulta [los plazos ATA](ENTREGA-PLAZOS-ATA.md).
+
 Base d878e28, v0.0.30. Responsable de integracion aprueba API kernel aditiva
 nxk_ata_consultar(unidad,salida) y comando de consola para v0.0.31.
 Alcance: controlador/header ATA, consola, pruebas host/QEMU y documentacion.
@@ -40,7 +43,8 @@ en las esperas; no incluye pausas, datos o Error. No representa microsegundos.
 Resultado -1 por argumento invalido no sustituye un diagnostico previo.
 Resultados -2/-3/-4/-5 mantienen el significado documentado en lib/ata.h.
 
-El registro consume72 B estaticos, sin heap. Las esperas antes duplicadas
+Los dos registros consumen 80 bytes estáticos desde v0.0.39 (72 bytes en
+v0.0.31), sin heap. Las esperas antes duplicadas
 comparten una rutina con igual politica de BSY/DRQ, ausencia y limite. Se agrega
 una lectura de Error solo cuando su contenido es interpretable. Consultar
 copia la estructura almacenada y no toca Status ni selecciona el dispositivo.
