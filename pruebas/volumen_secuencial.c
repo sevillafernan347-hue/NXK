@@ -8,7 +8,7 @@
 static unsigned char disco[10][512], temporal[4096];
 static unsigned lecturas, reservas, visitas;
 static int fallar_reserva;
-static uint32_t revision, fallar_lba=UINT32_MAX;
+static uint32_t revision, generacion, fallar_lba=UINT32_MAX;
 
 int nxk_ata_identificar(unsigned unidad,struct nxk_ata_info *info) {
     assert(unidad==1);
@@ -17,6 +17,7 @@ int nxk_ata_identificar(unsigned unidad,struct nxk_ata_info *info) {
     return 0;
 }
 uint32_t nxk_ata_revision_esclavo(void) { return revision; }
+uint32_t nxk_ata_generacion_canal(void) { return generacion; }
 int nxk_ata_leer_sector(unsigned unidad,uint32_t lba,void *destino) {
     assert(unidad==1 && lba<10);
     ++lecturas;
@@ -135,5 +136,18 @@ int main(int argc,char **argv) {
     assert(!nxk_volumen_verificar(1) && lecturas==26 && reservas==1);
     assert(nxk_volumen_estado()==2 && visitas==1);
     puts("NXFS HOST OK: verificacion directa, falta de memoria, error ATA y huella incorrecta.");
+
+    assert(nxk_volumen_leer_parte("a",salida+1,256,0)==256 && lecturas==34);
+    ++generacion;
+    /* La primera consulta de metadatos tambien detecta el reinicio. */
+    assert(nxk_volumen_tamano("a",&tamano)==-2 && tamano==99);
+    assert(nxk_volumen_estado()==-1 && !nxk_volumen_nombre(0));
+    assert(nxk_volumen_verificar(0)==NXK_VOLUMEN_SIN_ENTRADA);
+    assert(nxk_volumen_leer_parte("a",salida+1,256,256)==-2 && lecturas==34);
+    assert(!nxk_volumen_montar() && nxk_volumen_estado()==2 && lecturas==35);
+    assert(nxk_volumen_leer_parte("a",salida+1,256,256)==256 && lecturas==43);
+    generacion=UINT32_MAX;
+    assert(nxk_volumen_estado()==-1 && nxk_volumen_montar()==-1 && lecturas==43);
+    puts("NXFS HOST OK: reinicio de canal invalida catalogo y copia verificada.");
     return 0;
 }

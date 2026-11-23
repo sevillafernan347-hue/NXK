@@ -14,6 +14,7 @@ fixture.write_bytes(crear({'a': bytes(i % 251 for i in range(4096)), 'b': b'text
 exe = salida / 'volumen_secuencial.exe'
 subprocess.run([
     str(raiz / 'tools/zig/zig.exe'), 'cc', '-O2', '-UNDEBUG', '-Wall', '-Wextra', '-Werror',
+    '-DNXK_VOLUMEN_PRUEBA_HOST',
     '-I', str(raiz / 'lib'), str(raiz / 'pruebas/volumen_secuencial.c'),
     str(raiz / 'kernel/volumen.c'), '-o', str(exe),
 ], cwd=raiz, check=True)

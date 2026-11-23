@@ -7,7 +7,7 @@ int nxk_volumen_montar(void);
 int nxk_volumen_estado(void);
 /* Invalida el catalogo y la lectura secuencial sin tocar el disco. */
 void nxk_volumen_desmontar(void);
-/* Nombre prestado hasta el siguiente montaje o desmontaje. */
+/* Nombre prestado hasta el siguiente montaje, desmontaje o reinicio ATA. */
 const char *nxk_volumen_nombre(unsigned indice);
 enum {
     NXK_VOLUMEN_SIN_ENTRADA=-2,

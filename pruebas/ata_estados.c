@@ -8,6 +8,10 @@ static struct {
     uint8_t estados[3][4],registro[8],comando;
     unsigned longitud[3],consultas[3],pausas[3],fase,lecturas,escrituras,comandos,io,errores_leidos,parametros;
     uint32_t ticks,ticks_por_sondeo[3];
+    uint32_t yendo_srst,liberado_srst,primer_sondeo_srst;
+    unsigned cambios_srst,sondeos_srst,ocupado_srst,corte_reloj,seleccion_srst;
+    uint8_t estado_srst;
+    int simular_srst,esclavo_ausente;
     uint16_t escritas[256];
 } sim;
 static unsigned casos,fallos;
@@ -25,9 +29,19 @@ static void reiniciar(void) {
     secuencia(1,0x58,0x58,0x58);
     secuencia(2,0x50,0x50,0x50);
 }
-static uint32_t nxk_reloj_ticks(void) { return sim.ticks; }
+static uint32_t nxk_reloj_ticks(void) {
+    return sim.simular_srst && sim.cambios_srst!=sim.corte_reloj ? sim.ticks++ : sim.ticks;
+}
 static uint8_t entrada(uint16_t p) {
     ++sim.io;
+    if (p==0x3f6 && sim.simular_srst && sim.cambios_srst==2) {
+        if (!sim.sondeos_srst) sim.primer_sondeo_srst=sim.ticks;
+        if (sim.esclavo_ausente && !sim.seleccion_srst) {
+            ++sim.sondeos_srst;
+            return 0;
+        }
+        return sim.sondeos_srst++<sim.ocupado_srst ? 0x80 : sim.estado_srst;
+    }
     /* Contar las lecturas no certifica su duracion en hardware fisico. */
     if (p==0x3f6) { ++sim.pausas[sim.fase]; return 0x50; }
     if (p==0x1f1) ++sim.errores_leidos;
@@ -41,6 +55,13 @@ static uint8_t entrada(uint16_t p) {
 }
 static void salida(uint16_t p,uint8_t v) {
     ++sim.io;
+    if (p==0x1f6 && v==0xa0 && sim.simular_srst && sim.cambios_srst==2)
+        ++sim.seleccion_srst;
+    if (p==0x3f6 && sim.simular_srst) {
+        ++sim.cambios_srst;
+        if (v==6) sim.yendo_srst=sim.ticks;
+        if (v==2) sim.liberado_srst=sim.ticks;
+    }
     if (p>=0x1f2 && p<=0x1f5) ++sim.parametros;
     if (p>=0x1f0 && p<=0x1f7) sim.registro[p-0x1f0]=v;
     if (p==0x1f7) {
@@ -69,6 +90,81 @@ static int centinela(const void *p,size_t n) {
     for (size_t i=0;i<n;++i) if (b[i]!=0xa5) return 0;
     return 1;
 }
+static void preparar_srst(void) {
+    reiniciar();
+    sim.simular_srst=1;
+    sim.corte_reloj=3; /* El reloj avanza antes, durante y despues del pulso. */
+    sim.estado_srst=0x50;
+    sim.registro[1]=sim.registro[2]=sim.registro[3]=1;
+}
+
+static void probar_srst(void) {
+    struct nxk_ata_reinicio informe;
+    struct nxk_ata_diagnostico previo,actual;
+    struct nxk_ata_info info;
+    unsigned char sector[512];
+    uint32_t anterior=nxk_ata_generacion_canal();
+    preparar_srst();
+    sim.corte_reloj=0;
+    comprobar(nxk_ata_reiniciar(0)==-1 && nxk_ata_reiniciar(&informe)==-6 &&
+              !informe.emitido && !sim.io && nxk_ata_generacion_canal()==anterior,
+              "Sin PIT no se toca el canal");
+
+    nxk_ata_consultar(0,&previo);
+    preparar_srst();
+    sim.ocupado_srst=2;
+    sim.ticks=UINT32_MAX-2;
+    comprobar(!nxk_ata_reiniciar(&informe) && informe.emitido && informe.estado==0x50 &&
+              informe.firma_valida && informe.diagnostico==1 && informe.firma==0x00000101u,
+              "SRST comprueba estado y firma del maestro");
+    comprobar(sim.cambios_srst==2 && sim.yendo_srst<10 &&
+              sim.liberado_srst-sim.yendo_srst>=2 && sim.primer_sondeo_srst-sim.liberado_srst>=2 &&
+              sim.sondeos_srst==8 && sim.seleccion_srst==1 &&
+              !sim.comandos && !sim.parametros && !sim.escrituras,
+              "SRST respeta los intervalos y no emite comandos ATA");
+    unsigned antes=sim.io;
+    comprobar(!nxk_ata_consultar(0,&actual) && !memcmp(&actual,&previo,sizeof(actual)) &&
+              nxk_ata_generacion_canal()==anterior+1 &&
+              nxk_ata_leer_sector(0,0,sector)==-1 && nxk_ata_leer_sector(1,0,sector)==-1 &&
+              nxk_ata_sincronizar(1)==-1 && sim.io==antes,
+              "SRST invalida capacidades sin borrar el diagnostico anterior");
+
+    for (unsigned fase=1;fase<3;++fase) {
+        preparar_srst();
+        sim.corte_reloj=fase;
+        comprobar(nxk_ata_reiniciar(&informe)==-6 && informe.emitido && sim.cambios_srst==2 &&
+                  sim.liberado_srst && !sim.sondeos_srst && !informe.firma_valida,
+                  "Si se congela el reloj, SRST queda liberado y se evita sondear");
+    }
+    preparar_srst();
+    sim.estado_srst=0x80;
+    comprobar(nxk_ata_reiniciar(&informe)==-4 && informe.emitido && informe.estado==0x80 &&
+              !informe.firma_valida && sim.ticks>=3200 && !sim.errores_leidos,
+              "SRST agota el plazo con BSY activo sin leer diagnostico");
+    antes=sim.io;
+    comprobar(nxk_ata_identificar(0,&info)==-6 && sim.io==antes,
+              "No identificar tras un reinicio fallido");
+
+    preparar_srst(); sim.estado_srst=0xff;
+    comprobar(nxk_ata_reiniciar(&informe)==-2 && !informe.firma_valida,
+              "SRST detecta un maestro ausente");
+    preparar_srst(); sim.esclavo_ausente=1;
+    comprobar(!nxk_ata_reiniciar(&informe) && sim.seleccion_srst==1 && informe.firma_valida,
+              "SRST recupera el maestro con esclavo ausente seleccionado");
+    preparar_srst(); sim.registro[1]=2;
+    comprobar(nxk_ata_reiniciar(&informe)==-3 && informe.firma_valida && informe.diagnostico==2,
+              "SRST separa diagnostico de maestro fallido");
+    preparar_srst(); sim.registro[4]=0x14; sim.registro[5]=0xeb;
+    comprobar(nxk_ata_reiniciar(&informe)==-3 && informe.firma_valida && informe.firma==0xeb140101u,
+              "SRST rechaza firma ATAPI");
+    preparar_srst(); sim.registro[1]=0x81;
+    comprobar(!nxk_ata_reiniciar(&informe) && informe.diagnostico==0x81,
+              "Un fallo de diagnostico del esclavo permite recuperar el maestro");
+    reiniciar();
+    comprobar(!nxk_ata_identificar(0,&info) && sim.comandos==1,
+              "IDENTIFY vuelve a funcionar tras recuperar el canal");
+}
+
 int main(void) {
     struct nxk_ata_info info;
     struct nxk_ata_diagnostico d,anterior,otra;
@@ -308,6 +404,7 @@ int main(void) {
     comprobar(!nxk_ata_sincronizar(1) && !nxk_ata_consultar(1,&d) &&
               d.limite==NXK_ATA_LIMITE_NINGUNO,
               "Una operacion exitosa limpia el motivo anterior");
+    probar_srst();
     printf("ATA HOST: %u comprobaciones, %u fallos\n",casos,fallos);
     return fallos ? 1 : 0;
 }

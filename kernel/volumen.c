@@ -11,6 +11,9 @@ static unsigned char *temporal;
  * Este estado nunca reemplaza la validacion del nombre/rango del llamador. */
 static const struct entrada *serie;
 static uint32_t siguiente,revision_serie;
+#if defined(__i386__) || defined(NXK_VOLUMEN_PRUEBA_HOST)
+static uint32_t generacion_montada;
+#endif
 static uint32_t u32(const unsigned char *p) { return p[0]|(uint32_t)p[1]<<8|(uint32_t)p[2]<<16|(uint32_t)p[3]<<24; }
 static uint32_t huella(const unsigned char *p,size_t n) {
     uint32_t h=2166136261u; while (n--) h=(h^*p++)*16777619u; return h;
@@ -19,10 +22,6 @@ static int todo_cero(const unsigned char *p,size_t n) {
     while (n--) if (*p++) return 0;
     return 1;
 }
-int nxk_volumen_estado(void) {
-    return montado ? (int)cantidad : -1;
-}
-
 void nxk_volumen_desmontar(void) {
     /* El buffer del heap fijo se reutiliza, pero sus bytes ya no son validos. */
     serie=0;
@@ -30,9 +29,25 @@ void nxk_volumen_desmontar(void) {
     montado=0;
 }
 
+static void comprobar_generacion(void) {
+#if defined(__i386__) || defined(NXK_VOLUMEN_PRUEBA_HOST)
+    if (montado && generacion_montada!=nxk_ata_generacion_canal())
+        nxk_volumen_desmontar();
+#endif
+}
+
+int nxk_volumen_estado(void) {
+    comprobar_generacion();
+    return montado ? (int)cantidad : -1;
+}
+
 int nxk_volumen_montar(void) {
     /* Un fallo de montaje tambien retira el catalogo anterior. */
     nxk_volumen_desmontar();
+#if defined(__i386__) || defined(NXK_VOLUMEN_PRUEBA_HOST)
+    uint32_t generacion=nxk_ata_generacion_canal();
+    if (generacion==UINT32_MAX) return -1;
+#endif
     struct nxk_ata_info info; unsigned char cabecera[512]; struct entrada nuevas[8]={0};
     if (nxk_ata_identificar(1,&info) || nxk_ata_leer_sector(1,0,cabecera)) return -1;
     if (u32(cabecera)!=0x5346584e || u32(cabecera+4)!=1 ||
@@ -64,11 +79,18 @@ int nxk_volumen_montar(void) {
     }
     memcpy(archivos,nuevas,n*sizeof(*archivos));
     cantidad=n;
+#if defined(__i386__) || defined(NXK_VOLUMEN_PRUEBA_HOST)
+    generacion_montada=generacion;
+#endif
     montado=1;
     return 0;
 }
-const char *nxk_volumen_nombre(unsigned i) { return i<cantidad ? archivos[i].nombre : 0; }
+const char *nxk_volumen_nombre(unsigned i) {
+    comprobar_generacion();
+    return i<cantidad ? archivos[i].nombre : 0;
+}
 static const struct entrada *buscar(const char *nombre) {
+    comprobar_generacion();
     for (unsigned i=0;i<cantidad;++i)
         if (nxk_equal(nombre,archivos[i].nombre)) return &archivos[i];
     return 0;
@@ -98,6 +120,7 @@ static int verificar(const struct entrada *a) {
 }
 
 int nxk_volumen_verificar(unsigned indice) {
+    comprobar_generacion();
     if (indice>=cantidad) return NXK_VOLUMEN_SIN_ENTRADA;
     return verificar(&archivos[indice]);
 }

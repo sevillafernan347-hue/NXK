@@ -1,7 +1,11 @@
 # NXK y NEXTRY
 
-Versión **0.0.39** · [Versiones e historial](VERSIONES.md) ·
+Versión **0.0.40** · [Versiones e historial](VERSIONES.md) ·
 [Cambios por entrega](CAMBIOS.md)
+
+`discos reiniciar` recupera el canal IDE primario tras un fallo. NXFS
+descarta el catálogo anterior y se vuelve a cargar con `volumen montar`.
+Consulta [la recuperación y sus pruebas](ENTREGA-REINICIO-ATA.md).
 
 `discos estado` distingue si una espera ATA agotó el plazo del reloj PIT o
 el límite de sondeos. Consulta [los plazos y las pruebas](ENTREGA-PLAZOS-ATA.md).

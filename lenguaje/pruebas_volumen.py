@@ -9,6 +9,7 @@ casos={}
 casos['correcto']=(base,True)
 casos['metadatos']=(base,True)
 casos['ciclo']=(base,True)
+casos['reinicio-canal']=(base,True)
 casos['vacio']=(crear({}),True)
 nombre_maximo = 'a' * 23
 lleno = {f'dato{i}.txt': bytes([65+i]) for i in range(7)}
@@ -144,6 +145,22 @@ for nombre,(datos,valido) in casos.items():
                 assert b'Archivo RAM: 5 bytes' in comando(b'archivo info largo.txt')
                 assert b'local' in comando(b'leer largo.txt')
                 assert heap_usado()==heap
+
+            elif nombre=='reinicio-canal':
+                assert b'Archivo guardado en RAM.' in comando(b'escribir local RAM_INTACTA')
+                assert b'NXFS: lectura persistente' in comando(b'volumen leer leeme.txt')
+                memoria=heap_usado()
+                for _ in range(2):
+                    estado=comando(b'discos estado')
+                    assert b'Canal IDE reiniciado.' in comando(b'discos reiniciar')
+                    assert estado==comando(b'discos estado')
+                    assert b'Archivo no encontrado.' in comando(b'archivo info leeme.txt')
+                    assert desmontado in comando(b'volumen estado')
+                    assert desmontado in comando(b'volumen verificar')
+                    assert b'RAM_INTACTA' in comando(b'leer local')
+                    assert montaje in comando(b'volumen montar')
+                    assert b'NXFS: lectura persistente' in comando(b'volumen leer leeme.txt')
+                    assert heap_usado()==memoria
 
             elif nombre=='vacio':
                 assert montaje+b' Archivos: 0' in comando(b'volumen estado')

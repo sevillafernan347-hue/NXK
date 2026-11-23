@@ -1,6 +1,6 @@
 # Estado de NXK
 
-Versión actual: 0.0.39. Cuatro procesos CPL3 con memoria privada, preempcion,
+Versión actual: 0.0.40. Cuatro procesos CPL3 con memoria privada, preempcion,
 esperas, mensajes, resultados, permisos y listas de archivos por proceso.
 Datos privados con proteccion RO/RW por pagina y validacion de buffers.
 Filtro saliente de mensajes por IDs completos y experimento grafico MINI NXK.
@@ -13,6 +13,8 @@ Diagnostico ATA independiente por unidad: fases, resultado, registros y sondeos;
 consulta por API kernel y consola sin I/O. Guia en ENTREGA-ATA-DIAGNOSTICO.md.
 Las esperas ATA tienen plazo PIT y límite de sondeos. El diagnóstico
 identifica cuál se agotó. Ver ENTREGA-PLAZOS-ATA.md.
+El canal IDE primario se puede reiniciar desde la consola. NXFS invalida
+su catálogo cuando el canal se reinicia. Ver ENTREGA-REINICIO-ATA.md.
 IDENTIFY comprueba reposo antes de emitir. NXFS exige cabeceras canonicas.
 Mostrar contenido NXFS reutiliza un buffer y verifica antes de emitir bytes.
 Modo usuario muestra archivos NXFS de 4 KiB mediante tramos verificados.

@@ -24,8 +24,21 @@ int nxk_ata_consultar(unsigned unidad,struct nxk_ata_diagnostico *salida);
 /* Revision del esclavo sin I/O. Cambia antes de identificarlo o escribir.
  * UINT32_MAX indica que el llamador no puede reutilizar lecturas antiguas. */
 uint32_t nxk_ata_revision_esclavo(void);
+/* Cambia al emitir un reinicio del canal. UINT32_MAX agota la generacion:
+ * un catalogo montado no se puede asociar a ese valor. */
+uint32_t nxk_ata_generacion_canal(void);
+struct nxk_ata_reinicio {
+    uint32_t firma;
+    uint8_t emitido,estado,diagnostico,firma_valida;
+};
+/* Contexto kernel serial con PIT en marcha. Descarta las capacidades si
+ * emite SRST. Preserva los diagnosticos de operaciones por unidad.
+ * -1 puntero, -2 maestro ausente, -3 fallo de diagnostico/firma, -4 plazo,
+ * -6 reloj detenido, -64 sin soporte. Los campos validos se indican al salir. */
+int nxk_ata_reiniciar(struct nxk_ata_reinicio *resultado);
 /* Errores: -1 argumento/capacidad; -2 ausente; -3 ERR/DF; -4 espera agotada;
- * -5 IDENTIFY incompatible; -64 plataforma sin soporte. Identificar/leer
+ * -5 IDENTIFY incompatible; -6 debe completar el reinicio del canal;
+ * -64 plataforma sin soporte. Identificar/leer
  * conservan la salida del llamador al fallar. Identificar invalida primero
  * la capacidad anterior; solo publica la nueva al completar la operacion.
  * En fase previa, ERR residual por si solo no impide un nuevo comando. */

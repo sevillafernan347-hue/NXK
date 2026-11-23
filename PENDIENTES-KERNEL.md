@@ -1,6 +1,6 @@
 # Trabajo restante del kernel
 
-Estado tras v0.0.39. Son hitos por implementar y verificar, no porcentajes.
+Estado tras v0.0.40. Son hitos por implementar y verificar, no porcentajes.
 
 | Area | Existe | Siguiente evidencia necesaria |
 | --- | --- | --- |
@@ -19,8 +19,9 @@ y terminal con teclado; faltan raton, ventanas y aplicaciones graficas.
 
 ATA valida inicio y cierre de lectura/IDENTIFY. Sus plazos usan el reloj PIT
 y el límite de sondeos sigue activo. `discos estado` consulta la fase y el
-límite alcanzado sin acceder al disco. Quedan pendientes la recuperación del
-canal, IRQ, DMA y AHCI. Un fallo al escribir no revierte bytes enviados al disco.
+límite alcanzado sin acceder al disco. El canal primario se puede reiniciar
+manualmente. Quedan pendientes la coordinación con procesos que esperan
+E/S, IRQ, DMA y AHCI. Un fallo al escribir no revierte bytes enviados al disco.
 
 El siguiente bloque propuesto es espera de dispositivos, recursos por proceso
 y permisos por canal/objeto. Los permisos generales y filtros por nombre ya existen. IPC de valores uint32 ya espera espacio al enviar y permite

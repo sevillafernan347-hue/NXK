@@ -57,6 +57,20 @@ try:
                     esperar(b'Volumen NXFS montado',2)
                     esperar(b'NEXTRY_DISCO_VALIDO',4)
                     esperar(b'Aplicacion NEXTRY protegida termino.',5)
+                    # Un reinicio IDE invalida NXFS aunque el proceso no haya
+                    # pedido desmontar. El siguiente montaje restaura el acceso.
+                    prompts=log.read_bytes().count(b'nxk> ')
+                    enviar(b'discos reiniciar\n')
+                    esperar(b'Canal IDE reiniciado.')
+                    esperar(b'nxk> ',prompts+1)
+                    enviar(b'usuario nextry\n')
+                    esperar(b'Aplicacion NEXTRY fallo.',2)
+                    if log.read_bytes().count(b'NEXTRY_DISCO_VALIDO')!=4:
+                        raise RuntimeError('NEXTRY uso un catalogo anterior a SRST')
+                    enviar(b'volumen montar\nusuario nextry\n')
+                    esperar(b'Volumen NXFS montado',3)
+                    esperar(b'NEXTRY_DISCO_VALIDO',5)
+                    esperar(b'Aplicacion NEXTRY protegida termino.',6)
                 elif nombre in ('grande','maximo','vacio','minimo','exacto'):
                     esperado={'grande':b'G'*257,'maximo':patron,'vacio':b'','minimo':b'@','exacto':b'E'*256}[nombre]
                     if esperado: esperar(esperado)

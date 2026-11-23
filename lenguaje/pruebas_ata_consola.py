@@ -48,8 +48,19 @@ with log.open('wb', buffering=0) as salida:
         # La consulta no debe reidentificar ni alterar siquiera el contador de sondeos.
         for _ in range(3):
             assert comando('discos estado') == estado
-        assert b'discos estado' in comando('help')
+        # La ultima unidad seleccionada esta ausente. El reinicio debe
+        # recuperar el maestro sin borrar la evidencia de esas consultas.
+        reinicio = comando('discos reiniciar')
+        assert b'Canal IDE reiniciado.' in reinicio, reinicio
+        assert b'diagnostico 0x00000001 firma 0x00000101' in reinicio, reinicio
+        assert comando('discos estado') == estado
+        listado = comando('discos')
+        assert b'sectores de 512 bytes: 2048' in listado, listado
+        assert b'IDE 1: no disponible o no compatible.' in listado, listado
+        ayuda = comando('help')
+        assert b'discos estado' in ayuda and b'discos reiniciar' in ayuda
         print('ATA CONSOLA OK: inicio vacio, maestro/esclavo, resultado firmado y consultas estables.')
+        print('ATA CONSOLA OK: reinicio sin esclavo y diagnostico anterior conservado.')
     finally:
         proceso.terminate()
         proceso.wait(timeout=5)

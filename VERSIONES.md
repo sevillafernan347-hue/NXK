@@ -7,6 +7,7 @@ y los cambios individuales en el [historial de commits](https://github.com/sevil
 
 | Versión | Cambio | Detalles |
 | --- | --- | --- |
+| [v0.0.40](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.40) | Reinicio del canal IDE y recuperación de NXFS | [Guía y pruebas](ENTREGA-REINICIO-ATA.md) |
 | [v0.0.39](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.39) | Plazos de espera y diagnóstico ATA | [Guía y pruebas](ENTREGA-PLAZOS-ATA.md) |
 | [v0.0.38](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.38) | Verificación de archivos NXFS desde la consola | [Guía y pruebas](ENTREGA-VERIFICAR-NXFS.md) |
 | [0.0.37](https://github.com/sevillafernan347-hue/NXK/commit/6e77d4296db02f3384c571efc447025a603be6c3) | Estado y desmontaje de un volumen NXFS | [Guía y pruebas](ENTREGA-CICLO-VOLUMEN.md) |
@@ -60,7 +61,7 @@ en v0.0.38. Las otras versiones del índice tienen su propia etiqueta.
 - [Cambios por versión](CAMBIOS.md) resume lo que incluye cada entrega.
 - Las etiquetas permiten descargar el código fuente de esa versión.
   Para compilarlo, consulta [las herramientas](HERRAMIENTAS.md).
-- [Comparar v0.0.38 con v0.0.39](https://github.com/sevillafernan347-hue/NXK/compare/v0.0.38...v0.0.39)
+- [Comparar v0.0.39 con v0.0.40](https://github.com/sevillafernan347-hue/NXK/compare/v0.0.39...v0.0.40)
   muestra los commits y archivos de la última entrega.
 
 ## Títulos de commits nuevos

@@ -5,8 +5,11 @@
 #if defined(__i386__) || defined(NXK_ATA_PRUEBA_HOST)
 static uint32_t capacidad[2];
 static uint32_t revision_esclavo;
+static uint32_t generacion_canal;
+static int reinicio_pendiente;
 static struct nxk_ata_diagnostico diagnosticos[2];
 uint32_t nxk_ata_revision_esclavo(void) { return revision_esclavo; }
+uint32_t nxk_ata_generacion_canal(void) { return generacion_canal; }
 static void cambiar_revision_esclavo(void) {
     /* Saturar evita que una revision vieja vuelva a coincidir por overflow. */
     if (revision_esclavo!=UINT32_MAX) ++revision_esclavo;
@@ -37,6 +40,78 @@ static uint16_t entrada_palabra(void) { uint16_t v; __asm__ volatile("inw %1,%0"
 static void salida_palabra(uint16_t v) { __asm__ volatile("outw %0,%1" :: "a"(v),"Nd"((uint16_t)0x1f0)); }
 #endif
 static void pausa(void) { for (unsigned i=0;i<4;++i) (void)entrada(0x3f6); }
+/* Dos avances dejan al menos un periodo entero, aun si el primero llega
+ * justo al iniciar la espera. El tope protege si no se reciben IRQ del PIT. */
+static int esperar_ticks(uint32_t inicio,uint32_t ticks) {
+    for (unsigned i=0;i<8000000u;++i) {
+        if (nxk_reloj_ticks()-inicio>=ticks) return 0;
+#if !defined(NXK_ATA_PRUEBA_HOST)
+        __asm__ volatile("pause");
+#endif
+    }
+    return -6;
+}
+
+int nxk_ata_reiniciar(struct nxk_ata_reinicio *resultado) {
+    if (!resultado) return -1;
+    *resultado=(struct nxk_ata_reinicio){0};
+    int r=esperar_ticks(nxk_reloj_ticks(),2);
+    if (r) return r;
+
+    /* SRST afecta a ambos dispositivos. Las capacidades no sobreviven al
+     * pulso. nIEN queda activo para mantener deshabilitada la IRQ de ATA. */
+    capacidad[0]=0;
+    capacidad[1]=0;
+    cambiar_revision_esclavo();
+    if (generacion_canal!=UINT32_MAX) ++generacion_canal;
+    reinicio_pendiente=1;
+    salida(0x3f6,0x06);
+    resultado->emitido=1;
+    r=esperar_ticks(nxk_reloj_ticks(),2);
+    salida(0x3f6,0x02); /* Liberar SRST incluso si el reloj dejo de avanzar. */
+    if (r) return r;
+    r=esperar_ticks(nxk_reloj_ticks(),2);
+    if (r) return r;
+
+    /* Un controlador puede retener la seleccion previa, incluso de una
+     * unidad ausente. Seleccionar el maestro cuando cese la espera y
+     * comprobar su estado antes de leer diagnostico y firma. */
+    uint32_t inicio=nxk_reloj_ticks();
+    int maestro_seleccionado=0;
+    for (;;) {
+        uint8_t estado=entrada(0x3f6);
+        resultado->estado=estado;
+        int ausente=!estado || estado==0xff;
+        if (ausente || !(estado&0x88)) {
+            if (maestro_seleccionado) {
+                if (ausente) return -2;
+                break;
+            }
+            salida(0x1f6,0xa0);
+            maestro_seleccionado=1;
+            pausa();
+            continue;
+        }
+        uint32_t ahora=nxk_reloj_ticks();
+        if (ahora-inicio>=3200u) return -4;
+        r=esperar_ticks(ahora,1);
+        if (r) return r;
+    }
+
+    resultado->diagnostico=entrada(0x1f1);
+    resultado->firma=entrada(0x1f2);
+    resultado->firma|=(uint32_t)entrada(0x1f3)<<8;
+    resultado->firma|=(uint32_t)entrada(0x1f4)<<16;
+    resultado->firma|=(uint32_t)entrada(0x1f5)<<24;
+    resultado->firma_valida=1;
+    /* El bit 7 del diagnostico indica fallo del esclavo. El maestro puede
+     * seguir operativo; la capacidad del esclavo requiere otro IDENTIFY. */
+    if ((resultado->estado&0x20) || (resultado->diagnostico&0x7f)!=1 ||
+        resultado->firma!=0x00000101u) return -3;
+    reinicio_pendiente=0;
+    return 0;
+}
+
 /* Misma politica para todas las fases. El diagnostico guarda el ultimo sondeo;
  * no releer Status al consultar, pues podria ocultar la causa original. */
 static int esperar(struct nxk_ata_diagnostico *d,unsigned fase,int datos) {
@@ -73,6 +148,7 @@ static void leer_palabras(uint16_t *p) {
 }
 int nxk_ata_identificar(unsigned unidad,struct nxk_ata_info *info) {
     if (unidad>1 || !info) return -1;
+    if (reinicio_pendiente) return -6;
     if (unidad==1) cambiar_revision_esclavo();
     struct nxk_ata_diagnostico *d=iniciar(unidad,0xec,0);
     capacidad[unidad]=0;
@@ -170,6 +246,8 @@ int nxk_ata_probar(void) {
 }
 #else
 uint32_t nxk_ata_revision_esclavo(void) { return UINT32_MAX; }
+uint32_t nxk_ata_generacion_canal(void) { return 0; }
+int nxk_ata_reiniciar(struct nxk_ata_reinicio *r) { (void)r;return -64; }
 int nxk_ata_consultar(unsigned u,struct nxk_ata_diagnostico *s) { (void)u;(void)s;return -64; }
 int nxk_ata_identificar(unsigned u,struct nxk_ata_info *i) { (void)u;(void)i;return -64; }
 int nxk_ata_leer_sector(unsigned u,uint32_t l,void *p) { (void)u;(void)l;(void)p;return -64; }

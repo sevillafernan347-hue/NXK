@@ -3,6 +3,15 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.40 · Recuperación del canal IDE
+
+- `discos reiniciar` emite SRST con esperas PIT y comprueba el estado,
+  diagnóstico y firma del disco maestro.
+- El reinicio invalida las capacidades de ambas unidades. NXFS descarta su
+  catálogo y su copia de lectura cuando cambia la generación del canal.
+- Se conserva el diagnóstico anterior de cada unidad. La recuperación no
+  reintenta escrituras. Consulta [la guía y las pruebas](ENTREGA-REINICIO-ATA.md).
+
 ## v0.0.39 · Plazos de espera ATA
 
 - ATA limita el tiempo de espera por fase con el reloj PIT. Conserva el

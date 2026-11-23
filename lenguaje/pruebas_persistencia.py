@@ -61,6 +61,9 @@ with Maquina(p) as m:
 antigua=p.read_bytes()
 with Maquina(p) as m:
     m.comando('persistencia cargar',b'Instantanea recuperada')
+    m.comando('discos reiniciar',b'Canal IDE reiniciado.')
+    m.comando('leer f0',b'ANTERIOR_0')
+    m.comando('persistencia cargar',b'Instantanea recuperada')
     for i in range(8):
         m.comando(f'leer f{i}',f'ANTERIOR_{i}'.encode())
         m.comando(f'escribir f{i} NUEVO_{i}',b'Archivo guardado')
@@ -82,7 +85,7 @@ with Maquina(p) as m:
     m.comando('leer f0',b'No se pudo leer')
     m.comando('leer temporal',b'No se pudo leer')
 tercera=p.read_bytes()
-print('PERSISTENCIA reinicios, 8 archivos, vacio y memoria estable: OK',flush=True)
+print('PERSISTENCIA reinicios, recuperacion IDE, 8 archivos, vacio y memoria estable: OK',flush=True)
 # Interrumpir el segundo guardado tras 0..8 sectores conserva el primero.
 for n in range(9):
     b=bytearray(antigua);b[11*512:(11+n)*512]=nueva[11*512:(11+n)*512]
