@@ -1,7 +1,11 @@
 # NXK y NEXTRY
 
-Versión **0.0.40** · [Versiones e historial](VERSIONES.md) ·
+Versión **0.0.41** · [Versiones e historial](VERSIONES.md) ·
 [Cambios por entrega](CAMBIOS.md)
+
+`volumen iniciar nombre` prepara una verificación NXFS que avanza entre
+turnos de procesos. `volumen progreso` muestra cuántos bytes se comprobaron.
+Consulta [el uso y las pruebas](ENTREGA-VERIFICACION-TURNOS.md).
 
 `discos reiniciar` recupera el canal IDE primario tras un fallo. NXFS
 descarta el catálogo anterior y se vuelve a cargar con `volumen montar`.

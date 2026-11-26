@@ -2,6 +2,7 @@
  * FNV detecta corrupcion accidental; no autentica archivos ni firma codigo. */
 #include "volumen.h"
 #include "ata.h"
+#define FNV_INICIO 2166136261u
 struct entrada { char nombre[24]; uint32_t longitud,lba,huella; };
 static struct entrada archivos[8];
 static unsigned cantidad;
@@ -13,16 +14,28 @@ static const struct entrada *serie;
 static uint32_t siguiente,revision_serie;
 #if defined(__i386__) || defined(NXK_VOLUMEN_PRUEBA_HOST)
 static uint32_t generacion_montada;
+static struct {
+    struct nxk_volumen_tarea progreso;
+    uint32_t lba,esperada,huella,revision;
+} tarea;
 #endif
 static uint32_t u32(const unsigned char *p) { return p[0]|(uint32_t)p[1]<<8|(uint32_t)p[2]<<16|(uint32_t)p[3]<<24; }
+static uint32_t acumular_huella(uint32_t h,const unsigned char *p,size_t n) {
+    while (n--) h=(h^*p++)*16777619u;
+    return h;
+}
 static uint32_t huella(const unsigned char *p,size_t n) {
-    uint32_t h=2166136261u; while (n--) h=(h^*p++)*16777619u; return h;
+    return acumular_huella(FNV_INICIO,p,n);
 }
 static int todo_cero(const unsigned char *p,size_t n) {
     while (n--) if (*p++) return 0;
     return 1;
 }
 void nxk_volumen_desmontar(void) {
+#if defined(__i386__) || defined(NXK_VOLUMEN_PRUEBA_HOST)
+    if (tarea.progreso.estado==NXK_VOLUMEN_TAREA_PENDIENTE)
+        tarea.progreso.estado=NXK_VOLUMEN_TAREA_INVALIDADA;
+#endif
     /* El buffer del heap fijo se reutiliza, pero sus bytes ya no son validos. */
     serie=0;
     cantidad=0;
@@ -96,6 +109,66 @@ static const struct entrada *buscar(const char *nombre) {
     return 0;
 }
 
+#if defined(__i386__) || defined(NXK_VOLUMEN_PRUEBA_HOST)
+static void comprobar_tarea(void) {
+    if (tarea.progreso.estado!=NXK_VOLUMEN_TAREA_PENDIENTE) return;
+    comprobar_generacion();
+    if (tarea.revision!=nxk_ata_revision_esclavo())
+        tarea.progreso.estado=NXK_VOLUMEN_TAREA_INVALIDADA;
+}
+
+static void terminar_tarea(void) {
+    tarea.progreso.estado=tarea.huella==tarea.esperada ?
+        NXK_VOLUMEN_TAREA_VERIFICADA : NXK_VOLUMEN_HUELLA_INVALIDA;
+}
+
+int nxk_volumen_tarea_iniciar(const char *nombre) {
+    if (!nombre) return -1;
+    comprobar_tarea();
+    if (tarea.progreso.estado==NXK_VOLUMEN_TAREA_PENDIENTE) return -3;
+    const struct entrada *a=buscar(nombre);
+    if (!a) return NXK_VOLUMEN_SIN_ENTRADA;
+    uint32_t revision=nxk_ata_revision_esclavo();
+    if (a->longitud && revision==UINT32_MAX) return NXK_VOLUMEN_TAREA_INVALIDADA;
+    tarea.progreso=(struct nxk_volumen_tarea){0,a->longitud,NXK_VOLUMEN_TAREA_PENDIENTE};
+    tarea.lba=a->lba;
+    tarea.esperada=a->huella;
+    tarea.huella=FNV_INICIO;
+    tarea.revision=revision;
+    if (!a->longitud) terminar_tarea();
+    return 0;
+}
+
+void nxk_volumen_tarea_paso(void) {
+    comprobar_tarea();
+    if (tarea.progreso.estado!=NXK_VOLUMEN_TAREA_PENDIENTE) return;
+    /* El sector vive en esta llamada. La copia verificada de las lecturas
+     * sincronas sigue intacta aunque el sector de esta tarea falle. */
+    unsigned char sector[512];
+    uint32_t pos=tarea.progreso.leidos;
+    if (nxk_ata_leer_sector(1,tarea.lba+pos/512,sector)) {
+        tarea.progreso.estado=NXK_VOLUMEN_ERROR_ATA;
+        return;
+    }
+    uint32_t n=tarea.progreso.total-pos;
+    if (n>512) n=512;
+    tarea.huella=acumular_huella(tarea.huella,sector,n);
+    tarea.progreso.leidos+=n;
+    if (tarea.progreso.leidos==tarea.progreso.total) terminar_tarea();
+}
+
+void nxk_volumen_tarea_cancelar(void) {
+    comprobar_tarea();
+    if (tarea.progreso.estado==NXK_VOLUMEN_TAREA_PENDIENTE)
+        tarea.progreso.estado=NXK_VOLUMEN_TAREA_CANCELADA;
+}
+
+struct nxk_volumen_tarea nxk_volumen_tarea_consultar(void) {
+    comprobar_tarea();
+    return tarea.progreso;
+}
+#endif
+
 int nxk_volumen_tamano(const char *nombre,uint32_t *salida) {
     if (!nombre || !salida) return -1;
     const struct entrada *a=buscar(nombre);
@@ -110,7 +183,7 @@ int nxk_volumen_tamano(const char *nombre,uint32_t *salida) {
 static int verificar(const struct entrada *a) {
     serie=0; /* Incluso una lectura fallida puede sobrescribir el buffer. */
     if (!a->longitud)
-        return a->huella==2166136261u ? 0 : NXK_VOLUMEN_HUELLA_INVALIDA;
+        return a->huella==FNV_INICIO ? 0 : NXK_VOLUMEN_HUELLA_INVALIDA;
     if (!temporal) temporal=nxk_alloc(4096);
     if (!temporal) return NXK_VOLUMEN_SIN_MEMORIA;
     for (uint32_t pos=0;pos<a->longitud;pos+=512)

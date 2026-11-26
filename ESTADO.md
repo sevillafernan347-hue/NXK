@@ -1,6 +1,6 @@
 # Estado de NXK
 
-Versión actual: 0.0.40. Cuatro procesos CPL3 con memoria privada, preempcion,
+Versión actual: 0.0.41. Cuatro procesos CPL3 con memoria privada, preempcion,
 esperas, mensajes, resultados, permisos y listas de archivos por proceso.
 Datos privados con proteccion RO/RW por pagina y validacion de buffers.
 Filtro saliente de mensajes por IDs completos y experimento grafico MINI NXK.
@@ -23,6 +23,8 @@ NXFS distingue un volumen montado sin archivos de un volumen desmontado.
 El desmontaje invalida el catalogo y los datos que esperaban la siguiente lectura.
 `volumen verificar` comprueba los archivos del disco y separa fallos de lectura
 de huellas incorrectas. Consulta ENTREGA-VERIFICAR-NXFS.md.
+La verificación por turnos procesa un sector entre turnos de procesos CPL3.
+La consola permite avanzar a mano, consultar y cancelar la tarea.
 Siguientes hitos en PENDIENTES-KERNEL.md.
 
 Auditoria de procedencia: matriz alfanumerica de MINI NXK redibujada para el

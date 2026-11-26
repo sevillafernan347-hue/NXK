@@ -19,6 +19,7 @@ casos['ocho-entradas']=(crear(lleno),True)
 patron = bytes(65 + (i+i//251)%26 for i in range(4096))
 maximo = crear({'maximo.txt':patron})
 casos['lectura-maxima']=(maximo,True)
+casos['tarea-por-turnos']=(crear({'maximo.txt':patron,'largo.txt':b'Z'*1100,'vacio.txt':b''}),True)
 corrupto_final = bytearray(maximo)
 corrupto_final[512+len(patron)-1] ^= 1
 casos['contenido-final']=(corrupto_final,True)
@@ -201,6 +202,35 @@ for nombre,(datos,valido) in casos.items():
                     assert patron in comando(b'volumen leer maximo.txt')
                     assert heap_usado()-antes==4096, 'NXFS debe usar un solo buffer de 4 KiB'
 
+            elif nombre=='tarea-por-turnos':
+                estado=comando(b'discos estado')
+                antes=heap_usado()
+                assert b'NXFS tarea pendiente 0/4096 bytes.' in comando(b'volumen iniciar maximo.txt')
+                assert b'NXFS ya tiene una tarea pendiente.' in comando(b'volumen iniciar largo.txt')
+                assert b'NXFS tarea pendiente 0/4096 bytes.' in comando(b'volumen progreso')
+                assert estado==comando(b'discos estado') and heap_usado()==antes
+                assert b'NXFS tarea pendiente 512/4096 bytes.' in comando(b'volumen paso')
+                assert heap_usado()==antes
+                # La demo despacha dos procesos en tres rondas. Cada turno
+                # real agrega un sector, sin completar toda la tarea de golpe.
+                assert b'registros y punto de ejecucion conservados' in comando(b'proceso demo')
+                assert b'NXFS tarea pendiente 3584/4096 bytes.' in comando(b'volumen progreso')
+                assert b'NXFS tarea verificada 4096/4096 bytes.' in comando(b'volumen paso')
+                assert b'NXFS tarea verificada 4096/4096 bytes.' in comando(b'volumen paso')
+
+                assert b'NXFS tarea pendiente 0/1100 bytes.' in comando(b'volumen iniciar largo.txt')
+                assert b'NXFS tarea pendiente 512/1100 bytes.' in comando(b'volumen paso')
+                assert b'NXFS tarea cancelada 512/1100 bytes.' in comando(b'volumen cancelar')
+                assert b'NXFS tarea cancelada 512/1100 bytes.' in comando(b'volumen paso')
+                assert b'NXFS tarea pendiente 0/1100 bytes.' in comando(b'volumen iniciar largo.txt')
+                assert b'NXFS tarea pendiente 512/1100 bytes.' in comando(b'volumen paso')
+                assert b'Canal IDE reiniciado.' in comando(b'discos reiniciar')
+                assert b'NXFS tarea invalidada 512/1100 bytes.' in comando(b'volumen paso')
+                assert montaje in comando(b'volumen montar')
+                estado=comando(b'discos estado')
+                assert b'NXFS tarea verificada 0/0 bytes.' in comando(b'volumen iniciar vacio.txt')
+                assert estado==comando(b'discos estado')
+
             elif nombre=='contenido-final':
                 respuesta=comando(b'volumen verificar')
                 assert b'maximo.txt: huella incorrecta' in respuesta
@@ -209,6 +239,10 @@ for nombre,(datos,valido) in casos.items():
                 respuesta=comando(b'volumen leer maximo.txt')
                 assert b'No se pudo leer o verificar' in respuesta
                 assert patron[:512] not in respuesta, 'NXFS publico bytes antes de verificar'
+                assert b'NXFS tarea pendiente 0/4096 bytes.' in comando(b'volumen iniciar maximo.txt')
+                for _ in range(7):
+                    assert b'NXFS tarea pendiente' in comando(b'volumen paso')
+                assert b'NXFS tarea huella incorrecta 4096/4096 bytes.' in comando(b'volumen paso')
 
             elif not valido:
                 assert desmontado in comando(b'volumen estado')

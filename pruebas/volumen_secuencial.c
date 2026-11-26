@@ -38,6 +38,84 @@ static void ver_otro(const unsigned char *datos,size_t n) {
     ++visitas;
 }
 
+static void verificar_progreso(int estado,uint32_t leidos,uint32_t total) {
+    struct nxk_volumen_tarea p=nxk_volumen_tarea_consultar();
+    assert(p.estado==estado && p.leidos==leidos && p.total==total);
+}
+
+static void probar_tarea(void) {
+    unsigned char salida[256];
+    generacion=0;
+    revision=10;
+    assert(!nxk_volumen_montar());
+    lecturas=0;
+    verificar_progreso(NXK_VOLUMEN_TAREA_INACTIVA,0,0);
+    assert(nxk_volumen_tarea_iniciar(0)==-1);
+    assert(nxk_volumen_tarea_iniciar("ausente")==NXK_VOLUMEN_SIN_ENTRADA && !lecturas);
+    assert(nxk_volumen_leer_parte("a",salida,sizeof(salida),0)==256 && lecturas==8);
+    assert(!nxk_volumen_tarea_iniciar("a") && lecturas==8);
+    assert(nxk_volumen_tarea_iniciar("b")==-3);
+    verificar_progreso(NXK_VOLUMEN_TAREA_PENDIENTE,0,4096);
+    nxk_volumen_tarea_paso();
+    verificar_progreso(NXK_VOLUMEN_TAREA_PENDIENTE,512,4096);
+    assert(lecturas==9);
+    /* La verificacion en curso no invalida la copia de lectura contigua. */
+    assert(nxk_volumen_leer_parte("a",salida,sizeof(salida),256)==256 && lecturas==9);
+    for (unsigned i=1;i<8;++i) {
+        nxk_volumen_tarea_paso();
+        verificar_progreso(i==7 ? NXK_VOLUMEN_TAREA_VERIFICADA : NXK_VOLUMEN_TAREA_PENDIENTE,
+                           (i+1)*512,4096);
+        assert(lecturas==9+i);
+    }
+    nxk_volumen_tarea_paso();
+    assert(lecturas==16 && reservas==1);
+    assert(!nxk_volumen_tarea_iniciar("b"));
+    nxk_volumen_tarea_paso();
+    verificar_progreso(NXK_VOLUMEN_TAREA_VERIFICADA,5,5);
+    assert(lecturas==17);
+
+    assert(!nxk_volumen_tarea_iniciar("a"));
+    nxk_volumen_tarea_paso();
+    nxk_volumen_tarea_cancelar();
+    nxk_volumen_tarea_paso();
+    verificar_progreso(NXK_VOLUMEN_TAREA_CANCELADA,512,4096);
+    assert(lecturas==18);
+
+    assert(!nxk_volumen_tarea_iniciar("a"));
+    nxk_volumen_tarea_paso();
+    ++revision;
+    nxk_volumen_tarea_paso();
+    verificar_progreso(NXK_VOLUMEN_TAREA_INVALIDADA,512,4096);
+    assert(lecturas==19);
+
+    assert(!nxk_volumen_tarea_iniciar("b"));
+    ++generacion;
+    nxk_volumen_tarea_paso();
+    verificar_progreso(NXK_VOLUMEN_TAREA_INVALIDADA,0,5);
+    assert(lecturas==19 && nxk_volumen_estado()==-1);
+    assert(!nxk_volumen_montar());
+    assert(!nxk_volumen_tarea_iniciar("b"));
+    nxk_volumen_desmontar();
+    assert(!nxk_volumen_montar());
+    verificar_progreso(NXK_VOLUMEN_TAREA_INVALIDADA,0,5);
+    assert(lecturas==21);
+
+    assert(!nxk_volumen_tarea_iniciar("b"));
+    fallar_lba=9;
+    nxk_volumen_tarea_paso();
+    verificar_progreso(NXK_VOLUMEN_ERROR_ATA,0,5);
+    fallar_lba=UINT32_MAX;
+    disco[9][0]^=1;
+    assert(!nxk_volumen_tarea_iniciar("b"));
+    nxk_volumen_tarea_paso();
+    verificar_progreso(NXK_VOLUMEN_HUELLA_INVALIDA,5,5);
+    disco[9][0]^=1;
+    revision=UINT32_MAX;
+    assert(nxk_volumen_tarea_iniciar("b")==NXK_VOLUMEN_TAREA_INVALIDADA);
+    assert(lecturas==23 && reservas==1);
+    puts("NXFS HOST OK: tarea por sectores, coexistencia con lectura contigua, cancelacion y cambios de disco.");
+}
+
 int main(int argc,char **argv) {
     assert(argc==2);
     FILE *archivo=fopen(argv[1],"rb");
@@ -149,5 +227,6 @@ int main(int argc,char **argv) {
     generacion=UINT32_MAX;
     assert(nxk_volumen_estado()==-1 && nxk_volumen_montar()==-1 && lecturas==43);
     puts("NXFS HOST OK: reinicio de canal invalida catalogo y copia verificada.");
+    probar_tarea();
     return 0;
 }

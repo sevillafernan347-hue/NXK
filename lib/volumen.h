@@ -29,4 +29,24 @@ int nxk_volumen_leer(const char *nombre,void *destino,size_t capacidad);
  * Buffer prestado solo durante la llamada. El visitante no debe ceder ni
  * llamar al volumen. Devuelve 0 al visitar o el error de lectura equivalente. */
 int nxk_volumen_visitar(const char *nombre,void (*visitar)(const unsigned char *,size_t));
+
+/* Verificacion por sectores, solo contexto kernel serial x86.
+ * Un resultado terminal conserva su progreso hasta el siguiente inicio. */
+enum nxk_volumen_tarea_estado {
+    NXK_VOLUMEN_TAREA_INACTIVA,
+    NXK_VOLUMEN_TAREA_PENDIENTE,
+    NXK_VOLUMEN_TAREA_VERIFICADA,
+    NXK_VOLUMEN_TAREA_CANCELADA=-7,
+    NXK_VOLUMEN_TAREA_INVALIDADA=-8
+};
+struct nxk_volumen_tarea {
+    uint32_t leidos,total;
+    int estado;
+};
+/* 0 admitida, -1 nombre nulo, -2 no existe, -3 ya hay tarea,
+ * -8 revision de disco agotada. Rechazar no reemplaza un resultado previo. */
+int nxk_volumen_tarea_iniciar(const char *nombre);
+void nxk_volumen_tarea_paso(void);
+void nxk_volumen_tarea_cancelar(void);
+struct nxk_volumen_tarea nxk_volumen_tarea_consultar(void);
 #endif

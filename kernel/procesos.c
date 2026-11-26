@@ -5,6 +5,7 @@
 #include "paginas.h"
 #include "paginacion.h"
 #include "tareas.h"
+#include "volumen.h"
 #if defined(__i386__)
 struct proceso {
     struct nxk_proceso_info info;
@@ -487,6 +488,9 @@ static int ejecutar_uno(struct proceso *p) {
         else incrementar(&p->info.cesiones);
     }
     else { limpiar_espera(p); p->info.estado=NXK_PROCESO_TERMINADO; }
+    /* El contexto kernel ya esta restaurado. Intercalar como maximo un
+     * sector de NXFS antes de elegir el siguiente proceso. */
+    nxk_volumen_tarea_paso();
     return 0;
 }
 int nxk_proceso_paso(uint32_t id) {

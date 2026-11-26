@@ -278,6 +278,23 @@ static void mostrar_bytes(const unsigned char *datos,size_t n) {
     for (size_t i=0;i<n;++i) put((char)datos[i]);
     put('\n');
 }
+#if defined(__i386__)
+static void mostrar_progreso_nxfs(void) {
+    struct nxk_volumen_tarea tarea=nxk_volumen_tarea_consultar();
+    const char *estado;
+    switch (tarea.estado) {
+        case NXK_VOLUMEN_TAREA_PENDIENTE: estado="pendiente"; break;
+        case NXK_VOLUMEN_TAREA_VERIFICADA: estado="verificada"; break;
+        case NXK_VOLUMEN_TAREA_CANCELADA: estado="cancelada"; break;
+        case NXK_VOLUMEN_TAREA_INVALIDADA: estado="invalidada"; break;
+        case NXK_VOLUMEN_ERROR_ATA: estado="error ATA"; break;
+        case NXK_VOLUMEN_HUELLA_INVALIDA: estado="huella incorrecta"; break;
+        default: print("NXFS tarea sin iniciar.\n"); return;
+    }
+    print("NXFS tarea "); print(estado); put(' ');
+    number(tarea.leidos); put('/'); number(tarea.total); print(" bytes.\n");
+}
+#endif
 void nxk_es_mostrar_archivo(const char *nombre) {
     unsigned char datos[256];
     int n=nxk_archivo_leer(nombre,datos,sizeof(datos));
@@ -568,7 +585,7 @@ void kernel_main(void) {
             put('\n'); line[length] = 0;
             if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | discos estado | espacios | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nproceso resumen | proceso dependencias | proceso dormir | proceso preempcion | proceso demo | proceso cargar nombre.nxe | proceso listar | proceso paso ID\nproceso ejecutar | proceso liberar ID\nproceso enviar ID VALOR | proceso cancelar ID\nproceso permisos ID MASCARA\nproceso memoria ID LIMITE\nproceso proteger ID BASE CANTIDAD ESCRITURA\nproceso destinos ID [ID1,ID2]\nproceso archivos ID [nombre1,nombre2]\nusuario espacios | usuario listar | usuario cargar archivo.nxe | usuario turno ID | usuario liberar ID\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe\nvolumen montar | volumen estado | volumen desmontar | volumen listar | volumen leer nombre\n"
 #if defined(__i386__)
-                "volumen verificar | discos reiniciar\n"
+                "volumen verificar | discos reiniciar\nvolumen iniciar nombre | volumen paso | volumen progreso | volumen cancelar\n"
 #endif
                 "escribir nombre texto | agregar nombre texto\nleer nombre | archivo info nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
@@ -649,6 +666,18 @@ void kernel_main(void) {
                 for (unsigned i=0;i<8;++i) { const char *s=nxk_volumen_nombre(i); if (s) { print(s); put('\n'); } }
             }
 #if defined(__i386__)
+            else if (prefijo(line,"volumen iniciar ")) {
+                int r=nxk_volumen_tarea_iniciar(line+16);
+                if (r==-3) print("NXFS ya tiene una tarea pendiente.\n");
+                else if (r) print("No se pudo iniciar la tarea NXFS.\n");
+                else mostrar_progreso_nxfs();
+            }
+            else if (nxk_equal(line,"volumen paso") || nxk_equal(line,"volumen progreso") ||
+                     nxk_equal(line,"volumen cancelar")) {
+                if (nxk_equal(line,"volumen paso")) nxk_volumen_tarea_paso();
+                else if (nxk_equal(line,"volumen cancelar")) nxk_volumen_tarea_cancelar();
+                mostrar_progreso_nxfs();
+            }
             else if (nxk_equal(line, "volumen verificar")) {
                 int total=nxk_volumen_estado();
                 if (total<0) print("Volumen NXFS desmontado.\n");

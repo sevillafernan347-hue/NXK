@@ -3,6 +3,14 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.41 · Verificación NXFS entre turnos
+
+- El kernel puede verificar un archivo leyendo un sector después de cada
+  turno CPL3. La consola permite iniciarlo, avanzar, consultar y cancelar.
+- La tarea usa un sector de pila y acumula la huella hasta el final.
+  Termina ante una lectura fallida, una huella incorrecta o un cambio de volumen.
+- [Contrato y pruebas](ENTREGA-VERIFICACION-TURNOS.md).
+
 ## v0.0.40 · Recuperación del canal IDE
 
 - `discos reiniciar` emite SRST con esperas PIT y comprueba el estado,
