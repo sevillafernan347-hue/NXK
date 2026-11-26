@@ -324,6 +324,8 @@ devuelto por el kernel para que el programa decida como tratar un error:
 
 - `leer_archivo_en(nombre, direccion, cantidad, desplazamiento)` lee desde un
   archivo visible y devuelve cuantos bytes copio, entre0 y256, o un error.
+  Si el archivo está en NXFS, un proceso gestionado cede el turno mientras
+  el kernel comprueba el contenido y reanuda la llamada con el resultado.
 - `guardar_archivo_desde(nombre, direccion, cantidad)` guarda hasta256bytes
   en un archivo RAM y retorna0 o un error. No requiere terminador de texto.
 - `mostrar_memoria(direccion, cantidad)` muestra hasta256bytes y retorna la

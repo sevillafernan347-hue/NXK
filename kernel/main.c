@@ -560,6 +560,9 @@ void kernel_main(void) {
 #endif
     print("NXK: BOOT PASS\n");
     out8(0xf4, 0x10);
+    /* La imagen de pruebas ya agoto el heap y solo espera la salida QEMU.
+     * Si no hay dispositivo de salida, detener en vez de abrir la consola. */
+    nxk_es_detener();
 #endif
 #ifdef NXK_INTERFAZ
     nxk_interfaz_limpiar();
@@ -787,7 +790,7 @@ void kernel_main(void) {
                     print("Procesos registrados "); number(r.registrados);
                     print(" pendientes "); number(r.pendientes); print(" finalizados "); number(r.finalizados);
                     print(" mensajes "); number(r.mensajes); print(" referencias_fin "); number(r.referencias_fin); put('\n');
-                    static const char *const nombres[]={" libre "," listo "," ejecutando "," terminado "," fallido "," dormido "," recibir "," cancelado "," enviar "," fin "};
+                    static const char *const nombres[]={" libre "," listo "," ejecutando "," terminado "," fallido "," dormido "," recibir "," cancelado "," enviar "," fin "," disco "};
                     print("Estados:");
                     for (unsigned i=0;i<NXK_PROCESO_ESTADOS;++i) { print(nombres[i]); number(r.estados[i]); }
                     put('\n');

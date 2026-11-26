@@ -3,6 +3,15 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.42 · Lecturas NXFS diferidas para procesos
+
+- Un proceso que solicita datos de NXFS puede esperar mientras avanzan otros
+  procesos. El kernel lee un sector por paso y verifica el archivo antes
+  de entregar el tramo a la aplicación.
+- El destino permanece reservado hasta completar o cancelar la petición.
+  Se vuelven a comprobar los permisos y la vigencia del montaje.
+- [Contrato y pruebas](ENTREGA-LECTURA-DIFERIDA.md).
+
 ## v0.0.41 · Verificación NXFS entre turnos
 
 - El kernel puede verificar un archivo leyendo un sector después de cada

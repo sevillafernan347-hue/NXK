@@ -49,4 +49,16 @@ int nxk_volumen_tarea_iniciar(const char *nombre);
 void nxk_volumen_tarea_paso(void);
 void nxk_volumen_tarea_cancelar(void);
 struct nxk_volumen_tarea nxk_volumen_tarea_consultar(void);
+
+/* Descriptor kernel copiado al suspender. La revision lo liga al montaje. */
+struct nxk_volumen_lectura {
+    uint32_t lba,longitud,huella,revision;
+};
+#define NXK_VOLUMEN_LECTURA_PENDIENTE 257
+int nxk_volumen_lectura_preparar(const char *nombre,struct nxk_volumen_lectura *salida);
+/* Hasta un sector. Pendiente no escribe en salida, igual que un error.
+ * Solo el planificador x86 puede usar un ID y un destino kernel. */
+int nxk_volumen_lectura_paso(uint32_t id,const struct nxk_volumen_lectura *archivo,
+                            uint32_t posicion,uint32_t capacidad,void *salida);
+void nxk_volumen_lectura_olvidar(uint32_t id);
 #endif

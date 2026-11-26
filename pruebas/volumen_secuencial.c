@@ -5,7 +5,7 @@
 #include "ata.h"
 #include "volumen.h"
 
-static unsigned char disco[10][512], temporal[4096];
+static unsigned char disco[10][512], temporal[4096], diferido[4096];
 static unsigned lecturas, reservas, visitas;
 static int fallar_reserva;
 static uint32_t revision, generacion, fallar_lba=UINT32_MAX;
@@ -26,10 +26,9 @@ int nxk_ata_leer_sector(unsigned unidad,uint32_t lba,void *destino) {
     return 0;
 }
 void *nxk_alloc(size_t bytes) {
-    assert(bytes==sizeof(temporal) && !reservas);
+    assert(bytes==sizeof(temporal) && reservas<2);
     if (fallar_reserva) return 0;
-    ++reservas;
-    return temporal;
+    return reservas++ ? diferido : temporal;
 }
 int nxk_equal(const char *a,const char *b) { return strcmp(a,b)==0; }
 
@@ -114,6 +113,48 @@ static void probar_tarea(void) {
     assert(nxk_volumen_tarea_iniciar("b")==NXK_VOLUMEN_TAREA_INVALIDADA);
     assert(lecturas==23 && reservas==1);
     puts("NXFS HOST OK: tarea por sectores, coexistencia con lectura contigua, cancelacion y cambios de disco.");
+}
+
+static void probar_lectura_diferida(void) {
+    struct nxk_volumen_lectura a;
+    unsigned char salida[256];
+    revision=10;
+    assert(!nxk_volumen_montar() && !nxk_volumen_lectura_preparar("a",&a));
+    lecturas=0;
+    memset(salida,0xa5,sizeof(salida));
+    fallar_reserva=1;
+    assert(nxk_volumen_lectura_paso(257,&a,0,256,salida)==-1 && !lecturas && reservas==1);
+    fallar_reserva=0;
+    for (unsigned i=0;i<7;++i) {
+        assert(nxk_volumen_lectura_paso(257,&a,0,256,salida)==NXK_VOLUMEN_LECTURA_PENDIENTE);
+        assert(lecturas==i+1);
+        for (unsigned j=0;j<sizeof(salida);++j) assert(salida[j]==0xa5);
+    }
+    assert(nxk_volumen_lectura_paso(257,&a,0,256,salida)==256 && lecturas==8);
+    for (unsigned p=256;p<4096;p+=256) {
+        assert(nxk_volumen_lectura_paso(257,&a,p,256,salida)==256 && lecturas==8);
+        for (unsigned i=0;i<sizeof(salida);++i) assert(salida[i]==(p+i)%251);
+    }
+    /* Otro ID no usa una copia verificada para el solicitante anterior. */
+    for (unsigned i=0;i<7;++i)
+        assert(nxk_volumen_lectura_paso(257,&a,0,256,salida)==NXK_VOLUMEN_LECTURA_PENDIENTE);
+    assert(nxk_volumen_lectura_paso(257,&a,0,256,salida)==256 && lecturas==16);
+    assert(nxk_volumen_lectura_paso(513,&a,256,256,salida)==NXK_VOLUMEN_LECTURA_PENDIENTE);
+    assert(lecturas==17 && reservas==2);
+    nxk_volumen_lectura_olvidar(513);
+    assert(nxk_volumen_lectura_paso(513,&a,256,256,salida)==NXK_VOLUMEN_LECTURA_PENDIENTE);
+    ++revision;
+    assert(nxk_volumen_lectura_paso(513,&a,256,256,salida)==-1 && lecturas==18);
+
+    assert(!nxk_volumen_lectura_preparar("a",&a));
+    disco[8][511]^=1;
+    memset(salida,0xa5,sizeof(salida));
+    for (unsigned i=0;i<7;++i)
+        assert(nxk_volumen_lectura_paso(257,&a,510,16,salida)==NXK_VOLUMEN_LECTURA_PENDIENTE);
+    assert(nxk_volumen_lectura_paso(257,&a,510,16,salida)==-1 && lecturas==26);
+    for (unsigned i=0;i<sizeof(salida);++i) assert(salida[i]==0xa5);
+    disco[8][511]^=1;
+    puts("NXFS HOST OK: lectura diferida, ocho sectores para 4 KiB, aislamiento y error final sin copia.");
 }
 
 int main(int argc,char **argv) {
@@ -228,5 +269,6 @@ int main(int argc,char **argv) {
     assert(nxk_volumen_estado()==-1 && nxk_volumen_montar()==-1 && lecturas==43);
     puts("NXFS HOST OK: reinicio de canal invalida catalogo y copia verificada.");
     probar_tarea();
+    probar_lectura_diferida();
     return 0;
 }

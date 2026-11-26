@@ -15,9 +15,14 @@ struct proceso {
     uint32_t envio_pendiente,fin_pendiente,valor_pendiente,buffer_fin;
     char archivos[NXK_PROCESO_ARCHIVOS_MAX][24];
     uint32_t destinos[NXK_PROCESO_DESTINOS_MAX];
+    struct nxk_volumen_lectura lectura;
+    uint32_t buffer_lectura,cantidad_lectura,posicion_lectura;
+    char nombre_lectura[24];
 };
 static struct proceso procesos[NXK_ESPACIOS_MAX];
 static unsigned cursor;
+static uint32_t lectura_activa;
+static unsigned cursor_disco;
 extern uint32_t nxk_reloj_ticks(void);
 /* Plazos inferiores a media vuelta, sin comparar el valor absoluto con cero. */
 static int vencido(uint32_t ahora,uint32_t plazo) { return ahora-plazo<0x80000000u; }
@@ -37,7 +42,10 @@ static int contexto_kernel(void) {
  * el PCB antes de consultar, usarlo o asociar una generacion nueva. */
 static void validar_slot(unsigned slot) {
     struct proceso *p=&procesos[slot]; struct nxk_espacio_info espacio;
-    if (p->info.estado && nxk_espacio_consultar(p->info.id,&espacio)) memset(p,0,sizeof(*p));
+    if (p->info.estado && nxk_espacio_consultar(p->info.id,&espacio)) {
+        nxk_volumen_lectura_olvidar(p->info.id);
+        memset(p,0,sizeof(*p));
+    }
 }
 /* No resolver esperas al seguir una dependencia: evita recursion entre dos
  * PCB que apuntan entre si y conserva comprobacion del ID de generacion. */
@@ -284,6 +292,8 @@ static void limpiar_espera(struct proceso *p) {
     p->buffer_mensaje=0; p->recepcion_pendiente=0; p->info.despertar=0;
     p->envio_pendiente=p->fin_pendiente=p->valor_pendiente=p->buffer_fin=0;
     p->info.esperando=0;
+    p->cantidad_lectura=0;
+    nxk_volumen_lectura_olvidar(p->info.id);
 }
 static void retirar_mensaje(struct proceso *p) {
     memset(&p->buzon[p->primero],0,sizeof(p->buzon[0]));
@@ -350,7 +360,58 @@ static int forma_ciclo(struct proceso *actual,struct proceso *destino) {
     return 1;
 }
 static int pendiente(const struct proceso *p) {
-    return p->recepcion_pendiente || p->envio_pendiente || p->fin_pendiente;
+    return p->recepcion_pendiente || p->envio_pendiente || p->fin_pendiente || p->cantidad_lectura;
+}
+
+int nxk_proceso_pedir_lectura(uint32_t id,const char *nombre,uint32_t destino,
+                              uint32_t cantidad,uint32_t posicion) {
+    struct proceso *p=referencia(id);
+    struct nxk_volumen_lectura lectura;
+    if (!ocupado || !p || p->info.estado!=NXK_PROCESO_EJECUTANDO || pendiente(p) ||
+        !cantidad || cantidad>256 || nxk_volumen_lectura_preparar(nombre,&lectura) ||
+        posicion>=lectura.longitud) return -1;
+    p->lectura=lectura;
+    p->buffer_lectura=destino;
+    p->posicion_lectura=posicion;
+    unsigned i=0;
+    do { p->nombre_lectura[i]=nombre[i]; } while (nombre[i++]);
+    p->cantidad_lectura=cantidad;
+    return 0;
+}
+
+/* Un solo trabajo activo. Tras completarlo, la siguiente eleccion empieza
+ * despues de su slot, para que un lector no desplace a otro ya en espera. */
+static int avanzar_disco(void) {
+    struct proceso *p=referencia(lectura_activa);
+    if (!p || p->info.estado!=NXK_PROCESO_ESPERANDO_DISCO) {
+        p=0;
+        for (unsigned n=0;n<NXK_ESPACIOS_MAX;++n) {
+            unsigned i=(cursor_disco+n)%NXK_ESPACIOS_MAX;
+            validar_slot(i);
+            if (procesos[i].info.estado==NXK_PROCESO_ESPERANDO_DISCO) {
+                p=&procesos[i];
+                lectura_activa=p->info.id;
+                cursor_disco=(i+1)%NXK_ESPACIOS_MAX;
+                break;
+            }
+        }
+        if (!p) { lectura_activa=0; return 0; }
+    }
+    unsigned char datos[256];
+    uint32_t id=p->info.id;
+    int r=-5;
+    if ((p->info.permisos&NXK_PERM_LEER_ARCHIVOS) &&
+        nxk_proceso_archivo_permitido(id,p->nombre_lectura)==1) {
+        r=nxk_volumen_lectura_paso(id,&p->lectura,p->posicion_lectura,p->cantidad_lectura,datos);
+        if (r==NXK_VOLUMEN_LECTURA_PENDIENTE) return 1;
+        if (r>0 && nxk_espacio_escribir(id,p->buffer_lectura,datos,(unsigned)r)) r=-1;
+    }
+    if (r<0) nxk_volumen_lectura_olvidar(id);
+    p->contexto[11]=(uint32_t)r;
+    p->cantidad_lectura=0;
+    p->info.estado=NXK_PROCESO_LISTO;
+    lectura_activa=0;
+    return 1;
 }
 static struct nxk_proceso_resultado resultado_de(const struct proceso *p) {
     return (struct nxk_proceso_resultado){p->info.estado,
@@ -393,6 +454,10 @@ int nxk_proceso_pagina_retenida(uint32_t id,uint32_t pagina) {
     if (pagina&4095u) return 0;
     struct proceso *p=referencia(id);
     if (!p || terminal(p)) return 0;
+    if (p->cantidad_lectura) {
+        uint32_t inicio=p->buffer_lectura;
+        return pagina==(inicio&~4095u) || pagina==((inicio+p->cantidad_lectura-1)&~4095u);
+    }
     uint32_t buffer=p->recepcion_pendiente ? p->buffer_mensaje : p->fin_pendiente ? p->buffer_fin : 0;
     /* Ambos registros tienen ocho bytes. Validacion previa impide overflow;
      * comprobarlo tambien aqui mantiene acotada una consulta de metadatos. */
@@ -404,7 +469,7 @@ int nxk_proceso_cancelar(uint32_t id) {
     struct proceso *p=buscar(id); if (!p) return -1;
     if (p->info.estado!=NXK_PROCESO_LISTO && p->info.estado!=NXK_PROCESO_DORMIDO &&
         p->info.estado!=NXK_PROCESO_ESPERANDO_MENSAJE && p->info.estado!=NXK_PROCESO_ESPERANDO_ENVIO &&
-        p->info.estado!=NXK_PROCESO_ESPERANDO_FIN) return -2;
+        p->info.estado!=NXK_PROCESO_ESPERANDO_FIN && p->info.estado!=NXK_PROCESO_ESPERANDO_DISCO) return -2;
     limpiar_espera(p); memset(p->buzon,0,sizeof(p->buzon)); p->primero=0; p->info.mensajes=0;
     p->info.estado=NXK_PROCESO_CANCELADO;
     memset(&p->info.ultimo,0,sizeof(p->info.ultimo)); p->info.ultimo.salida=UINT32_MAX;
@@ -482,6 +547,7 @@ static int ejecutar_uno(struct proceso *p) {
         p->info.estado=NXK_PROCESO_ESPERANDO_FIN; p->info.despertar=despertar;
         incrementar(&p->info.esperas_fin);
     }
+    else if (cedido==NXK_USUARIO_DISCO) p->info.estado=NXK_PROCESO_ESPERANDO_DISCO;
     else if (cedido) {
         p->info.estado=NXK_PROCESO_LISTO;
         if (cedido==NXK_USUARIO_QUANTUM) incrementar(&p->info.preempciones);
@@ -490,7 +556,7 @@ static int ejecutar_uno(struct proceso *p) {
     else { limpiar_espera(p); p->info.estado=NXK_PROCESO_TERMINADO; }
     /* El contexto kernel ya esta restaurado. Intercalar como maximo un
      * sector de NXFS antes de elegir el siguiente proceso. */
-    nxk_volumen_tarea_paso();
+    if (!avanzar_disco()) nxk_volumen_tarea_paso();
     return 0;
 }
 int nxk_proceso_paso(uint32_t id) {
@@ -504,7 +570,7 @@ int nxk_procesos_ejecutar(uint32_t presupuesto) {
     if (ocupado || !contexto_kernel()) return -3;
     ocupado=1; uint32_t usados=0; int r=0;
     for (;;) {
-        unsigned elegida=NXK_ESPACIOS_MAX,esperando=0;
+        unsigned elegida=NXK_ESPACIOS_MAX,esperando=0,disco=0;
         for (unsigned n=0;n<NXK_ESPACIOS_MAX;++n) {
             unsigned i=(cursor+n)%NXK_ESPACIOS_MAX; depurar(i);
             if (procesos[i].info.estado==NXK_PROCESO_DORMIDO ||
@@ -512,8 +578,15 @@ int nxk_procesos_ejecutar(uint32_t presupuesto) {
                 procesos[i].info.estado==NXK_PROCESO_ESPERANDO_ENVIO ||
                 procesos[i].info.estado==NXK_PROCESO_ESPERANDO_FIN) ++esperando;
             if (procesos[i].info.estado==NXK_PROCESO_LISTO) { elegida=i; break; }
+            if (procesos[i].info.estado==NXK_PROCESO_ESPERANDO_DISCO) disco=1;
         }
-        if (elegida==NXK_ESPACIOS_MAX) { r=esperando ? 2 : 0; break; }
+        if (elegida==NXK_ESPACIOS_MAX) {
+            if (!disco) { r=esperando ? 2 : 0; break; }
+            if (usados==presupuesto) { r=1; break; }
+            if (!avanzar_disco()) break;
+            ++usados;
+            continue;
+        }
         if (usados==presupuesto) { r=1; break; }
         cursor=(elegida+1)%NXK_ESPACIOS_MAX; ++usados;
         r=ejecutar_uno(&procesos[elegida]); if (r) break;
@@ -526,6 +599,7 @@ int nxk_proceso_liberar(uint32_t id) {
     if (p->info.estado==NXK_PROCESO_EJECUTANDO) return -2;
     if (nxk_proceso_retenido(id)) return -5;
     int r=nxk_espacio_destruir(id); if (r) return r;
+    nxk_volumen_lectura_olvidar(id);
     memset(p,0,sizeof(*p)); return 0;
 }
 /* Dos programas conservan EBX y ESP durante dos cesiones. Tras la primera

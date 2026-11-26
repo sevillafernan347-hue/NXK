@@ -18,6 +18,11 @@ static struct {
     struct nxk_volumen_tarea progreso;
     uint32_t lba,esperada,huella,revision;
 } tarea;
+/* Una reserva adicional reutilizable. La ruta sincrona conserva su copia. */
+static struct {
+    uint32_t id,lba,revision,avance,huella,siguiente;
+    unsigned char *datos;
+} lector;
 #endif
 static uint32_t u32(const unsigned char *p) { return p[0]|(uint32_t)p[1]<<8|(uint32_t)p[2]<<16|(uint32_t)p[3]<<24; }
 static uint32_t acumular_huella(uint32_t h,const unsigned char *p,size_t n) {
@@ -35,6 +40,7 @@ void nxk_volumen_desmontar(void) {
 #if defined(__i386__) || defined(NXK_VOLUMEN_PRUEBA_HOST)
     if (tarea.progreso.estado==NXK_VOLUMEN_TAREA_PENDIENTE)
         tarea.progreso.estado=NXK_VOLUMEN_TAREA_INVALIDADA;
+    lector.id=0;
 #endif
     /* El buffer del heap fijo se reutiliza, pero sus bytes ya no son validos. */
     serie=0;
@@ -166,6 +172,60 @@ void nxk_volumen_tarea_cancelar(void) {
 struct nxk_volumen_tarea nxk_volumen_tarea_consultar(void) {
     comprobar_tarea();
     return tarea.progreso;
+}
+
+int nxk_volumen_lectura_preparar(const char *nombre,struct nxk_volumen_lectura *salida) {
+    const struct entrada *a=buscar(nombre);
+    uint32_t revision=nxk_ata_revision_esclavo();
+    if (!a || revision==UINT32_MAX) return -1;
+    *salida=(struct nxk_volumen_lectura){a->lba,a->longitud,a->huella,revision};
+    return 0;
+}
+
+void nxk_volumen_lectura_olvidar(uint32_t id) {
+    if (lector.id==id) lector.id=0;
+}
+
+int nxk_volumen_lectura_paso(uint32_t id,const struct nxk_volumen_lectura *a,
+                            uint32_t posicion,uint32_t capacidad,void *salida) {
+    comprobar_generacion();
+    if (!montado || a->revision!=nxk_ata_revision_esclavo() ||
+        posicion>=a->longitud || a->longitud>4096 || !capacidad || capacidad>256) {
+        nxk_volumen_lectura_olvidar(id);
+        return -1;
+    }
+    if (!lector.datos) lector.datos=nxk_alloc(4096);
+    if (!lector.datos) return -1;
+    if (lector.id!=id || lector.lba!=a->lba || lector.revision!=a->revision ||
+        (lector.avance==a->longitud && (!posicion || posicion!=lector.siguiente))) {
+        lector.id=id;
+        lector.lba=a->lba;
+        lector.revision=a->revision;
+        lector.avance=0;
+        lector.huella=FNV_INICIO;
+    }
+    if (lector.avance<a->longitud) {
+        unsigned char *sector=lector.datos+lector.avance;
+        if (nxk_ata_leer_sector(1,a->lba+lector.avance/512,sector)) {
+            lector.id=0;
+            return -1;
+        }
+        uint32_t n=a->longitud-lector.avance;
+        if (n>512) n=512;
+        lector.huella=acumular_huella(lector.huella,sector,n);
+        lector.avance+=n;
+        if (lector.avance<a->longitud) return NXK_VOLUMEN_LECTURA_PENDIENTE;
+        if (lector.huella!=a->huella) {
+            lector.id=0;
+            return -1;
+        }
+    }
+    uint32_t n=a->longitud-posicion;
+    if (n>capacidad) n=capacidad;
+    memcpy(salida,lector.datos+posicion,n);
+    lector.siguiente=posicion+n;
+    if (lector.siguiente==a->longitud) lector.id=0;
+    return (int)n;
 }
 #endif
 

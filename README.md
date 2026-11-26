@@ -1,7 +1,11 @@
 # NXK y NEXTRY
 
-Versión **0.0.41** · [Versiones e historial](VERSIONES.md) ·
+Versión **0.0.42** · [Versiones e historial](VERSIONES.md) ·
 [Cambios por entrega](CAMBIOS.md)
+
+Los procesos NEXTRY pueden ceder el turno mientras NXFS lee y verifica un
+archivo. El kernel entrega el tramo al reanudar el proceso. Consulta
+[el contrato y las pruebas](ENTREGA-LECTURA-DIFERIDA.md).
 
 `volumen iniciar nombre` prepara una verificación NXFS que avanza entre
 turnos de procesos. `volumen progreso` muestra cuántos bytes se comprobaron.

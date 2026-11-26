@@ -347,6 +347,15 @@ static void usuario_servicio(uint32_t *c) {
     if (!usuario_archivo_autorizado(c,nombre)) return;
     if (servicio==4) { if (!nxk_archivo_borrar(nombre)) c[11]=0; return; }
     if (cantidad>256 || !usuario_rango(buffer,cantidad,servicio==3 || servicio==5)) return;
+    if (servicio==5 && contexto_reanudable && cantidad) {
+        struct nxk_archivo_info info;
+        if (!nxk_archivo_info(nombre,&info) && info.origen==NXK_ARCHIVO_NXFS && c[5]<info.longitud) {
+            if (nxk_proceso_pedir_lectura(usuario_id_activo,nombre,buffer,cantidad,c[5])) return;
+            memcpy(contexto_reanudable,c,17*sizeof(uint32_t));
+            motivo_retorno=NXK_USUARIO_DISCO;
+            nxk_usuario_cs_guardado=c[13]; nxk_usuario_abortar(0);
+        }
+    }
     if (servicio==2 || servicio==6) {
         if (cantidad) memcpy(datos,(void *)(uintptr_t)buffer,cantidad);
         int r=servicio==6 ? nxk_archivo_agregar(nombre,datos,cantidad) : nxk_archivo_escribir(nombre,datos,cantidad);

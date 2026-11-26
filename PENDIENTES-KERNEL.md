@@ -1,13 +1,13 @@
 # Trabajo restante del kernel
 
-Estado tras v0.0.41. Son hitos por implementar y verificar, no porcentajes.
+Estado tras v0.0.42.
 
 | Area | Existe | Siguiente evidencia necesaria |
 | --- | --- | --- |
-| Procesos | Cuatro PCB CPL3, memoria privada, mensajes, resultados, permisos y filtros de nombres de archivo | Espera de E/S, permisos por canal/objeto y mas recursos por proceso |
-| Planificacion | Tareas kernel, preempción CPL3, esperas y verificación NXFS entre turnos | Espera de dispositivos por proceso, secciones criticas y pruebas de carreras |
+| Procesos | Cuatro PCB CPL3, memoria privada, mensajes, resultados, permisos y espera para lecturas NXFS | Permisos por canal u objeto y más recursos por proceso |
+| Planificación | Tareas kernel, preempción CPL3 y lecturas NXFS entre turnos | Esperas para otros dispositivos, secciones críticas y pruebas de carreras |
 | Memoria | Paginas fisicas, diagnostico de fragmentacion, guardas, espacios sobre paginas separadas, cuotas, buffers, lotes privados y permisos RO/RW de datos | Mapas mayores, asignacion por bytes, NX y memoria compartida |
-| Archivos | RAMFS, NXFS con montaje y verificación de contenido, instantáneas NXPD1 | Archivos grandes, directorios, varios volúmenes y recuperación más amplia |
+| Archivos | RAMFS, NXFS con montaje, verificación y lecturas diferidas, instantáneas NXPD1 | Archivos grandes, directorios, varios volúmenes y recuperación más amplia |
 | Hardware | BIOS, VGA texto, teclado basico, PIT, ATA PIO e inventario PCI | Controladores USB/red/audio/graficos, ECAM/ACPI y pruebas por dispositivo |
 | NEXTRY | Compilador a C y apps protegidas iniciales | Parametros/estructuras/punteros y migracion gradual de puentes C |
 | Compatibilidad | NXE propio y demo limitada Win32 | ABI estable y APIs documentadas; compatibilidad Windows general pendiente |
@@ -20,8 +20,9 @@ y terminal con teclado; faltan raton, ventanas y aplicaciones graficas.
 ATA valida inicio y cierre de lectura/IDENTIFY. Sus plazos usan el reloj PIT
 y el límite de sondeos sigue activo. `discos estado` consulta la fase y el
 límite alcanzado sin acceder al disco. El canal primario se puede reiniciar
-manualmente. Quedan pendientes la coordinación con procesos que esperan
-E/S, IRQ, DMA y AHCI. Un fallo al escribir no revierte bytes enviados al disco.
+manualmente. Cada paso NXFS aún usa una lectura ATA PIO síncrona.
+Quedan pendientes IRQ, DMA y AHCI. Un fallo al escribir no revierte bytes
+enviados al disco.
 
 El siguiente bloque propuesto es espera de dispositivos, recursos por proceso
 y permisos por canal/objeto. Los permisos generales y filtros por nombre ya existen. IPC de valores uint32 ya espera espacio al enviar y permite

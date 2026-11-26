@@ -7,8 +7,8 @@
 enum nxk_proceso_estado { NXK_PROCESO_LIBRE, NXK_PROCESO_LISTO,
     NXK_PROCESO_EJECUTANDO, NXK_PROCESO_TERMINADO, NXK_PROCESO_FALLIDO, NXK_PROCESO_DORMIDO,
     NXK_PROCESO_ESPERANDO_MENSAJE, NXK_PROCESO_CANCELADO,
-    NXK_PROCESO_ESPERANDO_ENVIO, NXK_PROCESO_ESPERANDO_FIN };
-#define NXK_PROCESO_ESTADOS (NXK_PROCESO_ESPERANDO_FIN+1u)
+    NXK_PROCESO_ESPERANDO_ENVIO, NXK_PROCESO_ESPERANDO_FIN, NXK_PROCESO_ESPERANDO_DISCO };
+#define NXK_PROCESO_ESTADOS (NXK_PROCESO_ESPERANDO_DISCO+1u)
 #define NXK_PROCESO_BUZON_MAX 4u
 #define NXK_PROCESO_ARCHIVOS_MAX 4u
 #define NXK_PROCESO_DESTINOS_MAX 4u
@@ -97,6 +97,9 @@ int nxk_proceso_enviar(uint32_t destino,uint32_t valor);
 int nxk_proceso_enviar_desde(uint32_t origen,uint32_t destino,uint32_t valor);
 int nxk_proceso_recibir_actual(uint32_t id,struct nxk_proceso_mensaje *salida);
 int nxk_proceso_preparar_espera(uint32_t id,uint32_t buffer_virtual);
+/* INT81/5 gestionado, con nombre kernel y destino ya autorizado. */
+int nxk_proceso_pedir_lectura(uint32_t id,const char *nombre,uint32_t destino,
+                              uint32_t cantidad,uint32_t posicion);
 /* Puentes INT81/14..15: solo proceso actual. 0 exito, 1 consulta/plazo,
  * 2 preparar suspension, -1 contrato/ID, -3 envio a terminal, -4 ciclo,
  * -5 envio sin permiso (tambien si se revoca durante la espera).
@@ -108,14 +111,15 @@ int nxk_proceso_esperar_fin_actual(uint32_t id,uint32_t destino,uint32_t buffer_
  * liberacion del destino hasta entregar, cancelar o retirar al observador.
  * Solo consulta metadatos y generaciones; no requiere el CR3 del kernel. */
 int nxk_proceso_retenido(uint32_t id);
-/* Retencion de una pagina virtual alineada por el buffer8 de recepcion/FIN
- * de este proceso vivo. Incluye LISTO tras plazo hasta consumir su espera;
- * no resuelve plazos. Cancelar/entregar/liberar retira la retencion. */
+/* Retencion de una pagina virtual alineada por un buffer de disco, recepcion
+ * o FIN. Tras un plazo, LISTO conserva el buffer hasta consumir la espera.
+ * Cancelar, entregar o liberar retira la retencion. */
 int nxk_proceso_pagina_retenida(uint32_t id,uint32_t pagina);
 /* Cancelar LISTO/DORMIDO o cualquier espera: limpia buzon y espera, retiene ID y
  * memoria hasta liberar. -1 ID, -2 estado terminal, -3 contexto/gestor ocupado. */
 int nxk_proceso_cancelar(uint32_t id);
-/* Hasta1024 despachos: 0 sin pendientes, 1 presupuesto, 2 solo dormidos/esperas.
+/* Hasta 1024 turnos o pasos de disco sin proceso listo.
+ * 0 sin pendientes, 1 presupuesto, 2 solo dormidos u otras esperas.
  * Un fallo CPU de una app no impide ejecutar otras. Error del motor negativo. */
 int nxk_procesos_ejecutar(uint32_t presupuesto);
 /* -5 mientras otra espera FIN conserve una referencia al resultado. */
