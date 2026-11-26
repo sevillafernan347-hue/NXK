@@ -3,6 +3,16 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.44 · Endurecimiento de la ejecución de usuario
+
+- El segmento CS de CPL3 termina en la página de código. Al entrar en
+  modo usuario se bloquea el uso de registros extendidos y se restaura
+  CR0 al volver al kernel.
+- Las lecturas completas de NXFS gestionadas se planifican por pasos,
+  con un chequeo de capacidad previo. Los cargadores de demostración
+  rechazan entradas nulas.
+- [Hallazgos, alcance y pruebas](ENTREGA-SEGURIDAD-CPL3.md).
+
 ## v0.0.43 · Lecturas ATA por pasos
 
 - NXFS gestionado puede repartir entre turnos la espera de un mismo

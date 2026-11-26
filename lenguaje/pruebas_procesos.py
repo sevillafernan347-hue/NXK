@@ -15,6 +15,9 @@ c=bytearray();saltos=[]
 def emitir(s):c.extend(bytes.fromhex(s))
 def imm(op,n):c.extend(bytes.fromhex(op));c.extend(struct.pack('<I',n))
 def salto(op):emitir(op);saltos.append(len(c));c.extend(bytes(4))
+# LSL consulta el límite real del selector de código desde CPL3.
+imm('b8',43);emitir('0f 03 c0');salto('0f 85')
+imm('3d',0x400fff);salto('0f 85')
 for op,n in [('bb',0x12345678),('b9',0x22334455),('ba',0x33445566),('be',0x44556677),('bf',0x55667788),('bd',0x66778899)]:imm(op,n)
 imm('68',0x76543210);emitir('f9');imm('b8',9);emitir('cd 81');salto('0f 83')
 emitir('85 c0');salto('0f 85')
@@ -82,6 +85,12 @@ with log.open('wb',buffering=0) as salida:
         for archivo,vector in [('fpu.nxe',7)]:
             id=cargar(archivo);fin=paso(id,4);assert ('fallo, vector '+str(vector)).encode() in fin
             liberar(id)
+        comando('ejecutar usuario fpu.nxe',b'No se pudo cargar o ejecutar NXE2.')
+        comando('usuario estado',b'fallo, vector 7')
+        privado=comando('usuario cargar fpu.nxe',b'Programa privado ID ')
+        id=int(re.search(rb'Programa privado ID (\d+)',privado)[1])
+        comando(f'usuario turno {id}',b'fallo, vector 7')
+        comando(f'usuario liberar {id}',b'Programa privado liberado.')
         id=cargar('bucle.nxe');paso(id,1);assert b'preempciones 1' in info(id,1,1,0);liberar(id)
         id=cargar('segmentos.nxe');paso(id,1);paso(id,3);liberar(id)
         id=cargar('esp.nxe');comando('proceso paso '+str(id),b'No se pudo ejecutar proceso.');assert b'Error de motor 6' in info(id,4,1,0);liberar(id)
@@ -100,4 +109,4 @@ with log.open('wb',buffering=0) as salida:
         comando('help',b'proceso ejecutar')
     finally:p.terminate();p.wait(timeout=5)
 assert disco.read_bytes()==datos and arranque.read_bytes()==original
-print('PROCESOS OK: reanudacion GPR/CF/DF/ESP, NEXTRY, rondas, fallos y memoria estable.')
+print('PROCESOS OK: limite CS, FPU bloqueada en tres rutas, reanudacion y memoria estable.')

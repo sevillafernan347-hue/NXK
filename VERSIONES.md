@@ -7,6 +7,7 @@ y los cambios individuales en el [historial de commits](https://github.com/sevil
 
 | Versión | Cambio | Detalles |
 | --- | --- | --- |
+| [v0.0.44](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.44) | Endurecimiento de la ejecución de usuario x86 | [Auditoría y pruebas](ENTREGA-SEGURIDAD-CPL3.md) |
 | [v0.0.43](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.43) | Lecturas ATA por pasos entre turnos | [Guía y pruebas](ENTREGA-ATA-COOPERATIVA.md) |
 | [v0.0.42](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.42) | Lecturas NXFS diferidas para procesos | [Guía y pruebas](ENTREGA-LECTURA-DIFERIDA.md) |
 | [v0.0.41](https://github.com/sevillafernan347-hue/NXK/tree/v0.0.41) | Verificación NXFS entre turnos CPL3 | [Guía y pruebas](ENTREGA-VERIFICACION-TURNOS.md) |
@@ -64,6 +65,7 @@ en v0.0.38. Las otras versiones del índice tienen su propia etiqueta.
 - [Cambios por versión](CAMBIOS.md) resume lo que incluye cada entrega.
 - Las etiquetas permiten descargar el código fuente de esa versión.
   Para compilarlo, consulta [las herramientas](HERRAMIENTAS.md).
+- [Comparar v0.0.43 con v0.0.44](https://github.com/sevillafernan347-hue/NXK/compare/v0.0.43...v0.0.44)
 - [Comparar v0.0.42 con v0.0.43](https://github.com/sevillafernan347-hue/NXK/compare/v0.0.42...v0.0.43)
 - [Comparar v0.0.41 con v0.0.42](https://github.com/sevillafernan347-hue/NXK/compare/v0.0.41...v0.0.42)
 - [Comparar v0.0.40 con v0.0.41](https://github.com/sevillafernan347-hue/NXK/compare/v0.0.40...v0.0.41)

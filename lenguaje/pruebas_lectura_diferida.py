@@ -3,8 +3,9 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from pruebas_buffers_procesos import archivo, datos as escribir_datos, palabra, reservar
 from pruebas_cuotas_procesos import compilar
-from pruebas_dependencias import Maquina
+from pruebas_dependencias import Codigo, Maquina
 
 
 RAIZ = Path(__file__).resolve().parents[1]
@@ -34,6 +35,22 @@ FUENTE = """funcion inicio
     finalizar 42
 fin
 """
+
+
+def lector_completo():
+    c = Codigo()
+    reservar(c, 1)
+    destino = BASE + 32
+    escribir_datos(c, BASE, b'corto.txt\0')
+    escribir_datos(c, destino, b'ORIGINAL')
+    archivo(c, 3, BASE, destino, 4, ERROR)
+    palabra(c, destino, int.from_bytes(b'ORIG', 'little'))
+    palabra(c, destino + 4, int.from_bytes(b'INAL', 'little'))
+    archivo(c, 3, BASE, destino, 8, 8)
+    palabra(c, destino, int.from_bytes(b'NXK-', 'little'))
+    palabra(c, destino + 4, int.from_bytes(b'LIST', 'little'))
+    c.salir(42)
+    return c.terminar()
 
 
 def arrancar_lector(m, esperado):
@@ -69,10 +86,12 @@ def main():
     ejemplos = RAIZ / 'lenguaje/ejemplos'
     archivos = {
         'lector.nxe': compilar(carpeta, 'lector', fuente),
+        'completo.nxe': lector_completo(),
         'otro.nxe': compilar(carpeta, 'otro', ejemplos / 'proceso.nxf'),
         'mostrar.nxe': compilar(carpeta, 'mostrar', ejemplos / 'usuario_volumen.nxf'),
         'dato.txt': datos,
         'leeme.txt': datos,
+        'corto.txt': b'NXK-LIST',
     }
     m = Maquina(carpeta, 'diferida', archivos)
     try:
@@ -82,16 +101,18 @@ def main():
         a = arrancar_lector(m, 16)
         b = arrancar_lector(m, 16)
         otro = m.cargar('otro.nxe')
+        completo = m.cargar('completo.nxe')
         m.paso(a, DISCO)
         m.paso(otro, 1)
         m.paso(b, DISCO)
-        m.comando('proceso resumen', b' disco 2')
+        m.paso(completo, DISCO)
+        m.comando('proceso resumen', b' disco 3')
         for base in (BASE, BASE + 4096):
             m.comando(f'proceso proteger {a} {base} 1 0', b'No se pudo cambiar proteccion.')
         respuesta = m.comando('proceso ejecutar 1024', b'Procesos sin pendientes.')
         assert respuesta.count(b'IO_RESULTADO') == 2, respuesta
         assert b'Proceso NEXTRY: terminado' in respuesta
-        for id in (a, b, otro):
+        for id in (a, b, otro, completo):
             assert m.info(id)['estado'] == 3
             m.liberar(id)
 
@@ -147,7 +168,7 @@ def main():
         m.liberar(a)
     finally:
         m.cerrar()
-    print('NXFS CPL3 OK: dos lectores, concurrencia, destino cruzado, cancelacion, revocacion y 4 KiB.')
+    print('NXFS CPL3 OK: lectura completa y por tramos, concurrencia, cancelacion, revocacion y 4 KiB.')
 
 
 if __name__ == '__main__':

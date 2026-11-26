@@ -65,7 +65,7 @@ static uintptr_t resolver(uint32_t rva) {
     return 0;
 }
 int nxk_pe_cargar(const unsigned char *p, size_t longitud) {
-    if (longitud<64 || p[0]!='M' || p[1]!='Z') return -1;
+    if (!p || longitud<64 || p[0]!='M' || p[1]!='Z') return -1;
     uint32_t pe=u32(p+60);
     if (!rango(pe,24,longitud) || u32(p+pe)!=0x4550 || u16(p+pe+4)!=0x14c) return -2;
     uint32_t secciones=u16(p+pe+6), opt=pe+24, tamano_opt=u16(p+pe+20);

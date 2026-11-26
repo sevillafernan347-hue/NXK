@@ -16,7 +16,7 @@ static const NXE_API api = {
 int nxk_nxe_cargar(const unsigned char *p, size_t longitud) {
     /* Primero se valida el archivo completo: formato, arquitectura, limites y suma.
        Los codigos negativos indican rechazo; todavia no hay aislamiento de apps. */
-    if (longitud < 64 || p[0]!='N' || p[1]!='X' || p[2]!='E' || p[3]) return -1;
+    if (!p || longitud < 64 || p[0]!='N' || p[1]!='X' || p[2]!='E' || p[3]) return -1;
     if (p[4]!=1 || p[5] || p[7] || p[6]!=(sizeof(void*)==4 ? 1 : 2)) return -2;
     if (u32(p+8)!=64 || u32(p+12)!=0x180000) return -3;
     uint32_t entrada=u32(p+16), carga=u32(p+20), memoria=u32(p+24), suma=2166136261u;

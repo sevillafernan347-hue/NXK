@@ -63,6 +63,21 @@ void nxk_reloj_iniciar(void) {
  * Solo fatal, una CPU. No retorna ni se usa como planificador. */
 static uint64_t gdt_emergencia[7];
 static uint32_t tss_normal[26], tss_emergencia[26];
+/* CS de base cero y DPL3: el limite inclusivo termina en la pagina de
+ * codigo. El paginado sigue impidiendo ejecutar paginas supervisor bajas. */
+static uint32_t preparar_cpl3(uint32_t codigo) {
+    uint32_t limite=codigo>>12; /* G=1: el hardware agrega 0xfff al limite. */
+    uint32_t cr0;
+    gdt_emergencia[5]=0x00c0fa0000000000ULL |
+        (uint64_t)(limite&0xf0000u)<<32 | (limite&0xffffu);
+    __asm__ volatile("mov %%cr0,%0":"=r"(cr0));
+    /* TS+MP bloquean FPU/MMX/SSE y FWAIT hasta tener estado por proceso. */
+    __asm__ volatile("mov %0,%%cr0"::"r"(cr0|0xau):"memory");
+    return cr0;
+}
+static void restaurar_cr0(uint32_t cr0) {
+    __asm__ volatile("mov %0,%%cr0"::"r"(cr0):"memory");
+}
 static void descriptor_tss(unsigned indice,void *tss) {
     uintptr_t base=(uintptr_t)tss;
     unsigned char *d=(void *)&gdt_emergencia[indice];
@@ -85,7 +100,7 @@ int nxk_emergencia_iniciar(void) {
     unsigned char *pila=nxk_alloc(4096);
     if (!pila) return -2;
     for (unsigned i=0;i<24;++i) ((unsigned char *)gdt_emergencia)[i]=((const unsigned char *)(uintptr_t)anterior.base)[i];
-    gdt_emergencia[5]=0x00cffa000000ffffULL; /* CS usuario: selector 43. */
+    /* El CS de usuario se instala con su limite en cada entrada a CPL3. */
     gdt_emergencia[6]=0x00cff2000000ffffULL; /* DS usuario: selector 51. */
     descriptor_tss(3,tss_normal); descriptor_tss(4,tss_emergencia);
     tss_normal[25]=104u<<16; tss_emergencia[25]=104u<<16;
@@ -131,6 +146,7 @@ _Noreturn void nxk_usuario_probar(void) {
     paginas[pila/4096]=(uint32_t)pila|7;
     directorio[codigo>>22]|=4;
     __asm__ volatile("mov %0,%%cr3" :: "r"(0x200000u) : "memory");
+    preparar_cpl3((uint32_t)codigo);
     /* IF apagada en la prueba: IRQ0 aun no normaliza segmentos de usuario. */
     __asm__ volatile("mov $51,%%ax; mov %%ax,%%ds; mov %%ax,%%es;"
         "pushl $51; pushl %0; pushl $2; pushl $43; pushl %1; iret"
@@ -347,13 +363,17 @@ static void usuario_servicio(uint32_t *c) {
     if (!usuario_archivo_autorizado(c,nombre)) return;
     if (servicio==4) { if (!nxk_archivo_borrar(nombre)) c[11]=0; return; }
     if (cantidad>256 || !usuario_rango(buffer,cantidad,servicio==3 || servicio==5)) return;
-    if (servicio==5 && contexto_reanudable && cantidad) {
+    if ((servicio==3 || servicio==5) && contexto_reanudable && cantidad) {
+        uint32_t posicion=servicio==5 ? c[5] : 0;
         struct nxk_archivo_info info;
-        if (!nxk_archivo_info(nombre,&info) && info.origen==NXK_ARCHIVO_NXFS && c[5]<info.longitud) {
-            if (nxk_proceso_pedir_lectura(usuario_id_activo,nombre,buffer,cantidad,c[5])) return;
-            memcpy(contexto_reanudable,c,17*sizeof(uint32_t));
-            motivo_retorno=NXK_USUARIO_DISCO;
-            nxk_usuario_cs_guardado=c[13]; nxk_usuario_abortar(0);
+        if (!nxk_archivo_info(nombre,&info) && info.origen==NXK_ARCHIVO_NXFS) {
+            if (servicio==3 && info.longitud>cantidad) return;
+            if (posicion<info.longitud) {
+                if (nxk_proceso_pedir_lectura(usuario_id_activo,nombre,buffer,cantidad,posicion)) return;
+                memcpy(contexto_reanudable,c,17*sizeof(uint32_t));
+                motivo_retorno=NXK_USUARIO_DISCO;
+                nxk_usuario_cs_guardado=c[13]; nxk_usuario_abortar(0);
+            }
         }
     }
     if (servicio==2 || servicio==6) {
@@ -438,13 +458,9 @@ static int ejecutar_privado(uint32_t id,uint32_t *marco,struct nxk_usuario_resul
         usuario_limite=USUARIO_TURNO_TICKS;
         fallo_vector=fallo_error=fallo_direccion=fallo_eip=fallo_ocurrido=fallo_pila=0;
         usuario_activo=1;
-        uint32_t cr0_antes;
-        __asm__ volatile("mov %%cr0,%0":"=r"(cr0_antes));
-        /* FPU/MMX/SSE no tienen contexto por proceso todavia: #NM en vez de
-         * compartir registros. TS+MP tambien bloquean FWAIT. */
-        if (marco) __asm__ volatile("mov %0,%%cr0"::"r"(cr0_antes|0xau):"memory");
+        uint32_t cr0_antes=preparar_cpl3(NXK_ESPACIO_CODIGO);
         uint32_t resultado=marco ? nxk_usuario_reanudar(marco) : nxk_usuario_entrar(NXK_ESPACIO_CODIGO,NXK_ESPACIO_PILA+4096);
-        if (marco) __asm__ volatile("mov %0,%%cr0"::"r"(cr0_antes):"memory");
+        restaurar_cr0(cr0_antes);
         uint32_t regreso; __asm__ volatile("mov %%cr3,%0":"=r"(regreso));
         usuario_activo=0; usuario_id_activo=0;
         /* Restaurar el mapa antes de publicar resultado o liberar recursos. */
@@ -496,7 +512,7 @@ int nxk_usuario_reanudar_espacio(uint32_t id,uint32_t *marco,struct nxk_usuario_
     *salida=resultado; *cedido=cesion; *despertar=plazo; return 0;
 }
 static int usuario_ejecutar(unsigned modo) {
-    if (usuario_activo || modo>41) return -1;
+    if (usuario_activo || modo>42) return -1;
     uint32_t cr3_original; __asm__ volatile("mov %%cr3,%0":"=r"(cr3_original));
     if (cr3_original!=0x200000u) return -4;
     static uintptr_t codigo, pila_kernel, directorio_usuario, tabla_usuario, tabla_usuario_alta;
@@ -646,6 +662,10 @@ static int usuario_ejecutar(unsigned modo) {
         virtual_codigo=0x400000; entradas_activas=entradas_altas;
         privado[1]|=4;
     }
+    if (modo==42) {
+        const unsigned char flotante[]={0xd9,0xd0,0x31,0xc0,0xcd,0x80};
+        memcpy(bytes,flotante,sizeof(flotante)); /* FNOP, requiere FPU. */
+    }
     unsigned indice=(virtual_codigo/4096)%1024;
     memset((void *)(codigo+4096),0,4096);
     uint32_t antes_codigo=p[codigo/4096], antes_pila=p[codigo/4096+1];
@@ -668,7 +688,9 @@ static int usuario_ejecutar(unsigned modo) {
      * Darle margen de E/S sin ampliar el turno de los procesos gestionados. */
     usuario_limite=modo==17 ? USUARIO_DEMO_NEXTRY_TICKS : USUARIO_TURNO_TICKS;
     usuario_activo=1; fallo_vector=fallo_error=fallo_direccion=fallo_eip=fallo_ocurrido=fallo_pila=0;
+    uint32_t cr0_antes=preparar_cpl3((uint32_t)virtual_codigo);
     uint32_t resultado=nxk_usuario_entrar((uint32_t)virtual_codigo,(uint32_t)(virtual_codigo+8192));
+    restaurar_cr0(cr0_antes);
     uint32_t cr3_regreso; __asm__ volatile("mov %%cr3,%0":"=r"(cr3_regreso));
     __asm__ volatile("mov %0,%%cr3" :: "r"(cr3_original) : "memory");
     usuario_activo=0;
@@ -690,7 +712,7 @@ static int usuario_ejecutar(unsigned modo) {
     if (modo==7 && (fallo_vector!=14 || fallo_error!=7 || fallo_direccion!=codigo)) return -7;
     if (modo==5 && (fallo_vector!=14 || fallo_error!=7 || fallo_direccion!=directorio_usuario)) return -6;
     if ((nxk_usuario_cs_guardado&3)!=3) return -2;
-    if (modo && modo<10) return resultado==(0x80000000u|fallo_vector) ? (int)fallo_vector : -3;
+    if ((modo && modo<10) || modo==42) return resultado==(0x80000000u|fallo_vector) ? (int)fallo_vector : -3;
     return resultado==((modo==17 || modo==29) ? 0u : 42u) ? 0 : -2;
 }
 static uint32_t usuario_u32(const unsigned char *p) {
@@ -765,6 +787,13 @@ int nxk_usuario_caso_nulo(void) {
     return usuario_ejecutar(4)==14 && fallo_error==4 && !fallo_direccion ? 0 : -1;
 }
 int nxk_usuario_comprobar_fallos(void) {
+    uint32_t control,regreso,limite;
+    unsigned char valido;
+    __asm__ volatile("mov %%cr0,%0":"=r"(control));
+    if (usuario_ejecutar(42)!=7 || fallo_error) return 12;
+    __asm__ volatile("mov %%cr0,%0":"=r"(regreso));
+    __asm__ volatile("lsl %2,%0; setz %1":"=r"(limite),"=qm"(valido):"r"(43u):"cc");
+    if (regreso!=control || !valido || limite!=usuario_base+4095u) return 13;
     if (nxk_usuario_demo()) return 1;
     size_t antes=nxk_heap_used();
     const unsigned vectores[]={13,14,6,14,14,14,14,14,32}, errores[]={0,7,0,4,7,6,7,5,0};

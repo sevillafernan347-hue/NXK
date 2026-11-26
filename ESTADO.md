@@ -1,6 +1,6 @@
 # Estado de NXK
 
-Versión actual: 0.0.43. Cuatro procesos CPL3 con memoria privada, preempcion,
+Versión actual: 0.0.44. Cuatro procesos CPL3 con memoria privada, preempcion,
 esperas, mensajes, resultados, permisos y listas de archivos por proceso.
 Datos privados con proteccion RO/RW por pagina y validacion de buffers.
 Filtro saliente de mensajes por IDs completos y experimento grafico MINI NXK.
@@ -31,6 +31,10 @@ antes de entregar bytes. Consulta ENTREGA-LECTURA-DIFERIDA.md.
 El controlador ATA conserva las fases de la lectura entre turnos de
 procesos. `discos estado` identifica un sector pendiente o descartado.
 Consulta ENTREGA-ATA-COOPERATIVA.md.
+Toda entrada a CPL3 instala el límite de su página de código y bloquea
+los registros extendidos. Las lecturas completas de NXFS en procesos
+gestionados pueden ceder igual que las lecturas por tramos.
+Consulta ENTREGA-SEGURIDAD-CPL3.md.
 Siguientes hitos en PENDIENTES-KERNEL.md.
 
 Auditoria de procedencia: matriz alfanumerica de MINI NXK redibujada para el

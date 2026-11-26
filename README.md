@@ -1,7 +1,11 @@
 # NXK y NEXTRY
 
-Versión **0.0.43** · [Versiones e historial](VERSIONES.md) ·
+Versión **0.0.44** · [Versiones e historial](VERSIONES.md) ·
 [Cambios por entrega](CAMBIOS.md)
+
+NXK acota el segmento de código de las aplicaciones x86 y bloquea el
+estado extendido de CPU en todas las rutas CPL3. Consulta
+[la auditoría defensiva y las pruebas](ENTREGA-SEGURIDAD-CPL3.md).
 
 El controlador ATA puede repartir entre turnos la espera de un mismo sector.
 `proceso ejecutar N` permite elegir el presupuesto de turnos. Consulta

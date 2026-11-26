@@ -6,6 +6,7 @@
 #define NXK_PE_H
 #include <stddef.h>
 #include <stdint.h>
+/* Carga y ejecuta en ring 0. Solo binarios propios de confianza. */
 int nxk_pe_cargar(const unsigned char *datos, size_t longitud);
 int nxk_pe_demo(void);
 void nxk_pe_salida(const char *datos, uint32_t longitud);

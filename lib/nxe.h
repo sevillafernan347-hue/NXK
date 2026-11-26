@@ -20,6 +20,7 @@ typedef struct {
     void (*fallo)(uint32_t);
     void (*detener)(void);
 } NXE_API;
+/* NXE1 de confianza en ring 0. Para aplicaciones aisladas se usa NXE2. */
 int nxk_nxe_cargar(const unsigned char *datos, size_t longitud);
 int nxk_nxe_demo(void);
 #endif

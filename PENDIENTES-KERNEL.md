@@ -1,12 +1,12 @@
 # Trabajo restante del kernel
 
-Estado tras v0.0.43.
+Estado tras v0.0.44.
 
 | Area | Existe | Siguiente evidencia necesaria |
 | --- | --- | --- |
 | Procesos | Cuatro PCB CPL3, memoria privada, mensajes, resultados, permisos y espera para lecturas NXFS | Permisos por canal u objeto y más recursos por proceso |
 | Planificación | Tareas kernel, preempción CPL3 y lecturas NXFS con sondeo ATA acotado entre turnos | Esperas para otros dispositivos, secciones críticas y pruebas de carreras |
-| Memoria | Paginas fisicas, diagnostico de fragmentacion, guardas, espacios sobre paginas separadas, cuotas, buffers, lotes privados y permisos RO/RW de datos | Mapas mayores, asignacion por bytes, NX y memoria compartida |
+| Memoria | Páginas físicas, guardas, espacios privados, permisos RO/RW y límite de ejecución por segmento en CPL3 | NX por página mediante PAE, mapas mayores, asignación por bytes y memoria compartida |
 | Archivos | RAMFS, NXFS con montaje, verificación y lecturas diferidas, instantáneas NXPD1 | Archivos grandes, directorios, varios volúmenes y recuperación más amplia |
 | Hardware | BIOS, VGA texto, teclado basico, PIT, ATA PIO e inventario PCI | Controladores USB/red/audio/graficos, ECAM/ACPI y pruebas por dispositivo |
 | NEXTRY | Compilador a C y apps protegidas iniciales | Parametros/estructuras/punteros y migracion gradual de puentes C |

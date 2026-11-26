@@ -436,7 +436,8 @@ void kernel_main(void) {
     if (nxk_usuario_demo() || nxk_heap_used()!=heap_usuario) {
         print("NXK: USUARIO REUSO FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
     print("NXK: USUARIO RETORNO Y REUSO OK\n");
-    if (nxk_usuario_comprobar_fallos()) { print("NXK: USUARIO RECUPERACION FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
+    int recuperacion=nxk_usuario_comprobar_fallos();
+    if (recuperacion) { print("NXK: USUARIO RECUPERACION FAIL "); number((unsigned)recuperacion); put('\n'); out8(0xf4,0x11); nxk_es_detener(); }
     print("NXK: USUARIO RECUPERACION OK\n");
     if (nxk_usuario_probar_servicios()) { print("NXK: SERVICIOS USUARIO FAIL\n"); out8(0xf4,0x11); nxk_es_detener(); }
     print("NXK: SERVICIOS USUARIO OK\n");
