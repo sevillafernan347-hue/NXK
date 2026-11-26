@@ -56,7 +56,7 @@ struct nxk_volumen_lectura {
 };
 #define NXK_VOLUMEN_LECTURA_PENDIENTE 257
 int nxk_volumen_lectura_preparar(const char *nombre,struct nxk_volumen_lectura *salida);
-/* Hasta un sector. Pendiente no escribe en salida, igual que un error.
+/* Hasta un paso ATA. Pendiente no escribe en salida, igual que un error.
  * Solo el planificador x86 puede usar un ID y un destino kernel. */
 int nxk_volumen_lectura_paso(uint32_t id,const struct nxk_volumen_lectura *archivo,
                             uint32_t posicion,uint32_t capacidad,void *salida);

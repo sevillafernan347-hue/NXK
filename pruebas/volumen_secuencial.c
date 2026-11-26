@@ -7,7 +7,8 @@
 
 static unsigned char disco[10][512], temporal[4096], diferido[4096];
 static unsigned lecturas, reservas, visitas;
-static int fallar_reserva;
+static int fallar_reserva,pausar_lectura;
+static unsigned descartes;
 static uint32_t revision, generacion, fallar_lba=UINT32_MAX;
 
 int nxk_ata_identificar(unsigned unidad,struct nxk_ata_info *info) {
@@ -25,6 +26,11 @@ int nxk_ata_leer_sector(unsigned unidad,uint32_t lba,void *destino) {
     memcpy(destino,disco[lba],512);
     return 0;
 }
+int nxk_ata_lectura_paso(unsigned unidad,uint32_t lba,void *destino) {
+    if (pausar_lectura) return NXK_ATA_LECTURA_PENDIENTE;
+    return nxk_ata_leer_sector(unidad,lba,destino);
+}
+void nxk_ata_lectura_descartar(void) { ++descartes; }
 void *nxk_alloc(size_t bytes) {
     assert(bytes==sizeof(temporal) && reservas<2);
     if (fallar_reserva) return 0;
@@ -125,6 +131,13 @@ static void probar_lectura_diferida(void) {
     fallar_reserva=1;
     assert(nxk_volumen_lectura_paso(257,&a,0,256,salida)==-1 && !lecturas && reservas==1);
     fallar_reserva=0;
+    pausar_lectura=1;
+    unsigned antes=descartes;
+    assert(nxk_volumen_lectura_paso(257,&a,0,256,salida)==NXK_VOLUMEN_LECTURA_PENDIENTE && !lecturas);
+    nxk_volumen_lectura_olvidar(257);
+    assert(descartes==antes+1);
+    for (unsigned j=0;j<sizeof(salida);++j) assert(salida[j]==0xa5);
+    pausar_lectura=0;
     for (unsigned i=0;i<7;++i) {
         assert(nxk_volumen_lectura_paso(257,&a,0,256,salida)==NXK_VOLUMEN_LECTURA_PENDIENTE);
         assert(lecturas==i+1);

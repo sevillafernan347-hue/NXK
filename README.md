@@ -1,7 +1,11 @@
 # NXK y NEXTRY
 
-Versión **0.0.42** · [Versiones e historial](VERSIONES.md) ·
+Versión **0.0.43** · [Versiones e historial](VERSIONES.md) ·
 [Cambios por entrega](CAMBIOS.md)
+
+El controlador ATA puede repartir entre turnos la espera de un mismo sector.
+`proceso ejecutar N` permite elegir el presupuesto de turnos. Consulta
+[cómo funciona y cómo se comprobó](ENTREGA-ATA-COOPERATIVA.md).
 
 Los procesos NEXTRY pueden ceder el turno mientras NXFS lee y verifica un
 archivo. El kernel entrega el tramo al reanudar el proceso. Consulta

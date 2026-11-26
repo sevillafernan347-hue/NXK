@@ -3,6 +3,16 @@
 El detalle de todos los cambios permanece en el historial Git y los documentos
 de entrega. Las etiquetas no reemplazan los commits intermedios.
 
+## v0.0.43 · Lecturas ATA por pasos
+
+- NXFS gestionado puede repartir entre turnos la espera de un mismo
+  sector. El controlador conserva sus fases y plazos.
+- Las órdenes canceladas se drenan sin copiar el sector. Un fallo con
+  el canal todavía ocupado requiere reinicio antes de otra orden.
+- `proceso ejecutar N` admite de 1 a 1024 turnos o pasos sin procesos
+  listos. `discos estado` indica lecturas en curso o descartadas.
+- [Contrato y pruebas](ENTREGA-ATA-COOPERATIVA.md).
+
 ## v0.0.42 · Lecturas NXFS diferidas para procesos
 
 - Un proceso que solicita datos de NXFS puede esperar mientras avanzan otros

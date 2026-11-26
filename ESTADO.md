@@ -1,6 +1,6 @@
 # Estado de NXK
 
-Versión actual: 0.0.42. Cuatro procesos CPL3 con memoria privada, preempcion,
+Versión actual: 0.0.43. Cuatro procesos CPL3 con memoria privada, preempcion,
 esperas, mensajes, resultados, permisos y listas de archivos por proceso.
 Datos privados con proteccion RO/RW por pagina y validacion de buffers.
 Filtro saliente de mensajes por IDs completos y experimento grafico MINI NXK.
@@ -28,6 +28,9 @@ La consola permite avanzar a mano, consultar y cancelar la tarea.
 Las lecturas NXFS de procesos gestionados también avanzan entre turnos.
 El kernel protege las páginas de destino y comprueba la huella completa
 antes de entregar bytes. Consulta ENTREGA-LECTURA-DIFERIDA.md.
+El controlador ATA conserva las fases de la lectura entre turnos de
+procesos. `discos estado` identifica un sector pendiente o descartado.
+Consulta ENTREGA-ATA-COOPERATIVA.md.
 Siguientes hitos en PENDIENTES-KERNEL.md.
 
 Auditoria de procedencia: matriz alfanumerica de MINI NXK redibujada para el

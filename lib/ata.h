@@ -45,6 +45,14 @@ int nxk_ata_reiniciar(struct nxk_ata_reinicio *resultado);
 int nxk_ata_identificar(unsigned unidad,struct nxk_ata_info *info);
 /* Requiere identificar; destino de al menos 512 bytes, solo punteros kernel. */
 int nxk_ata_leer_sector(unsigned unidad,uint32_t lba,void *destino);
+/* Solo el lector gestionado de NXFS usa esta ruta. Cada paso comprueba
+ * hasta 32 estados. 1 pendiente; 0 copió el sector; negativo sin copia.
+ * El canal admite una petición. -7 indica otra petición aún activa. */
+#define NXK_ATA_LECTURA_PENDIENTE 1
+int nxk_ata_lectura_paso(unsigned unidad,uint32_t lba,void *destino);
+/* Si ya se emitió, terminar de atender la orden descartando los bytes. */
+void nxk_ata_lectura_descartar(void);
+void nxk_ata_lectura_drenar(void);
 /* Solo esclavo 1 identificado; origen de 512 bytes, puede estar desalineado.
  * El llamador debe validar que es un volumen propio escribible. Exito aun puede
  * estar en cache; sincronizar debe completar antes de anunciar persistencia. */

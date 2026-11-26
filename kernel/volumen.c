@@ -40,7 +40,7 @@ void nxk_volumen_desmontar(void) {
 #if defined(__i386__) || defined(NXK_VOLUMEN_PRUEBA_HOST)
     if (tarea.progreso.estado==NXK_VOLUMEN_TAREA_PENDIENTE)
         tarea.progreso.estado=NXK_VOLUMEN_TAREA_INVALIDADA;
-    lector.id=0;
+    nxk_volumen_lectura_olvidar(lector.id);
 #endif
     /* El buffer del heap fijo se reutiliza, pero sus bytes ya no son validos. */
     serie=0;
@@ -183,7 +183,10 @@ int nxk_volumen_lectura_preparar(const char *nombre,struct nxk_volumen_lectura *
 }
 
 void nxk_volumen_lectura_olvidar(uint32_t id) {
-    if (lector.id==id) lector.id=0;
+    if (id && lector.id==id) {
+        nxk_ata_lectura_descartar();
+        lector.id=0;
+    }
 }
 
 int nxk_volumen_lectura_paso(uint32_t id,const struct nxk_volumen_lectura *a,
@@ -198,6 +201,7 @@ int nxk_volumen_lectura_paso(uint32_t id,const struct nxk_volumen_lectura *a,
     if (!lector.datos) return -1;
     if (lector.id!=id || lector.lba!=a->lba || lector.revision!=a->revision ||
         (lector.avance==a->longitud && (!posicion || posicion!=lector.siguiente))) {
+        nxk_volumen_lectura_olvidar(lector.id);
         lector.id=id;
         lector.lba=a->lba;
         lector.revision=a->revision;
@@ -206,8 +210,10 @@ int nxk_volumen_lectura_paso(uint32_t id,const struct nxk_volumen_lectura *a,
     }
     if (lector.avance<a->longitud) {
         unsigned char *sector=lector.datos+lector.avance;
-        if (nxk_ata_leer_sector(1,a->lba+lector.avance/512,sector)) {
-            lector.id=0;
+        int r=nxk_ata_lectura_paso(1,a->lba+lector.avance/512,sector);
+        if (r==NXK_ATA_LECTURA_PENDIENTE) return NXK_VOLUMEN_LECTURA_PENDIENTE;
+        if (r<0) {
+            nxk_volumen_lectura_olvidar(id);
             return -1;
         }
         uint32_t n=a->longitud-lector.avance;

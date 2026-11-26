@@ -583,12 +583,18 @@ void kernel_main(void) {
     print("nxk> ");
     for (;;) {
         char ch = read_char();
-        if (!ch) { __asm__ volatile("pause"); continue; }
+        if (!ch) {
+#if defined(__i386__)
+            nxk_ata_lectura_drenar();
+#endif
+            __asm__ volatile("pause");
+            continue;
+        }
         if (ch == '\r' || ch == '\n') {
             put('\n'); line[length] = 0;
             if (nxk_equal(line, "help")) print("help | version | mem | tiempo | semaforos | mutex | tareas | usuario | usuario fallos | archivos | discos | discos estado | espacios | pci | pci red | pci almacenamiento | halt\nejecutar hola.nxe | ejecutar hola.exe\nproceso resumen | proceso dependencias | proceso dormir | proceso preempcion | proceso demo | proceso cargar nombre.nxe | proceso listar | proceso paso ID\nproceso ejecutar | proceso liberar ID\nproceso enviar ID VALOR | proceso cancelar ID\nproceso permisos ID MASCARA\nproceso memoria ID LIMITE\nproceso proteger ID BASE CANTIDAD ESCRITURA\nproceso destinos ID [ID1,ID2]\nproceso archivos ID [nombre1,nombre2]\nusuario espacios | usuario listar | usuario cargar archivo.nxe | usuario turno ID | usuario liberar ID\nusuario estado | usuario historial | usuario nulo | usuario bucle | usuario texto | usuario nextry\nejecutar usuario nombre.nxe\nvolumen montar | volumen estado | volumen desmontar | volumen listar | volumen leer nombre\n"
 #if defined(__i386__)
-                "volumen verificar | discos reiniciar\nvolumen iniciar nombre | volumen paso | volumen progreso | volumen cancelar\n"
+                "volumen verificar | discos reiniciar\nvolumen iniciar nombre | volumen paso | volumen progreso | volumen cancelar\nproceso ejecutar N (1..1024)\n"
 #endif
                 "escribir nombre texto | agregar nombre texto\nleer nombre | archivo info nombre | borrar nombre | renombrar nombre nuevo\ncopiar origen destino (a RAM, sin reemplazar)\npersistencia guardar | persistencia cargar (reemplaza RAM)\nmutex recuperar | tareas resumen | tareas estadisticas | tareas bloqueos | tareas resultados | tareas mensajes | tareas flujo | tareas ocho | tareas preparar | tareas listar | tareas paso\ntareas ejecutar | tareas cancelar ID | tareas limpiar\n");
             else if (nxk_equal(line, "ejecutar hola.nxe")) {
@@ -757,6 +763,8 @@ void kernel_main(void) {
                     number(d.resultado<0 ? (uint32_t)-d.resultado : (uint32_t)d.resultado);
                     print(" estado "); hexadecimal(d.estado); print(" sondeos "); number(d.sondeos);
 #if defined(__i386__)
+                    if (d.resultado==NXK_ATA_LECTURA_PENDIENTE) print(" pendiente");
+                    if (d.resultado==-8) print(" descartada");
                     if (d.limite)
                         print(d.limite==NXK_ATA_LIMITE_PIT ? " limite PIT" : " limite sondeos");
 #endif
@@ -839,9 +847,19 @@ void kernel_main(void) {
                 if (!leer_id(line+13,&id) || nxk_proceso_paso(id)) print("No se pudo ejecutar proceso.\n");
                 else { struct nxk_proceso_info p; if (!nxk_proceso_consultar(id,&p)) { print("Proceso "); number(id); print(" estado "); number(p.estado); put('\n'); usuario_resultado(&p.ultimo); } }
             }
-            else if (nxk_equal(line,"proceso ejecutar")) {
-                int r=nxk_procesos_ejecutar(32);
-                print(r<0 ? "Fallo al ejecutar procesos.\n" : r==2 ? "Procesos esperando plazo, mensaje o proceso; vuelve a ejecutar para continuar.\n" : r ? "Presupuesto agotado; quedan procesos listos.\n" : "Procesos sin pendientes.\n");
+            else if (nxk_equal(line,"proceso ejecutar") || prefijo(line,"proceso ejecutar ")) {
+                uint32_t presupuesto=32;
+                if (line[16] && (!leer_id(line+17,&presupuesto) || presupuesto>1024)) {
+                    print("Presupuesto invalido. Usa un valor de 1 a 1024.\n");
+                } else {
+                    int r=nxk_procesos_ejecutar(presupuesto);
+                    if (r==1) {
+                        struct nxk_procesos_resumen resumen;
+                        if (!nxk_procesos_resumen(&resumen) && resumen.estados[NXK_PROCESO_ESPERANDO_DISCO])
+                            print("Presupuesto agotado; quedan lecturas de disco pendientes.\n");
+                        else print("Presupuesto agotado; quedan procesos listos.\n");
+                    } else print(r<0 ? "Fallo al ejecutar procesos.\n" : r==2 ? "Procesos esperando plazo, mensaje o proceso; vuelve a ejecutar para continuar.\n" : "Procesos sin pendientes.\n");
+                }
             }
             else if (prefijo(line,"proceso liberar ")) {
                 uint32_t id;

@@ -1,11 +1,11 @@
 # Trabajo restante del kernel
 
-Estado tras v0.0.42.
+Estado tras v0.0.43.
 
 | Area | Existe | Siguiente evidencia necesaria |
 | --- | --- | --- |
 | Procesos | Cuatro PCB CPL3, memoria privada, mensajes, resultados, permisos y espera para lecturas NXFS | Permisos por canal u objeto y más recursos por proceso |
-| Planificación | Tareas kernel, preempción CPL3 y lecturas NXFS entre turnos | Esperas para otros dispositivos, secciones críticas y pruebas de carreras |
+| Planificación | Tareas kernel, preempción CPL3 y lecturas NXFS con sondeo ATA acotado entre turnos | Esperas para otros dispositivos, secciones críticas y pruebas de carreras |
 | Memoria | Paginas fisicas, diagnostico de fragmentacion, guardas, espacios sobre paginas separadas, cuotas, buffers, lotes privados y permisos RO/RW de datos | Mapas mayores, asignacion por bytes, NX y memoria compartida |
 | Archivos | RAMFS, NXFS con montaje, verificación y lecturas diferidas, instantáneas NXPD1 | Archivos grandes, directorios, varios volúmenes y recuperación más amplia |
 | Hardware | BIOS, VGA texto, teclado basico, PIT, ATA PIO e inventario PCI | Controladores USB/red/audio/graficos, ECAM/ACPI y pruebas por dispositivo |
@@ -20,9 +20,10 @@ y terminal con teclado; faltan raton, ventanas y aplicaciones graficas.
 ATA valida inicio y cierre de lectura/IDENTIFY. Sus plazos usan el reloj PIT
 y el límite de sondeos sigue activo. `discos estado` consulta la fase y el
 límite alcanzado sin acceder al disco. El canal primario se puede reiniciar
-manualmente. Cada paso NXFS aún usa una lectura ATA PIO síncrona.
-Quedan pendientes IRQ, DMA y AHCI. Un fallo al escribir no revierte bytes
-enviados al disco.
+manualmente. Las lecturas NXFS gestionadas avanzan por sondeos acotados.
+La transferencia de 256 palabras y las operaciones de consola siguen
+siendo síncronas. Quedan pendientes IRQ, DMA y AHCI. Un fallo al escribir
+no revierte bytes enviados al disco.
 
 El siguiente bloque propuesto es espera de dispositivos, recursos por proceso
 y permisos por canal/objeto. Los permisos generales y filtros por nombre ya existen. IPC de valores uint32 ya espera espacio al enviar y permite

@@ -8,6 +8,14 @@ static uint32_t revision_esclavo;
 static uint32_t generacion_canal;
 static int reinicio_pendiente;
 static struct nxk_ata_diagnostico diagnosticos[2];
+struct espera_ata { uint32_t inicio,sondeos; };
+/* Guarda el sector en el controlador. Nunca conserva el puntero del llamador. */
+static struct {
+    struct espera_ata espera;
+    unsigned unidad;
+    int activa,descartada;
+    uint16_t datos[256];
+} lectura;
 uint32_t nxk_ata_revision_esclavo(void) { return revision_esclavo; }
 uint32_t nxk_ata_generacion_canal(void) { return generacion_canal; }
 static void cambiar_revision_esclavo(void) {
@@ -65,6 +73,10 @@ int nxk_ata_reiniciar(struct nxk_ata_reinicio *resultado) {
     cambiar_revision_esclavo();
     if (generacion_canal!=UINT32_MAX) ++generacion_canal;
     reinicio_pendiente=1;
+    if (lectura.activa) {
+        terminar(&diagnosticos[lectura.unidad],-8);
+        lectura.activa=0;
+    }
     salida(0x3f6,0x06);
     resultado->emitido=1;
     r=esperar_ticks(nxk_reloj_ticks(),2);
@@ -112,43 +124,119 @@ int nxk_ata_reiniciar(struct nxk_ata_reinicio *resultado) {
     return 0;
 }
 
-/* Misma politica para todas las fases. El diagnostico guarda el ultimo sondeo;
- * no releer Status al consultar, pues podria ocultar la causa original. */
-static int esperar(struct nxk_ata_diagnostico *d,unsigned fase,int datos) {
+static void empezar_espera(struct nxk_ata_diagnostico *d,struct espera_ata *e,unsigned fase) {
     d->fase=fase;
-    /* PIT a unos 100 Hz. FLUSH puede tardar mas que una transferencia. */
-    const uint32_t plazo=d->comando==0xe7 && fase==3 ? 1000 : 200;
-    const uint32_t inicio=nxk_reloj_ticks();
-    for (unsigned i=0;i<1000000;++i) {
-        uint8_t s=entrada(0x1f7);
-        d->estado=s; ++d->sondeos;
-        if (!s || s==0xff) return -2;
-        if (!(s&0x80)) {
-            /* En fase previa se acepta ERR residual, pero DF sigue siendo fallo. */
-            if ((s&0x20) || (fase!=1 && (s&1))) {
-                /* Error requiere BSY=DRQ=0 y ERR=1. */
-                if ((s&9)==1) { d->error=entrada(0x1f1); d->error_valido=1; }
-                return -3;
-            }
-            /* Esperar DRQ en datos y su desactivacion en previa y cierre. */
-            if (datos ? (s&8)!=0 : (s&8)==0) return 0;
+    *e=(struct espera_ata){nxk_reloj_ticks(),0};
+}
+/* Un sondeo: misma politica para las rutas sincrona y cooperativa. */
+static int sondear(struct nxk_ata_diagnostico *d,struct espera_ata *e,int datos) {
+    uint8_t s=entrada(0x1f7);
+    d->estado=s; ++d->sondeos; ++e->sondeos;
+    if (!s || s==0xff) return -2;
+    if (!(s&0x80)) {
+        /* En fase previa se acepta ERR residual. Error exige BSY=DRQ=0. */
+        if ((s&0x20) || (d->fase!=1 && (s&1))) {
+            if ((s&9)==1) { d->error=entrada(0x1f1); d->error_valido=1; }
+            return -3;
         }
-        /* La resta modular admite el reinicio del contador al desbordar.
-         * El limite de sondeos tambien funciona si no llegan ticks. */
-        if ((i&31u)==31u && nxk_reloj_ticks()-inicio>=plazo) {
-            d->limite=NXK_ATA_LIMITE_PIT;
-            return -4;
-        }
+        if (datos ? (s&8)!=0 : (s&8)==0) return 0;
     }
-    d->limite=NXK_ATA_LIMITE_SONDEOS;
-    return -4;
+    /* PIT a unos 100 Hz. FLUSH puede tardar mas que una transferencia. */
+    unsigned plazo=d->comando==0xe7 && d->fase==3 ? 1000 : 200;
+    if (!(e->sondeos&31u) && nxk_reloj_ticks()-e->inicio>=plazo) {
+        d->limite=NXK_ATA_LIMITE_PIT;
+        return -4;
+    }
+    if (e->sondeos==1000000) {
+        d->limite=NXK_ATA_LIMITE_SONDEOS;
+        return -4;
+    }
+    return NXK_ATA_LECTURA_PENDIENTE;
+}
+static int esperar(struct nxk_ata_diagnostico *d,unsigned fase,int datos) {
+    struct espera_ata espera;
+    empezar_espera(d,&espera,fase);
+    int r;
+    do { r=sondear(d,&espera,datos); } while (r==NXK_ATA_LECTURA_PENDIENTE);
+    return r;
 }
 static void leer_palabras(uint16_t *p) {
     for (unsigned i=0;i<256;++i) p[i]=entrada_palabra();
 }
+static void emitir_sector(struct nxk_ata_diagnostico *d) {
+    salida(0x1f2,1); salida(0x1f3,(uint8_t)d->lba);
+    salida(0x1f4,(uint8_t)(d->lba>>8)); salida(0x1f5,(uint8_t)(d->lba>>16));
+    salida(0x1f7,(uint8_t)d->comando); d->emitido=1; pausa();
+}
+
+static int avanzar_lectura(void *destino) {
+    struct nxk_ata_diagnostico *d=&diagnosticos[lectura.unidad];
+    for (unsigned i=0;i<32;++i) {
+        int r=sondear(d,&lectura.espera,d->fase==2);
+        if (r==NXK_ATA_LECTURA_PENDIENTE) continue;
+        if (r<0) {
+            /* Una orden emitida que aun retiene el bus exige SRST. */
+            if (d->emitido && d->estado!=0xff && (d->estado&0x88)) reinicio_pendiente=1;
+        } else if (d->fase==1) {
+            emitir_sector(d);
+            empezar_espera(d,&lectura.espera,2);
+            continue;
+        } else if (d->fase==2) {
+            leer_palabras(lectura.datos);
+            pausa();
+            empezar_espera(d,&lectura.espera,3);
+            continue;
+        } else if (lectura.descartada) r=-8;
+        else memcpy(destino,lectura.datos,512);
+        lectura.activa=0;
+        return terminar(d,r);
+    }
+    return NXK_ATA_LECTURA_PENDIENTE;
+}
+
+int nxk_ata_lectura_paso(unsigned unidad,uint32_t lba,void *destino) {
+    if (unidad>1 || !destino || !capacidad[unidad] || lba>=capacidad[unidad] || lba>=0x10000000u) return -1;
+    if (reinicio_pendiente) return -6;
+    if (lectura.activa) {
+        if (lectura.descartada) {
+            nxk_ata_lectura_drenar();
+            return NXK_ATA_LECTURA_PENDIENTE;
+        }
+        if (unidad!=lectura.unidad || lba!=diagnosticos[unidad].lba) return -7;
+    } else {
+        struct nxk_ata_diagnostico *d=iniciar(unidad,0x20,lba);
+        d->resultado=NXK_ATA_LECTURA_PENDIENTE;
+        lectura.activa=1;
+        lectura.descartada=0;
+        lectura.unidad=unidad;
+        salida(0x1f6,(uint8_t)(0xe0|(unidad<<4)|(lba>>24))); pausa();
+        empezar_espera(d,&lectura.espera,1);
+    }
+    return avanzar_lectura(destino);
+}
+
+void nxk_ata_lectura_descartar(void) {
+    if (!lectura.activa) return;
+    struct nxk_ata_diagnostico *d=&diagnosticos[lectura.unidad];
+    if (d->emitido) lectura.descartada=1;
+    else { lectura.activa=0; terminar(d,-8); }
+}
+
+void nxk_ata_lectura_drenar(void) {
+    if (lectura.activa && lectura.descartada) avanzar_lectura(0);
+}
+
+/* Las rutas de consola y arranque son sincrónicas. Si deben usar el canal,
+ * cierran el comando previo sin publicar. NXFS retoma ese sector después. */
+static int liberar_canal(void) {
+    nxk_ata_lectura_descartar();
+    while (lectura.activa) nxk_ata_lectura_drenar();
+    return reinicio_pendiente ? -6 : 0;
+}
+
 int nxk_ata_identificar(unsigned unidad,struct nxk_ata_info *info) {
     if (unidad>1 || !info) return -1;
-    if (reinicio_pendiente) return -6;
+    if (liberar_canal()) return -6;
     if (unidad==1) cambiar_revision_esclavo();
     struct nxk_ata_diagnostico *d=iniciar(unidad,0xec,0);
     capacidad[unidad]=0;
@@ -179,12 +267,11 @@ int nxk_ata_identificar(unsigned unidad,struct nxk_ata_info *info) {
 }
 int nxk_ata_leer_sector(unsigned unidad,uint32_t lba,void *destino) {
     if (unidad>1 || !destino || !capacidad[unidad] || lba>=capacidad[unidad] || lba>=0x10000000u) return -1;
+    if (liberar_canal()) return -6;
     struct nxk_ata_diagnostico *d=iniciar(unidad,0x20,lba);
     salida(0x1f6,(uint8_t)(0xe0|(unidad<<4)|(lba>>24))); pausa();
     int r=esperar(d,1,0); if (r) return terminar(d,r);
-    salida(0x1f2,1); salida(0x1f3,(uint8_t)lba);
-    salida(0x1f4,(uint8_t)(lba>>8)); salida(0x1f5,(uint8_t)(lba>>16));
-    salida(0x1f7,0x20); d->emitido=1; pausa();
+    emitir_sector(d);
     r=esperar(d,2,1); if (r) return terminar(d,r);
     uint16_t datos[256]; leer_palabras(datos);
     /* Conservar destino intacto hasta completar tambien la fase final del disco. */
@@ -195,14 +282,13 @@ int nxk_ata_leer_sector(unsigned unidad,uint32_t lba,void *destino) {
  * El llamador valida formato y autorizacion del volumen antes de llegar aqui. */
 int nxk_ata_escribir_sector(unsigned unidad,uint32_t lba,const void *origen) {
     if (unidad!=1 || !origen || !capacidad[1] || lba>=capacidad[1] || lba>=0x10000000u) return -1;
+    if (liberar_canal()) return -6;
     cambiar_revision_esclavo();
     struct nxk_ata_diagnostico *d=iniciar(unidad,0x30,lba);
     uint16_t datos[256]; memcpy(datos,origen,512);
     salida(0x1f6,(uint8_t)(0xf0|(lba>>24))); pausa();
     int r=esperar(d,1,0); if (r) return terminar(d,r);
-    salida(0x1f2,1); salida(0x1f3,(uint8_t)lba);
-    salida(0x1f4,(uint8_t)(lba>>8)); salida(0x1f5,(uint8_t)(lba>>16));
-    salida(0x1f7,0x30); d->emitido=1; pausa(); /* WRITE SECTORS, exactamente 512 bytes. */
+    emitir_sector(d); /* WRITE SECTORS, exactamente 512 bytes. */
     r=esperar(d,2,1); if (r) return terminar(d,r);
     for (unsigned i=0;i<256;++i)
         salida_palabra(datos[i]);
@@ -210,6 +296,7 @@ int nxk_ata_escribir_sector(unsigned unidad,uint32_t lba,const void *origen) {
 }
 int nxk_ata_sincronizar(unsigned unidad) {
     if (unidad!=1 || !capacidad[1]) return -1;
+    if (liberar_canal()) return -6;
     struct nxk_ata_diagnostico *d=iniciar(unidad,0xe7,0);
     salida(0x1f6,0xf0); pausa();
     int r=esperar(d,1,0); if (r) return terminar(d,r);

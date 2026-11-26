@@ -165,6 +165,77 @@ static void probar_srst(void) {
               "IDENTIFY vuelve a funcionar tras recuperar el canal");
 }
 
+static void probar_lectura_cooperativa(void) {
+    struct nxk_ata_diagnostico d;
+    struct nxk_ata_reinicio informe;
+    unsigned char a[512],b[512];
+    memset(a,0xa5,sizeof(a));
+    memset(b,0xa5,sizeof(b));
+    reiniciar();
+    secuencia(0,0x80,0x80,0x80);
+    comprobar(nxk_ata_lectura_paso(0,9,a)==1 && sim.consultas[0]==32 &&
+              !sim.comandos && centinela(a,sizeof(a)),
+              "LECTURA: un paso acotado aun antes del comando");
+    unsigned io=sim.io;
+    comprobar(nxk_ata_lectura_paso(0,10,a)==-7 && sim.io==io &&
+              !nxk_ata_consultar(0,&d) && d.resultado==1 && d.sondeos==32,
+              "LECTURA: otro sector no reemplaza el comando ni su diagnostico");
+    secuencia(0,0x50,0x50,0x50);
+    secuencia(1,0x80,0x80,0x80);
+    comprobar(nxk_ata_lectura_paso(0,9,b)==1 && sim.consultas[0]==33 &&
+              sim.consultas[1]==31 && sim.comandos==1 && !sim.lecturas,
+              "LECTURA: el presupuesto se comparte entre las fases");
+    secuencia(1,0x58,0x58,0x58);
+    secuencia(2,0x80,0x80,0x80);
+    comprobar(nxk_ata_lectura_paso(0,9,b)==1 && sim.consultas[2]==31 &&
+              sim.lecturas==256 && centinela(a,sizeof(a)) && centinela(b,sizeof(b)),
+              "LECTURA: ninguna copia hasta cerrar BSY y DRQ");
+    secuencia(2,0x50,0x50,0x50);
+    comprobar(!nxk_ata_lectura_paso(0,9,b) && centinela(a,sizeof(a)) &&
+              b[0]==0 && b[1]==0x12 && b[510]==0xff && b[511]==0x12 &&
+              sim.comandos==1 && sim.lecturas==256,
+              "LECTURA: el destino se entrega solo en el paso final");
+
+    reiniciar();
+    secuencia(0,0x80,0x80,0x80);
+    comprobar(nxk_ata_lectura_paso(0,9,a)==1,"LECTURA: espera antes de emitir");
+    nxk_ata_lectura_descartar();
+    io=sim.io;
+    nxk_ata_lectura_drenar();
+    comprobar(sim.io==io && !sim.comandos && !nxk_ata_consultar(0,&d) && d.resultado==-8,
+              "LECTURA: cancelar antes de emitir no accede mas al disco");
+    reiniciar();
+    secuencia(1,0x80,0x80,0x80);
+    comprobar(nxk_ata_lectura_paso(0,9,a)==1 && sim.comandos==1,"LECTURA: espera tras emitir");
+    nxk_ata_lectura_descartar();
+    secuencia(1,0x58,0x58,0x58);
+    nxk_ata_lectura_drenar();
+    comprobar(!nxk_ata_consultar(0,&d) && d.resultado==-8 &&
+              sim.comandos==1 && sim.lecturas==256 && centinela(a,sizeof(a)),
+              "LECTURA: una orden cancelada se drena sin copiar ni volver a emitir");
+
+    reiniciar();
+    secuencia(0,0x80,0x80,0x80);
+    comprobar(nxk_ata_lectura_paso(0,9,a)==1,"LECTURA: espera compatible con ruta sincrona");
+    secuencia(0,0x50,0x50,0x50);
+    comprobar(!nxk_ata_leer_sector(0,10,b) && sim.comandos==1 && centinela(a,sizeof(a)),
+              "LECTURA: una operacion sincrona puede ceder paso a otro sector");
+
+    reiniciar();
+    secuencia(1,0x80,0x80,0x80);
+    sim.ticks=UINT32_MAX-100;
+    comprobar(nxk_ata_lectura_paso(0,9,a)==1,"LECTURA: inicia el plazo con reloj proximo al desborde");
+    sim.ticks+=200;
+    comprobar(nxk_ata_lectura_paso(0,9,a)==-4 && centinela(a,sizeof(a)) &&
+              !nxk_ata_consultar(0,&d) && d.limite==NXK_ATA_LIMITE_PIT && d.fase==2,
+              "LECTURA: reconoce un plazo vencido entre pasos");
+    io=sim.io;
+    comprobar(nxk_ata_lectura_paso(0,10,b)==-6 && nxk_ata_leer_sector(0,10,b)==-6 &&
+              sim.io==io,"LECTURA: un comando ocupado obliga a recuperar el canal");
+    preparar_srst();
+    comprobar(!nxk_ata_reiniciar(&informe) && informe.emitido,"LECTURA: SRST recupera el canal");
+}
+
 int main(void) {
     struct nxk_ata_info info;
     struct nxk_ata_diagnostico d,anterior,otra;
@@ -405,6 +476,7 @@ int main(void) {
               d.limite==NXK_ATA_LIMITE_NINGUNO,
               "Una operacion exitosa limpia el motivo anterior");
     probar_srst();
+    probar_lectura_cooperativa();
     printf("ATA HOST: %u comprobaciones, %u fallos\n",casos,fallos);
     return fallos ? 1 : 0;
 }

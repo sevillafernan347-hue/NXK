@@ -43,10 +43,21 @@ def arrancar_lector(m, esperado):
 
 
 def terminar_lector(m, id):
-    respuesta = m.comando('proceso ejecutar', b'Procesos sin pendientes.')
+    respuesta = m.comando('proceso ejecutar 1024', b'Procesos sin pendientes.')
     assert b'IO_RESULTADO' in respuesta, respuesta
     assert m.info(id)['estado'] == 3
     m.liberar(id)
+
+
+def comprobar_drenaje(anterior, actual):
+    if anterior == actual:
+        return
+    # Una orden en vuelo puede cerrar al descartar, siempre con el mismo LBA.
+    previo = next(linea for linea in anterior.splitlines() if linea.startswith(b'IDE 1 '))
+    nuevo = next(linea for linea in actual.splitlines() if linea.startswith(b'IDE 1 '))
+    assert previo.split(b' fase ')[0] == nuevo.split(b' fase ')[0], (previo, nuevo)
+    assert b' resultado 1 ' in previo and previo.endswith(b' pendiente'), previo
+    assert b' resultado -8 ' in nuevo and nuevo.endswith(b' descartada'), nuevo
 
 
 def main():
@@ -77,7 +88,7 @@ def main():
         m.comando('proceso resumen', b' disco 2')
         for base in (BASE, BASE + 4096):
             m.comando(f'proceso proteger {a} {base} 1 0', b'No se pudo cambiar proteccion.')
-        respuesta = m.comando('proceso ejecutar', b'Procesos sin pendientes.')
+        respuesta = m.comando('proceso ejecutar 1024', b'Procesos sin pendientes.')
         assert respuesta.count(b'IO_RESULTADO') == 2, respuesta
         assert b'Proceso NEXTRY: terminado' in respuesta
         for id in (a, b, otro):
@@ -88,9 +99,15 @@ def main():
         a = arrancar_lector(m, 16)
         m.paso(a, DISCO)
         disco = m.comando('discos estado')
+        for argumento in ('0', '1025', '1 2'):
+            m.comando(f'proceso ejecutar {argumento}', b'Presupuesto invalido.')
+        assert disco == m.comando('discos estado')
+        m.comando('proceso ejecutar 1', b'quedan lecturas de disco pendientes.')
+        assert m.info(a)['estado'] == DISCO
+        disco = m.comando('discos estado')
         m.cancelar(a)
         m.comando('proceso ejecutar', b'Procesos sin pendientes.')
-        assert disco == m.comando('discos estado')
+        comprobar_drenaje(disco, m.comando('discos estado'))
         m.liberar(a)
 
         b = arrancar_lector(m, DENEGADO)
@@ -99,7 +116,7 @@ def main():
         m.comando(f'proceso permisos {b} 13', b'Permisos restringidos.')
         disco = m.comando('discos estado')
         terminar_lector(m, b)
-        assert disco == m.comando('discos estado')
+        comprobar_drenaje(disco, m.comando('discos estado'))
 
         a = arrancar_lector(m, DENEGADO)
         m.paso(a, DISCO)
@@ -111,7 +128,7 @@ def main():
         m.comando('volumen desmontar', b'Volumen NXFS desmontado.')
         disco = m.comando('discos estado')
         terminar_lector(m, a)
-        assert disco == m.comando('discos estado')
+        comprobar_drenaje(disco, m.comando('discos estado'))
 
         # Remontar antes de despachar tampoco recupera una peticion antigua.
         m.comando('volumen montar', b'Volumen NXFS montado')
@@ -121,10 +138,10 @@ def main():
         m.comando('volumen montar', b'Volumen NXFS montado')
         disco = m.comando('discos estado')
         terminar_lector(m, a)
-        assert disco == m.comando('discos estado')
+        comprobar_drenaje(disco, m.comando('discos estado'))
 
         a = m.cargar('mostrar.nxe')
-        respuesta = m.comando('proceso ejecutar', b'Procesos sin pendientes.')
+        respuesta = m.comando('proceso ejecutar 1024', b'Procesos sin pendientes.')
         assert datos in respuesta, respuesta
         assert m.info(a)['estado'] == 3
         m.liberar(a)
